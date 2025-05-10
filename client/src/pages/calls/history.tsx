@@ -18,7 +18,8 @@ import { Slider } from "@/components/ui/slider";
 
 export default function CallsHistoryPage() {
   // State for filters
-  const [durationRange, setDurationRange] = useState<[number, number]>([5, 10]);
+  const [minDuration, setMinDuration] = useState<number>(5);
+  const [maxDuration, setMaxDuration] = useState<number>(10);
   const [callerPhoneFilter, setCallerPhoneFilter] = useState<string>("");
   const [calleePhoneFilter, setCalleePhoneFilter] = useState<string>("");
   const [agentFilter, setAgentFilter] = useState<string>("all");
@@ -34,7 +35,7 @@ export default function CallsHistoryPage() {
   const filteredCalls = calls?.filter((call) => {
     // Filter by duration
     const callDurationMinutes = Math.floor(call.duration / 60);
-    if (callDurationMinutes < durationRange[0] || callDurationMinutes > durationRange[1]) {
+    if (callDurationMinutes < minDuration || callDurationMinutes > maxDuration) {
       return false;
     }
     
@@ -161,19 +162,31 @@ export default function CallsHistoryPage() {
           </div>
           
           <div className="mb-6">
-            <div className="flex flex-col space-y-2 mb-4">
-              <Slider
-                defaultValue={durationRange}
-                min={0}
-                max={60}
-                step={1}
-                value={durationRange}
-                onValueChange={(values) => setDurationRange(values as [number, number])}
-                className="w-full"
-              />
-              <div className="flex justify-between text-xs text-gray-500">
-                <span>Min duration: {durationRange[0]} mins</span>
-                <span>Max duration: {durationRange[1]} mins</span>
+            <div className="flex flex-col space-y-6 mb-4">
+              <div>
+                <div className="text-xs text-gray-500 mb-2">Min duration: {minDuration} mins</div>
+                <Slider
+                  defaultValue={[minDuration]}
+                  min={0}
+                  max={60}
+                  step={1}
+                  value={[minDuration]}
+                  onValueChange={(values) => setMinDuration(values[0])}
+                  className="w-full bg-blue-100"
+                />
+              </div>
+              
+              <div>
+                <div className="text-xs text-gray-500 mb-2">Max duration: {maxDuration} mins</div>
+                <Slider
+                  defaultValue={[maxDuration]}
+                  min={0}
+                  max={60}
+                  step={1}
+                  value={[maxDuration]}
+                  onValueChange={(values) => setMaxDuration(values[0])}
+                  className="w-full bg-blue-100"
+                />
               </div>
             </div>
             
