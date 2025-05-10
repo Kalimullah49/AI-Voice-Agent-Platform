@@ -26,8 +26,8 @@ export default function Header() {
   return (
     <header className="bg-white shadow-sm">
       <div className="px-4 sm:px-6 md:px-8 py-4 flex justify-between items-center">
-        <h1 className="text-lg font-semibold text-gray-900">{getPageTitle()}</h1>
-        <div className="ml-4 flex items-center md:ml-6">
+        <div></div>
+        <div className="flex items-center">
           <Button 
             variant="ghost" 
             size="icon"
