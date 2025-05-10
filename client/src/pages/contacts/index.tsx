@@ -231,8 +231,7 @@ export default function ContactsPage() {
         city,
         state,
         country,
-        zipCode,
-        dnc: false
+        zipCode
       };
       
       createContactMutation.mutate(contactData);
@@ -264,7 +263,6 @@ export default function ContactsPage() {
             <Tabs defaultValue="groups" onValueChange={setActiveTab}>
               <TabsList>
                 <TabsTrigger value="groups">Groups</TabsTrigger>
-                <TabsTrigger value="dnc">DNC</TabsTrigger>
               </TabsList>
             </Tabs>
             
@@ -402,7 +400,6 @@ export default function ContactsPage() {
             <Input placeholder="Filter address" />
             <Input placeholder="Filter state" />
             <Input placeholder="Filter zip code" />
-            <Input placeholder="Filter DNC" />
           </div>
           
           <div className="flex justify-between items-center mb-4">
@@ -688,7 +685,6 @@ export default function ContactsPage() {
                     <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                     <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
                     <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
-                    <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DNC</th>
                     <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
@@ -698,7 +694,6 @@ export default function ContactsPage() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{contact.name}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{contact.phoneNumber}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{contact.address || 'N/A'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{contact.dnc ? 'Yes' : 'No'}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         <Button 
                           variant="ghost" 
