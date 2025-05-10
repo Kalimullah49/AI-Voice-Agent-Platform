@@ -31,13 +31,11 @@ export default function CreateActionPage() {
   
   const createAction = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("/api/actions", {
-        method: "POST",
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-      } as RequestInit);
+      return await apiRequest(
+        "POST",
+        "/api/actions",
+        data
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/actions"] });

@@ -6,7 +6,7 @@ import { TableSkeleton } from "@/components/ui/skeleton";
 import { useLocation } from "wouter";
 
 export default function ActionsPage() {
-  const { data: actions, isLoading, error } = useQuery({
+  const { data: actions, isLoading, error } = useQuery<any[]>({
     queryKey: ["/api/actions"],
   });
   
