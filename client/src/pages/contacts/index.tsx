@@ -517,10 +517,163 @@ export default function ContactsPage() {
           </div>
           
           <div className="flex items-center justify-center mb-4">
-            <Button variant="outline" className="text-gray-600 flex items-center gap-2">
-              <PlusIcon className="h-4 w-4" />
+            <Button 
+              variant="outline" 
+              className="text-gray-600 flex items-center gap-2"
+              onClick={() => setShowUploadDialog(true)}
+            >
+              <UploadCloud className="h-4 w-4" />
               Import from CSV
             </Button>
+            
+            {/* CSV Upload Dialog */}
+            <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+              <DialogContent className="sm:max-w-[600px]">
+                <DialogHeader>
+                  <DialogTitle>Import Contacts from CSV</DialogTitle>
+                  <DialogDescription>
+                    Upload a CSV file with contact information
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="py-4">
+                  {uploadStep === 1 && (
+                    <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-12">
+                      <input
+                        type="file"
+                        accept=".csv"
+                        ref={fileInputRef}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                          if (e.target.files && e.target.files[0]) {
+                            const file = e.target.files[0];
+                            setUploadedFile(file);
+                            
+                            // Read the file
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                              if (event.target?.result) {
+                                try {
+                                  // Parse CSV data
+                                  const text = event.target.result as string;
+                                  const lines = text.split('\n');
+                                  const headers = lines[0].split(',').map(h => h.trim());
+                                  
+                                  const parsedData = [];
+                                  for (let i = 1; i < lines.length; i++) {
+                                    if (lines[i].trim() === '') continue;
+                                    
+                                    const values = lines[i].split(',').map(v => v.trim());
+                                    const entry: any = {};
+                                    
+                                    headers.forEach((header, index) => {
+                                      entry[header] = values[index] || '';
+                                    });
+                                    
+                                    parsedData.push(entry);
+                                  }
+                                  
+                                  setCsvData(parsedData);
+                                  setUploadStep(2);
+                                } catch (error) {
+                                  toast({
+                                    title: "Error parsing CSV",
+                                    description: "Please make sure the file is a valid CSV format.",
+                                    variant: "destructive"
+                                  });
+                                }
+                              }
+                            };
+                            reader.readAsText(file);
+                          }
+                        }}
+                        className="hidden"
+                      />
+                      <UploadCloud className="h-12 w-12 text-gray-400 mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-1">Drag 'n' drop files here, or click to select</h3>
+                      <p className="text-sm text-gray-500 mb-4">You can upload a CSV file (up to 120 MB each)</p>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        Select File
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {uploadStep === 2 && (
+                    <div>
+                      <h3 className="text-lg font-medium mb-4">Review your data</h3>
+                      <div className="border rounded-md overflow-hidden mb-4">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead>
+                            <tr>
+                              <th className="px-4 py-2 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">First Name</th>
+                              <th className="px-4 py-2 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">Last Name</th>
+                              <th className="px-4 py-2 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">Phone Number</th>
+                              <th className="px-4 py-2 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">Address</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {csvData.slice(0, 5).map((row, index) => (
+                              <tr key={index}>
+                                <td className="px-4 py-2 text-sm text-gray-500">{row.firstName || row["First Name"] || "-"}</td>
+                                <td className="px-4 py-2 text-sm text-gray-500">{row.lastName || row["Last Name"] || "-"}</td>
+                                <td className="px-4 py-2 text-sm text-gray-500">{row.phoneNumber || row["Phone Number"] || "-"}</td>
+                                <td className="px-4 py-2 text-sm text-gray-500">{row.address || row["Address"] || "-"}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div className="text-sm text-gray-500 mb-4">
+                        {csvData.length > 5 && `Showing 5 of ${csvData.length} contacts`}
+                      </div>
+                      
+                      <div className="flex gap-2 justify-end">
+                        <Button 
+                          variant="outline" 
+                          onClick={() => {
+                            setUploadStep(1);
+                            setUploadedFile(null);
+                            setCsvData([]);
+                          }}
+                        >
+                          Back
+                        </Button>
+                        <Button 
+                          onClick={() => {
+                            // Format contacts for upload
+                            const contacts = csvData.map(row => {
+                              return {
+                                name: `${row.firstName || row["First Name"] || ''} ${row.lastName || row["Last Name"] || ''}`.trim(),
+                                firstName: row.firstName || row["First Name"] || '',
+                                lastName: row.lastName || row["Last Name"] || '',
+                                phoneNumber: row.phoneNumber || row["Phone Number"] || '',
+                                address: row.address || row["Address"] || '',
+                                city: row.city || row["City"] || '',
+                                state: row.state || row["State"] || '',
+                                zipCode: row.zipCode || row["Zip Code"] || '',
+                                country: row.country || row["Country"] || ''
+                              };
+                            });
+                            
+                            if (selectedGroupId) {
+                              uploadCsvMutation.mutate({
+                                contacts,
+                                groupId: selectedGroupId
+                              });
+                            }
+                          }}
+                          disabled={uploadCsvMutation.isPending || !selectedGroupId}
+                        >
+                          {uploadCsvMutation.isPending ? 'Uploading...' : 'Upload Contacts'}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
           
           {contactsLoading ? (
@@ -547,8 +700,13 @@ export default function ContactsPage() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{contact.address || 'N/A'}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{contact.dnc ? 'Yes' : 'No'}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <Button variant="ghost" size="sm" className="p-0 h-auto bg-red-500 w-8 h-8 rounded-md">
-                          <MoreHorizontal className="h-4 w-4 text-white" />
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="p-0 h-auto bg-red-500 w-8 h-8 rounded-md"
+                          onClick={() => deleteContactMutation.mutate(contact.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-white" />
                         </Button>
                       </td>
                     </tr>
