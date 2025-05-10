@@ -17,11 +17,41 @@ export default function AgentsPage() {
       <div className="flex justify-between items-center">
         <div></div>
         <div className="flex items-center gap-2">
-          <Button variant="outline">
+          <Button 
+            variant="outline"
+            onClick={() => {
+              // Will be implemented later with AI integration
+              alert('AI generation feature coming soon');
+            }}
+          >
             <UserPlus className="h-4 w-4 mr-2" />
             Generate with AI
           </Button>
-          <Button>
+          <Button
+            onClick={() => {
+              // Create a new empty agent with default values
+              fetch('/api/agents', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  name: "New Agent",
+                  type: "inbound",
+                  active: false
+                })
+              })
+              .then(response => response.json())
+              .then(data => {
+                // Navigate to the newly created agent's detail page
+                navigate(`/agents/${data.id}`);
+              })
+              .catch(error => {
+                console.error("Error creating agent:", error);
+                alert('Failed to create agent. Please try again.');
+              });
+            }}
+          >
             <PlusIcon className="h-4 w-4 mr-2" />
             Create new agent
           </Button>
