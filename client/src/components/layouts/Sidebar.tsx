@@ -39,11 +39,6 @@ export default function Sidebar() {
       icon: <FileText className="mr-3 h-5 w-5" /> 
     },
     { 
-      path: "/calls/monitor", 
-      label: "Calls Monitor", 
-      icon: <BarChart2 className="mr-3 h-5 w-5" /> 
-    },
-    { 
       path: "/contacts", 
       label: "Contacts", 
       icon: <UserCircle className="mr-3 h-5 w-5" /> 
