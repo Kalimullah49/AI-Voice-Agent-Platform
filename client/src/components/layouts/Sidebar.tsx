@@ -98,16 +98,13 @@ export default function Sidebar() {
           </div>
           
           <div className="mt-auto pt-10">
-            <a
-              href="/account"
-              className="group flex items-center px-4 py-2 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-            >
+            <div className="group flex items-center px-4 py-2 text-sm font-medium rounded-md text-gray-600">
               <User className="mr-3 h-5 w-5 text-gray-500" />
               Account
               <span className="ml-auto text-xs text-gray-400">
                 {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
-            </a>
+            </div>
           </div>
         </nav>
       </aside>
