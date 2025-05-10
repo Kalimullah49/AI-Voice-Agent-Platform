@@ -1,0 +1,730 @@
+# AimAI Platform Development Prompt for Replit
+
+## Overview
+Create a full-stack web application that replicates the AimAI (aimnow.ai) platform - an AI-powered call center management and analytics solution focused on addiction recovery and healthcare services. The platform should feature a comprehensive dashboard for tracking call metrics, agent performance, and conversation analytics with clean, modern UI similar to the provided screenshots.
+
+## Domain Context
+The AimAI platform shown in the screenshots is specifically configured for addiction recovery and healthcare services. The implementation should include:
+
+- **Healthcare Focus**: Support for addiction treatment centers, recovery programs, and healthcare providers
+- **Specialized Agent Training**: Pre-configured templates for substance use and mental health contexts
+- **Patient-Centric Approach**: Tools to gather relevant health information while maintaining privacy
+- **Compliance Features**: HIPAA-compliant data handling and secure communication channels
+- **Treatment Pathways**: Support for detox, residential treatment, outpatient programs, and aftercare
+- **Financial Assistance**: Tools to handle insurance verification and payment option discussions
+- **Crisis Management**: Protocols for handling urgent situations and providing immediate support
+
+## Core Features
+
+### 1. User Authentication & Management
+- Login/signup system with role-based access control
+- User roles: Admin, Manager, Agent
+- Account management and profile settings
+- Team/organization management
+
+### 2. Dashboard
+- **Summary Metrics Panel**:
+  - Total cost display ($6.71 in screenshots)
+  - Total hours saved (0h 18m in screenshots)
+  - Average cost per call ($0.56 in screenshots)
+  - Average call duration (01:31 min in screenshots)
+
+- **Call Activity Tracking**:
+  - Inbound calls metrics (with graph visualization)
+    - Today's count
+    - Total calls (12 calls in screenshots)
+    - Average call duration (00:02 min in screenshots)
+    - Conversion rate (16.67% in screenshots)
+  
+  - Outbound calls metrics (with graph visualization)
+    - Today's count
+    - Total calls (0 calls in screenshots)
+    - Average call duration (00:00 min in screenshots)
+    - Conversion rate (0% in screenshots)
+
+- **Advanced Analytics**:
+  - Duration vs. Cost chart (stacked bar chart with blue for duration and red for cost)
+  - Calls Outcome chart (bar chart showing Customer Ended Call, Transferred, Agent Ended Call categories)
+
+### 3. Actions Management
+- **Actions List View**:
+  - Empty state with prominent "Create new action" button
+  - List of existing actions (when available)
+  
+- **Action Creation Interface**:
+  - Multi-step creation process with navigation controls
+  - Integration setup for third-party services (Cal.com shown in screenshots)
+  - API configuration with fields for:
+    - API key entry
+    - Action name and description
+    - URL endpoint configuration
+    - HTTP method selection (GET, POST, etc.)
+    - Wait message customization
+    - Default values editor with JSON support
+    - Data extraction schema configuration
+
+- **Custom Action Types**:
+  - Support for different action types (Live Call Action shown)
+  - API integrations with external services
+  - Customizable headers, body, and query parameters
+  - Schema definition for data extraction
+
+### 4. Agent Management
+- Comprehensive agent creation and management system
+- Agent profile interface with avatar image, ID, and settings
+- Agent type categorization (Outbound Agent, Inbound Agent, etc.)
+- Configuration tabs:
+  - General settings
+  - Voice settings
+  - Actions configuration
+  - Knowledge base management
+  - Number management
+  - Outcomes tracking
+- Agent performance tracking and metrics
+- Call assignment and routing
+- Agent availability status
+- Domain-specific training for healthcare/addiction recovery contexts
+
+### 5. AI Voice Agent Capabilities
+- Comprehensive agent configuration interface with the following sections:
+  - **Persona Configuration**: Define agent personality traits (calm, compassionate, professional)
+  - **Tone & Style Settings**: Configure voice characteristics (warm, clear, supportive)
+  - **Agent Rules**: Set specific guidelines for handling calls (when to ask for insurance, ID)
+  - **Edge Cases Handling**: Program responses for special situations (caller has no insurance)
+  - **Agent Script**: Define the full conversational flow with example responses
+  - **Summarizer Prompt**: Template for post-call summaries to capture key information
+  - **Response Intelligence Level**: Configurable AI intelligence settings (Genius Mode)
+  - **Initial Message**: Customizable greeting message
+  - **Company Background**: Configurable information about the organization
+
+- Advanced agent setup features:
+  - "Generate with AI" capability to auto-create agent configurations
+  - "Improve with AI" option to enhance existing agents
+  - Call testing functionality
+  - Agent publishing workflow
+  
+- Voice/tone/script customization options
+- Automated call flow builder
+- Integration with LLM APIs for natural conversation
+
+### 6. Call Recording & Analysis
+- Call recording storage and playback
+- Transcription services
+- AI-powered sentiment analysis
+- Conversation quality scoring
+- Keyword/phrase detection
+- Post-call summarization based on configurable templates
+  - Capture caller's information (name, whether calling for self or loved one)
+  - Document key concerns and issues
+  - Note situation details for loved ones
+  - Track follow-up actions and next steps
+
+### 7. Call Routing & IVR
+- Interactive voice response (IVR) builder
+- Custom call flow creation
+- Conditional routing based on caller input
+- Business hours configuration
+
+### 8. Reporting & Analytics
+- Customizable report builder
+- Exportable reports (CSV, PDF)
+- Scheduled report delivery
+- Performance trend analysis
+- Call conversion analytics
+
+### 9. Integration Capabilities
+- CRM integration (Salesforce, HubSpot, etc.)
+- Telephony provider integration
+- External API actions through custom action builder
+- Webhook configuration for real-time data exchange
+- Third-party service integrations (Cal.com shown in screenshots)
+- Custom API endpoint configuration with headers, body, and query parameters
+- Data extraction schema for processing API responses
+
+### 10. Calls History & Management
+- **Calls History Interface**:
+  - Comprehensive table view of all call records
+  - Detailed information for each call:
+    - From number (caller)
+    - To number (agent)
+    - Agent name
+    - Direction (inbound/outbound)
+    - Duration (minutes)
+    - Ended reason (Agent/Customer ended call)
+    - Outcome (transferred, no-outcome)
+    - Total cost
+    - Started at timestamp
+  - Advanced filtering options:
+    - Caller phone number filter
+    - Callee phone number filter
+    - Agent filter
+    - Direction filter
+    - Ended reason filter
+    - Outcome filter
+  - Duration range filters (min/max)
+  - Date range selection
+  - Table column customization
+  - Data export functionality (CSV download)
+  - Sortable columns with indicators
+
+- **Calls Monitor Dashboard**:
+  - Real-time monitoring of active agents
+  - Agent cards showing:
+    - Agent name
+    - Current status
+    - Inbound call count
+    - Outbound call count
+  - Link to agent settings/details
+  - Empty state when no calls are active
+
+### 11. Contacts Management
+- **Contacts List View**:
+  - Groups-based organization system
+  - Filters for contact groups
+  - Table with columns:
+    - Group ID
+    - Group Name
+    - Number of Contacts
+    - Created At
+    - Actions menu
+  - "Create new group" button in top right
+  - DNC (Do Not Call) list management
+  - Empty state message when no contacts exist
+
+### 12. Campaigns System
+- **Campaigns Management Interface**:
+  - List view of all campaigns with columns:
+    - Campaign ID
+    - Campaign Name
+    - Status
+    - Agent assigned
+    - Created At (sortable)
+    - Updated At (sortable)
+  - Campaign filtering options:
+    - Filter by campaign name
+    - Filter by agent
+  - "Create new campaign" button
+  - Dialer settings access
+  - Empty state message when no campaigns exist
+
+### 13. Phone Numbers Management
+- **Phone Numbers Interface**:
+  - List of active phone numbers with their assignments
+  - Phone number details:
+    - Number in formatted display (e.g., 1 (424) 855-1030)
+    - Agent assignment information
+  - Actions for each number (Delete button)
+  - Integration with Twilio:
+    - Twilio Accounts access button
+    - Import phone number functionality
+    - Buy Phone Number button
+  - Empty state for no phone numbers
+
+### 14. Billing System
+- **Billing Dashboard**:
+  - Current plan display (e.g., "Custom 99$")
+  - Invoice history table with columns:
+    - Invoice ID
+    - Date
+    - Amount
+    - Status (paid, due, etc.)
+  - Action buttons:
+    - Add extra minutes
+    - Configure auto re-charge
+    - Manage Subscription
+  - Payment history tracking
+  - Usage monitoring
+
+### 15. Settings & Configuration
+- **Settings Interface**:
+  - Tab-based navigation:
+    - General settings
+    - CRM integration settings
+    - Dialer settings
+  - Configuration sections under each tab:
+    
+  - **General Settings**:
+    - Timezone configuration (e.g., America/Los_Angeles)
+    - Application preferences
+    
+  - **CRM Settings**:
+    - Outcomes management
+    - CRM integration configuration
+    - Custom fields setup
+    - Empty state messaging
+    - "Add Outcome" button
+    
+  - **Dialer Settings**:
+    - Outbound calls limit per DID
+      - Toggle switch activation
+      - Numeric input for limit
+      - Save button
+    - Ringing duration limit
+      - Toggle switch activation
+      - Numeric input for seconds (10-600 range)
+      - Detailed explanatory text
+      - Save button
+
+## UI/UX Requirements
+
+### 1. Left Navigation Sidebar
+Implement a sidebar with the following menu items (matching screenshots):
+- Dashboard (selected in screenshots)
+- Agents
+- Actions
+- Calls History
+- Calls Monitor
+- Contacts
+- Campaigns
+- Phone Numbers
+- Billing
+- Settings
+- Account (at bottom with time display)
+
+### 2. Agent Configuration Interface
+- **Agent List View**:
+  - "Create new agent" button in the top right
+  - "Generate with AI" button for auto-creation
+  - Agent selection dropdown
+  - List of existing agents with avatars and basic information
+
+- **Agent Detail View**:
+  - Agent profile card with avatar image
+  - Agent name and unique ID
+  - Settings tabs (General, Voice, Actions, Knowledge, Inbound Numbers, Outcomes)
+  - Configuration sections including:
+    - AI Response Style and Intelligence Level with dropdown (Genius Mode)
+    - Initial Message editor
+    - Company Background information
+    - Persona definition
+    - Tone & Style settings with checkboxes
+    - Key Traits configuration
+    - Agent Rules editor
+    - Edge Cases handler
+    - Objectives section
+    - Summarizer Prompt template
+
+- **Agent Script Editor**:
+  - Required field for defining the full conversation flow
+  - Support for example responses and caller scenarios
+  - Human handoff instructions
+  - Response examples for common caller requests
+
+- **Action Buttons**:
+  - "Call" button to test the agent
+  - "Improve with AI" button
+  - "Publish" button to activate the agent
+
+### 3. Actions Configuration Interface
+- **Actions List View**:
+  - Empty state with "Create new action" button prominently displayed
+  - List of configured actions (when available)
+
+- **Action Creation Flow**:
+  - Back button for navigation
+  - Multi-step wizard interface
+  - Service integration selection (Cal.com)
+  - Form-based configuration with:
+    - API key input field
+    - Name and description fields
+    - URL endpoint input
+    - Method dropdown (GET, POST, etc.)
+    - Wait message textarea
+    - Code editors for JSON configuration:
+      - Default Values editor with syntax highlighting and line numbers
+      - Data Extraction Schema editor
+    - Action Type selection (Live Call Action)
+  - Next button to proceed through steps
+
+### 3. Dashboard Layout
+- Clean, white background with card-based layout
+- 4 main metric cards at top (Total cost, Total hours saved, Avg. cost per call, Avg. call duration)
+- Two-column layout for detailed analytics below:
+  - Inbound calls (left) with bar chart visualization
+  - Outbound calls (right) with bar chart visualization
+  - Duration vs Cost (left) with stacked bar chart
+  - Calls Outcome (right) with bar chart
+
+### 4. Calls History Interface
+- **Main Layout**:
+  - Filters section at top with multiple filter inputs
+  - Data table with call records below
+  - Responsive design with scrollable table
+  
+- **Filter Components**:
+  - Text inputs for phone number filtering
+  - Dropdown selectors for categorical filters
+  - Date range picker with calendar interface
+  - Min/max duration inputs
+  - Column selector dropdown
+  - Export button (Download as CSV)
+  
+- **Data Table**:
+  - Sortable column headers with indicators
+  - Phone number formatting (e.g., +17089101495)
+  - Agent name column
+  - Direction indication (inbound/outbound)
+  - Duration formatting (MM:SS)
+  - Color-coded ended reason tags:
+    - Blue for "Agent Ended Call"
+    - Yellow/Orange for "Customer Ended Call"
+    - Green for "Agent Transferred Call"
+  - Timestamp formatting with date and time
+
+### 5. Calls Monitor Interface
+- **Grid Layout**:
+  - Card-based design with agent monitoring cards
+  - Each card contains:
+    - Agent name header
+    - Link icon for quick access
+    - Inbound count with label
+    - Outbound count with label
+  - Responsive grid that adjusts to screen size
+  - Clean, minimal design focused on current status
+
+### 6. Contacts Interface
+- **Two-Panel Layout**:
+  - Top panel with filter and actions
+  - Main panel with data table
+  
+- **Components**:
+  - Filter input for groups
+  - "Create new group" button with blue background
+  - DNC indicator/toggle
+  - Data table with column headers:
+    - Group ID
+    - Group Name
+    - Number of Contacts
+    - Created At
+    - Actions
+  - Empty state messaging when no contacts exist
+
+### 7. Campaigns Interface
+- **Two-Panel Layout**:
+  - Top panel with filters and actions
+  - Main panel with data table
+  
+- **Components**:
+  - Campaign name filter input
+  - Agent filter dropdown
+  - "Create new campaign" button with blue background
+  - "Dialer Settings" button with gear icon
+  - Data table with column headers:
+    - Campaign ID
+    - Campaign Name
+    - Status
+    - Agent
+    - Created At (with sort indicator)
+    - Updated At (with sort indicator)
+  - Empty state messaging when no campaigns exist
+
+### 8. Phone Numbers Interface
+- **Card-Based Layout**:
+  - Phone number cards showing:
+    - Formatted phone number (1 (424) 855-1030)
+    - Assignment information ("Attached to Ava")
+    - Delete button in red
+  
+- **Action Buttons**:
+  - "Import phone number" button
+  - "Twilio Accounts" button
+  - "Buy Phone Number" button with highlighted styling
+  - All buttons positioned in top-right corner
+
+### 9. Billing Interface
+- **Two-Panel Layout**:
+  - Top panel with plan information and actions
+  - Main panel with invoice history table
+  
+- **Components**:
+  - Current plan display ("Your current plan: Custom 99$")
+  - Action buttons:
+    - "Add extra minutes" with plus icon
+    - "Configure auto re-charge"
+    - "Manage Subscription"
+  - Invoice table with columns:
+    - Invoice ID
+    - Date
+    - Amount
+    - Status
+  - Clean, professional styling appropriate for financial information
+
+### 10. Settings Interface
+- **Tab-Based Navigation**:
+  - Horizontal tabs at top:
+    - General
+    - CRM
+    - Dialer
+  - Active tab highlighted
+
+- **General Tab**:
+  - Settings grouped in cards
+  - Timezone setting with:
+    - Label and description
+    - Dropdown selector (America/Los_Angeles)
+    - Clean spacing and alignment
+
+- **CRM Tab**:
+  - Outcomes section with:
+    - Section header and description
+    - "Add Outcome" button
+    - Empty state message when no outcomes exist
+    - Clean, minimal styling
+
+- **Dialer Tab**:
+  - Settings grouped in cards with:
+    - Setting header ("Outbound calls limit per DID")
+    - Description text
+    - Toggle switch
+    - Numeric input field
+    - Save button
+    - Proper spacing between settings
+
+- **Settings Layout**:
+  - White background cards on light gray page background
+  - Consistent padding and margins
+  - Clear visual hierarchy with headers and descriptions
+  - Toggle switches for binary settings
+  - Input fields for numeric values
+  - Save buttons for confirming changes
+
+### 4. Charts & Visualizations
+- Bar charts for call volume by date
+- Stacked bar charts for call duration and cost analysis
+- Color scheme matching screenshots (blue for primary metrics, red for cost indicators, gold/brown/blue for call outcomes)
+
+### 5. Responsive Design
+- Fully responsive layout that works on desktop, tablet, and mobile devices
+- Collapsible sidebar for mobile view
+- Fluid grid system for dashboard metrics
+
+### 6. Agent Configuration Forms
+- Text area inputs for script configuration
+- Checkboxes for feature selection (as shown in persona traits)
+- Radio buttons for selection options
+- Rich text editor for script and response editing
+- Expandable/collapsible sections for organizing content
+- Clear section headers with (Optional) labels
+- Placeholder text offering guidance
+- Clean form layout with consistent spacing and alignment
+
+### 7. Action Configuration Forms
+- Text input fields for basic information (name, description, URL)
+- Dropdown selectors for method types
+- Text areas for messages and descriptions
+- Code editors for JSON configuration with:
+  - Syntax highlighting
+  - Line numbers
+  - Proper indentation
+  - Error indicators
+- Help icons with tooltips for additional information
+- Consistent form styling with clear labels
+- Step indicators for multi-stage processes
+
+## Data Models
+
+### 1. User Model
+- Username, email, password (hashed)
+- Role (admin, manager, agent)
+- Organization/team affiliation
+- Settings and preferences
+- Account timestamp (for "192:36" display)
+
+### 2. Agent Model
+- Name and identifier
+- Type (inbound, outbound, auto outbound, blank)
+- Avatar/image
+- Status (draft, published, inactive)
+- Configuration:
+  - Response style and intelligence level
+  - Initial greeting message
+  - Company background
+  - Persona attributes
+  - Tone and style settings
+  - Key traits
+  - Rules and guidelines
+  - Edge case handling instructions
+  - Script and conversation flow
+  - Summarizer prompt template
+
+### 3. Call Model
+- Unique identifier
+- From number (caller)
+- To number (agent/system)
+- Timestamp (started at)
+- Duration (in minutes/seconds)
+- Direction (inbound, outbound)
+- Status (active, completed, missed, transferred)
+- Ended reason (agent ended, customer ended, transferred)
+- Cost
+- Associated agent
+- Outcome (transferred, no-outcome, etc.)
+- Recording reference
+- Transcription reference
+- Summary data
+
+### 4. Action Model
+- Name and identifier
+- Description
+- Type (API, webhook, live call, etc.)
+- Configuration:
+  - Service integration details
+  - API key (encrypted)
+  - Endpoint URL
+  - HTTP method
+  - Default values (headers, body, query)
+  - Wait message
+  - Data extraction schema
+- Status (active, inactive)
+- Usage statistics
+
+### 5. Contact Model
+- Phone number
+- Name
+- Group affiliation
+- Tags/labels
+- DNC status
+- Notes/comments
+- Interaction history
+
+### 6. Contact Group Model
+- Group ID
+- Group name
+- Number of contacts
+- Created at timestamp
+- Description
+- Associated campaigns
+
+### 7. Campaign Model
+- Campaign ID
+- Campaign name
+- Status (active, paused, completed)
+- Associated agent
+- Created at timestamp
+- Updated at timestamp
+- Target contacts/groups
+- Script reference
+- Performance metrics
+
+### 8. Phone Number Model
+- Phone number (formatted)
+- Raw number
+- Provider (Twilio)
+- Type (local, toll-free)
+- Associated agent
+- Active status
+- Purchase date
+- Cost/billing information
+
+### 9. Invoice Model
+- Invoice ID (formatted string)
+- Date
+- Amount
+- Status (paid, due, etc.)
+- Line items
+- Payment method reference
+- Associated user/account
+
+### 10. Settings Model
+- General settings:
+  - Timezone preference
+  - UI preferences
+- CRM settings:
+  - Custom outcomes
+  - Integration configs
+- Dialer settings:
+  - Outbound call limits
+  - Ringing duration limits
+  - Other call handling parameters
+- User-specific preferences
+
+### 11. Analytics Model
+- Time period
+- Call volumes
+- Cost metrics
+- Performance indicators
+- Conversion rates
+- Agent statistics
+- Call outcome breakdown
+
+## Implementation Guidelines
+1. Start with the UI components and dashboard layout
+2. Implement authentication and user management
+3. Build the core data models for call tracking
+4. Implement the agent configuration system with all customization options
+   - Create form components for each agent configuration section
+   - Build the agent script editor with response examples
+   - Implement the agent persona and tone configuration
+5. Develop the actions management interface
+   - Create the action list view and empty state
+   - Build the multi-step action creation wizard
+   - Implement the custom action configuration forms
+   - Create the code editors for JSON configuration
+6. Create calls history and monitoring interfaces
+   - Build the filterable call history table
+   - Implement the call monitoring dashboard
+   - Add export functionality for call data
+7. Develop contact and campaign management
+   - Create contact group management system
+   - Build campaign creation and management interface
+   - Implement filtering and sorting capabilities
+8. Set up phone number management with Twilio integration
+   - Phone number assignment interface
+   - Twilio API integration for number purchasing
+   - Phone number formatting and display
+9. Implement billing and subscription management
+   - Invoice tracking and display
+   - Subscription management interface
+   - Usage monitoring and reporting
+10. Add system settings and configuration
+    - Implement tabbed settings interface
+    - Build setting-specific components (toggles, inputs)
+    - Create CRM integration settings
+    - Add dialer configuration options
+11. Develop call handling and routing logic
+12. Add the analytics and reporting functionality
+13. Integrate AI capabilities for call analysis and summarization
+14. Add advanced features like custom reporting
+
+## Tech Stack Requirements
+- **Frontend**: React with Tailwind CSS for styling
+- **Backend**: Node.js with Express.js for API endpoints
+- **Database**: MongoDB for storing call data, user accounts, and analytics 
+- **Authentication**: JWT-based authentication system
+- **Charts/Visualization**: Recharts for data visualization components
+- **State Management**: React Context API or Redux
+- **API Integration**: Capability to integrate with telephony APIs
+
+## Data Simulation
+- Implement a data simulation system to populate the dashboard with realistic call center metrics
+- Create sample data that mimics the patterns shown in the screenshots
+- Allow for manual data entry for testing purposes
+
+## Deployment
+- Containerize the application using Docker
+- Set up CI/CD pipeline for automated testing and deployment
+- Configure environment variables for different deployment environments
+- Implement proper security measures for production deployment
+
+## Bonus Features
+- Real-time notifications for missed calls or important events
+- AI-powered call forecasting and predictive analytics
+- Voice biometrics for caller authentication
+- Multi-language support
+- Dark mode theme option
+- Mobile app companion
+- Healthcare-specific features:
+  - HIPAA compliance tools
+  - Treatment program recommendation engine
+  - Insurance verification automation
+  - Patient follow-up scheduling system
+- Advanced AI capabilities:
+  - Agent improvement suggestions based on call performance
+  - Automated script optimization
+  - Caller emotion detection and dynamic response adjustment
+
+## Documentation
+- Setup and installation guide
+- User documentation for different roles
+- API documentation for integrations
+- Admin guide for system configuration
