@@ -7,6 +7,7 @@ import Dashboard from "@/pages/dashboard";
 import Login from "@/pages/auth/login";
 import Register from "@/pages/auth/register";
 import AgentsPage from "@/pages/agents";
+import AgentDetailPage from "@/pages/agents/[id]";
 import ActionsPage from "@/pages/actions";
 import CreateActionPage from "@/pages/actions/create";
 import CallsHistoryPage from "@/pages/calls/history";
@@ -38,6 +39,7 @@ function Router() {
       <Switch>
         <Route path="/" component={Dashboard} />
         <Route path="/agents" component={AgentsPage} />
+        <Route path="/agents/:id" component={AgentDetailPage} />
         <Route path="/actions" component={ActionsPage} />
         <Route path="/actions/create" component={CreateActionPage} />
         <Route path="/calls/history" component={CallsHistoryPage} />

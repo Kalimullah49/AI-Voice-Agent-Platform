@@ -126,10 +126,32 @@ export class MemStorage implements IStorage {
       active: true
     }) as Agent;
     
-    // Initialize with a phone number
+    // Initialize with an outbound agent
+    const outboundAgent = this.createAgent({
+      name: "Outreach Agent",
+      type: "outbound",
+      persona: "Friendly, informative, solutions-oriented",
+      toneStyle: "Conversational, professional",
+      initialMessage: "Hello, this is Outreach Agent calling from the Recovery Center. Do you have a moment to talk about our programs?",
+      companyBackground: "Our recovery center has been helping people overcome addiction since 2010. We offer a range of treatment options and accept most insurance plans.",
+      agentRules: "Introduce yourself clearly, ask if it's a good time to talk, explain reason for calling, collect contact info for follow-up if interested.",
+      edgeCases: "If person is currently in crisis, offer to transfer them to our 24/7 helpline.",
+      script: "Hi, I'm calling from Recovery Center about your recent inquiry. Is now a good time to discuss treatment options?",
+      summarizerPrompt: "Summarize the prospect's level of interest, preferred treatment type, and any objections raised.",
+      responseIntelligenceLevel: "Enhanced Mode",
+      active: true
+    }) as Agent;
+    
+    // Initialize with phone numbers
     this.createPhoneNumber({
       number: "(424) 855-1030",
       agentId: agent.id,
+      active: true
+    });
+    
+    this.createPhoneNumber({
+      number: "(310) 933-2876",
+      agentId: outboundAgent.id,
       active: true
     });
     
