@@ -19,7 +19,7 @@ export default function ActionsPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold tracking-tight">Action Management</h2>
+        <div></div>
         <Button onClick={handleCreateAction}>
           <PlusIcon className="h-4 w-4 mr-2" />
           Create new action
