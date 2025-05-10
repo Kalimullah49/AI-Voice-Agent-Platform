@@ -24,13 +24,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 export default function SettingsPage() {
   const [selectedTimezone, setSelectedTimezone] = useState("America/New_York");
   const [outboundCallsLimit, setOutboundCallsLimit] = useState("");
   const [ringingDurationLimit, setRingingDurationLimit] = useState("");
   const [activeTab, setActiveTab] = useState("general");
-  const [location] = useLocation();
+  const [isLoading, setIsLoading] = useState(false);
+  const [location, navigate] = useLocation();
+  const { toast } = useToast();
   
   useEffect(() => {
     // Check if there's a tab parameter in the URL
@@ -40,6 +54,45 @@ export default function SettingsPage() {
       setActiveTab('dialer');
     }
   }, [location]);
+  
+  // Function to clear all data
+  const clearAllData = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/clear-all-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "All data has been cleared successfully",
+          variant: "default",
+        });
+        // Navigate to dashboard to see cleared data
+        navigate("/");
+      } else {
+        const data = await response.json();
+        toast({
+          title: "Error",
+          description: data.message || "Failed to clear data",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error clearing data:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Timezone options
   const timezones = [
@@ -66,33 +119,67 @@ export default function SettingsPage() {
         </TabsList>
         
         <TabsContent value="general">
-          <Card>
-            <CardContent className="pt-6 space-y-8">
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Timezone</h3>
-                <Select 
-                  value={selectedTimezone} 
-                  onValueChange={setSelectedTimezone}
-                >
-                  <SelectTrigger id="timezone" className="w-full sm:w-[300px]">
-                    <SelectValue placeholder="Select your timezone" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {timezones.map((timezone) => (
-                      <SelectItem key={timezone} value={timezone}>
-                        {timezone}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-gray-500 mt-1">
-                  This will affect how dates and times are displayed throughout the application.
-                </p>
-              </div>
-              
-              <Button className="mt-8">Save Changes</Button>
-            </CardContent>
-          </Card>
+          <div className="space-y-6">
+            <Card>
+              <CardContent className="pt-6 space-y-8">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Timezone</h3>
+                  <Select 
+                    value={selectedTimezone} 
+                    onValueChange={setSelectedTimezone}
+                  >
+                    <SelectTrigger id="timezone" className="w-full sm:w-[300px]">
+                      <SelectValue placeholder="Select your timezone" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {timezones.map((timezone) => (
+                        <SelectItem key={timezone} value={timezone}>
+                          {timezone}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-gray-500 mt-1">
+                    This will affect how dates and times are displayed throughout the application.
+                  </p>
+                </div>
+                
+                <Button className="mt-8">Save Changes</Button>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Reset Application Data</CardTitle>
+                <CardDescription>
+                  Clear all data in the application. This action cannot be undone.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" disabled={isLoading}>
+                      {isLoading ? "Clearing data..." : "Reset All Data"}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action will delete all data in the application including agents, calls, contacts, campaigns, and phone numbers. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={clearAllData}>
+                        Yes, delete everything
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
         
         <TabsContent value="dialer">

@@ -11,6 +11,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // In a real app, you would use proper authentication
     next();
   });
+  
+  // Clear all data
+  app.post("/api/clear-all-data", async (req, res) => {
+    try {
+      await storage.clearAllData();
+      res.status(200).json({ message: "All data has been cleared successfully" });
+    } catch (error) {
+      console.error("Error clearing data:", error);
+      res.status(500).json({ message: "Failed to clear data" });
+    }
+  });
 
   // User routes
   app.get("/api/users", async (req, res) => {

@@ -57,6 +57,9 @@ export interface IStorage {
   createCampaign(campaign: InsertCampaign): Promise<Campaign>;
   updateCampaign(id: number, campaign: Partial<InsertCampaign>): Promise<Campaign | undefined>;
   getAllCampaigns(): Promise<Campaign[]>;
+  
+  // Clear all data
+  clearAllData(): Promise<void>;
 }
 
 // Memory storage implementation
@@ -343,6 +346,28 @@ export class MemStorage implements IStorage {
   
   async getAllCampaigns(): Promise<Campaign[]> {
     return Array.from(this.campaigns.values());
+  }
+  
+  async clearAllData(): Promise<void> {
+    // Clear all data collections
+    this.users.clear();
+    this.agents.clear();
+    this.calls.clear();
+    this.actions.clear();
+    this.phoneNumbers.clear();
+    this.contactGroups.clear();
+    this.contacts.clear();
+    this.campaigns.clear();
+    
+    // Reset IDs
+    this.userId = 1;
+    this.agentId = 1;
+    this.callId = 1;
+    this.actionId = 1;
+    this.phoneNumberId = 1;
+    this.contactGroupId = 1;
+    this.contactId = 1;
+    this.campaignId = 1;
   }
 }
 
