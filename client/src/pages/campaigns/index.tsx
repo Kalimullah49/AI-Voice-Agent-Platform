@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   Card, 
@@ -45,6 +46,8 @@ import {
 import { createCampaign, getContactGroups, getPhoneNumbers } from "@/lib/api";
 
 export default function CampaignsPage() {
+  const navigate = useNavigate();
+  
   // State for campaign creation form
   const [campaignName, setCampaignName] = useState("");
   const [selectedAgentId, setSelectedAgentId] = useState<string>("");
