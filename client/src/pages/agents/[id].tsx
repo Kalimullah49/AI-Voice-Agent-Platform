@@ -50,7 +50,7 @@ export default function AgentDetailPage() {
     error 
   } = useQuery({
     queryKey: ["/api/agents", id],
-    queryFn: () => apiRequest(`/api/agents/${id}`),
+    queryFn: () => apiRequest("GET", `/api/agents/${id}`).then(res => res.json()),
   });
   
   // State for form fields
@@ -100,10 +100,7 @@ export default function AgentDetailPage() {
   // Update agent mutation
   const updateAgentMutation = useMutation({
     mutationFn: (data: any) => 
-      apiRequest(`/api/agents/${id}`, {
-        method: "PATCH",
-        data,
-      }),
+      apiRequest("PATCH", `/api/agents/${id}`, data).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
       queryClient.invalidateQueries({ queryKey: ["/api/agents", id] });
