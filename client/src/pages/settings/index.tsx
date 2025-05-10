@@ -16,14 +16,30 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function SettingsPage() {
-  const [darkMode, setDarkMode] = useState(false);
-  const [callRecording, setCallRecording] = useState(true);
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [browserNotifications, setBrowserNotifications] = useState(true);
+  const [selectedTimezone, setSelectedTimezone] = useState("America/New_York");
   const [outboundCallsLimit, setOutboundCallsLimit] = useState("");
   const [ringingDurationLimit, setRingingDurationLimit] = useState("");
+
+  // Timezone options
+  const timezones = [
+    "America/Los_Angeles",
+    "America/Denver",
+    "America/Chicago",
+    "America/New_York",
+    "Europe/London",
+    "Europe/Paris",
+    "Asia/Tokyo",
+    "Australia/Sydney"
+  ];
 
   return (
     <div className="space-y-6">
@@ -42,52 +58,25 @@ export default function SettingsPage() {
           <Card>
             <CardContent className="pt-6 space-y-8">
               <div className="space-y-4">
-                <h3 className="text-lg font-medium">Appearance</h3>
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="theme-mode" 
-                    checked={darkMode}
-                    onCheckedChange={setDarkMode}
-                  />
-                  <Label htmlFor="theme-mode">Enable dark mode</Label>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Call Recording</h3>
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="call-recording" 
-                    checked={callRecording}
-                    onCheckedChange={setCallRecording}
-                  />
-                  <Label htmlFor="call-recording">Enable call recording</Label>
-                </div>
+                <h3 className="text-lg font-medium">Timezone</h3>
+                <Select 
+                  value={selectedTimezone} 
+                  onValueChange={setSelectedTimezone}
+                >
+                  <SelectTrigger id="timezone" className="w-full sm:w-[300px]">
+                    <SelectValue placeholder="Select your timezone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {timezones.map((timezone) => (
+                      <SelectItem key={timezone} value={timezone}>
+                        {timezone}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <p className="text-sm text-gray-500 mt-1">
-                  All calls will be recorded and stored securely for quality and training purposes.
+                  This will affect how dates and times are displayed throughout the application.
                 </p>
-              </div>
-              
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Notifications</h3>
-                <div className="flex flex-col space-y-3">
-                  <div className="flex items-center space-x-2">
-                    <Switch 
-                      id="email-notifications" 
-                      checked={emailNotifications}
-                      onCheckedChange={setEmailNotifications}
-                    />
-                    <Label htmlFor="email-notifications">Email notifications</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch 
-                      id="browser-notifications" 
-                      checked={browserNotifications}
-                      onCheckedChange={setBrowserNotifications}
-                    />
-                    <Label htmlFor="browser-notifications">Browser notifications</Label>
-                  </div>
-                </div>
               </div>
               
               <Button className="mt-8">Save Changes</Button>
