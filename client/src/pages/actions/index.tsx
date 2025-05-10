@@ -3,17 +3,24 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlusIcon } from "lucide-react";
 import { TableSkeleton } from "@/components/ui/skeleton";
+import { useLocation } from "wouter";
 
 export default function ActionsPage() {
   const { data: actions, isLoading, error } = useQuery({
     queryKey: ["/api/actions"],
   });
+  
+  const [, navigate] = useLocation();
+  
+  const handleCreateAction = () => {
+    navigate("/actions/create");
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold tracking-tight">Action Management</h2>
-        <Button>
+        <Button onClick={handleCreateAction}>
           <PlusIcon className="h-4 w-4 mr-2" />
           Create new action
         </Button>
@@ -69,7 +76,7 @@ export default function ActionsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="pb-6 flex justify-center">
-            <Button>
+            <Button onClick={handleCreateAction}>
               <PlusIcon className="h-4 w-4 mr-2" />
               Create new action
             </Button>
