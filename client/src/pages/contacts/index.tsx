@@ -198,10 +198,67 @@ export default function ContactsPage() {
           
           <div className="flex justify-between items-center mb-4">
             <div className="text-sm font-medium">Actions</div>
-            <Button className="bg-blue-600">
-              <PlusIcon className="h-4 w-4 mr-2" />
-              Add Contact
-            </Button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="bg-blue-600">
+                  <PlusIcon className="h-4 w-4 mr-2" />
+                  Add Contact
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>Add Contact</DialogTitle>
+                  <button className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+                    <span className="text-lg">×</span>
+                  </button>
+                </DialogHeader>
+                <div className="py-2 space-y-4">
+                  <div className="space-y-2">
+                    <label htmlFor="phone-number" className="text-sm font-medium">Phone Number</label>
+                    <Input id="phone-number" placeholder="Enter phone number" />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label htmlFor="first-name" className="text-sm font-medium">First Name</label>
+                      <Input id="first-name" placeholder="Enter first name" />
+                    </div>
+                    <div className="space-y-2">
+                      <label htmlFor="last-name" className="text-sm font-medium">Last Name</label>
+                      <Input id="last-name" placeholder="Enter last name" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="address" className="text-sm font-medium">Address</label>
+                    <Input id="address" placeholder="Enter address" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="city" className="text-sm font-medium">City</label>
+                    <Input id="city" placeholder="Enter city" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="state" className="text-sm font-medium">State</label>
+                    <Input id="state" placeholder="Enter state" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="country" className="text-sm font-medium">Country</label>
+                    <Input id="country" placeholder="Enter country" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="zip-code" className="text-sm font-medium">Zip Code</label>
+                    <Input id="zip-code" placeholder="Enter zip code" />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button className="w-full bg-blue-500">Create</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
           
           <div className="flex items-center justify-center mb-4">
