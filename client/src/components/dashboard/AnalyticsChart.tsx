@@ -85,16 +85,16 @@ export default function AnalyticsChart({ type }: AnalyticsChartProps) {
 
   // Call Outcomes Chart
   const callOutcomes = [
-    { name: "Customer Ended Call", value: data.callOutcomes.customerEnded, color: "#EAB308" }, // Gold color
+    { name: "Customer\nEnded Call", value: data.callOutcomes.customerEnded, color: "#EAB308" }, // Gold color
     { name: "Transferred", value: data.callOutcomes.transferred, color: "#8B5CF6" }, // Purple color
-    { name: "Agent Ended Call", value: data.callOutcomes.agentEnded, color: "#3B82F6" } // Blue color
+    { name: "Agent\nEnded Call", value: data.callOutcomes.agentEnded, color: "#3B82F6" } // Blue color
   ];
 
   return (
     <Card>
       <CardContent className="px-4 py-5 sm:p-6">
         <h3 className="text-base font-semibold text-gray-900 mb-4">Calls Outcome</h3>
-        <div className="h-[280px]">
+        <div className="h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={callOutcomes}
@@ -106,9 +106,7 @@ export default function AnalyticsChart({ type }: AnalyticsChartProps) {
                 dataKey="name" 
                 axisLine={false} 
                 tickLine={false}
-                angle={-45}
-                textAnchor="end"
-                height={50}
+                height={60}
                 tick={{ fontSize: 11 }}
               />
               <YAxis 
