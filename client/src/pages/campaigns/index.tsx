@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   Card, 
   CardContent, 
@@ -10,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TableSkeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { 
   PlusIcon, 
   Search, 
@@ -40,14 +42,56 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { createCampaign, getContactGroups, getPhoneNumbers } from "@/lib/api";
 
 export default function CampaignsPage() {
+  // State for campaign creation form
+  const [campaignName, setCampaignName] = useState("");
+  const [selectedAgentId, setSelectedAgentId] = useState<string>("");
+  const [selectedGroupId, setSelectedGroupId] = useState<string>("");
+  const [localAreaPresence, setLocalAreaPresence] = useState(false);
+  const [selectedPhoneNumberId, setSelectedPhoneNumberId] = useState<string>("");
+  const [concurrentCalls, setConcurrentCalls] = useState<string>("1");
+  const [scrubNationalBlacklists, setScrubNationalBlacklists] = useState(false);
+  
+  const queryClient = useQueryClient();
+  
+  // Queries
   const { data: campaigns, isLoading, error } = useQuery({
     queryKey: ["/api/campaigns"],
   });
   
   const { data: agents } = useQuery({
     queryKey: ["/api/agents"],
+  });
+  
+  const { data: contactGroups } = useQuery({
+    queryKey: ["/api/contact-groups"],
+  });
+  
+  const { data: phoneNumbers } = useQuery({
+    queryKey: ["/api/phone-numbers"],
+  });
+  
+  // Mutation for creating campaign
+  const createCampaignMutation = useMutation({
+    mutationFn: async (campaignData: any) => {
+      const response = await createCampaign(campaignData);
+      return response;
+    },
+    onSuccess: () => {
+      // Reset form
+      setCampaignName("");
+      setSelectedAgentId("");
+      setSelectedGroupId("");
+      setLocalAreaPresence(false);
+      setSelectedPhoneNumberId("");
+      setConcurrentCalls("1");
+      setScrubNationalBlacklists(false);
+      
+      // Invalidate cache to refetch campaigns
+      queryClient.invalidateQueries({ queryKey: ["/api/campaigns"] });
+    }
   });
 
   const getStatusBadge = (status: string) => {
@@ -79,22 +123,28 @@ export default function CampaignsPage() {
                 Create new campaign
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
-                <DialogTitle>Create New Campaign</DialogTitle>
+                <DialogTitle>Create new Campaign</DialogTitle>
                 <DialogDescription>
-                  Set up a new outbound calling campaign.
+                  Enter the name of the new campaign and the associated agent and contact group.
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <label htmlFor="name" className="text-sm font-medium">Campaign Name</label>
-                  <Input id="name" placeholder="Enter campaign name" />
+              <div className="py-4 space-y-5">
+                <div className="space-y-2">
+                  <label htmlFor="name" className="text-sm font-medium">Name</label>
+                  <Input 
+                    id="name" 
+                    placeholder="Enter campaign name" 
+                    value={campaignName}
+                    onChange={(e) => setCampaignName(e.target.value)}
+                  />
                 </div>
-                <div className="grid gap-2">
-                  <label htmlFor="agent" className="text-sm font-medium">Select Agent</label>
-                  <Select>
-                    <SelectTrigger id="agent">
+                
+                <div className="space-y-2">
+                  <label htmlFor="agent" className="text-sm font-medium">Agent</label>
+                  <Select value={selectedAgentId} onValueChange={setSelectedAgentId}>
+                    <SelectTrigger id="agent" className="w-full">
                       <SelectValue placeholder="Select an agent" />
                     </SelectTrigger>
                     <SelectContent>
@@ -106,23 +156,105 @@ export default function CampaignsPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid gap-2">
-                  <label htmlFor="status" className="text-sm font-medium">Status</label>
-                  <Select defaultValue="draft">
-                    <SelectTrigger id="status">
-                      <SelectValue placeholder="Select status" />
+                
+                <div className="space-y-2">
+                  <label htmlFor="contactGroup" className="text-sm font-medium">Contact Group</label>
+                  <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
+                    <SelectTrigger id="contactGroup" className="w-full">
+                      <SelectValue placeholder="Select a contact group" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="paused">Paused</SelectItem>
+                      {contactGroups?.map((group: any) => (
+                        <SelectItem key={group.id} value={group.id.toString()}>
+                          {group.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
+                
+                <div className="flex items-center justify-between space-y-0">
+                  <label htmlFor="localAreaPresence" className="text-sm font-medium">
+                    Local Area Presence
+                  </label>
+                  <Switch 
+                    id="localAreaPresence"
+                    checked={localAreaPresence}
+                    onCheckedChange={setLocalAreaPresence}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label htmlFor="phoneNumber" className="text-sm font-medium">Phone Number</label>
+                  <Select value={selectedPhoneNumberId} onValueChange={setSelectedPhoneNumberId}>
+                    <SelectTrigger id="phoneNumber" className="w-full">
+                      <SelectValue placeholder="Select a phone number" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {phoneNumbers?.map((phone: any) => (
+                        <SelectItem key={phone.id} value={phone.id.toString()}>
+                          {phone.number}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <label htmlFor="concurrentCalls" className="text-sm font-medium">Concurrent Calls</label>
+                  <Select 
+                    value={concurrentCalls} 
+                    onValueChange={setConcurrentCalls}
+                  >
+                    <SelectTrigger id="concurrentCalls" className="w-full">
+                      <SelectValue placeholder="1" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1</SelectItem>
+                      <SelectItem value="2">2</SelectItem>
+                      <SelectItem value="3">3</SelectItem>
+                      <SelectItem value="4">4</SelectItem>
+                      <SelectItem value="5">5</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="flex items-center justify-between space-y-0">
+                  <label htmlFor="scrubNationalBlacklists" className="text-sm font-medium">
+                    Scrub National Blacklists
+                  </label>
+                  <Switch 
+                    id="scrubNationalBlacklists"
+                    checked={scrubNationalBlacklists}
+                    onCheckedChange={setScrubNationalBlacklists}
+                  />
+                </div>
               </div>
+              
               <DialogFooter>
-                <Button variant="outline">Cancel</Button>
-                <Button>Create Campaign</Button>
+                <Button 
+                  onClick={() => {
+                    if (!campaignName || !selectedAgentId) return;
+                    
+                    // Create campaign data object
+                    const campaignData = {
+                      name: campaignName,
+                      agentId: parseInt(selectedAgentId),
+                      groupId: selectedGroupId ? parseInt(selectedGroupId) : null,
+                      localAreaPresence,
+                      phoneNumberId: selectedPhoneNumberId ? parseInt(selectedPhoneNumberId) : null,
+                      concurrentCalls: parseInt(concurrentCalls),
+                      scrubNationalBlacklists,
+                      status: 'draft'
+                    };
+                    
+                    // Submit data
+                    createCampaignMutation.mutate(campaignData);
+                  }}
+                  disabled={!campaignName || !selectedAgentId || createCampaignMutation.isPending}
+                >
+                  {createCampaignMutation.isPending ? 'Creating...' : 'Create'}
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
