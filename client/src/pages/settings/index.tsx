@@ -50,7 +50,6 @@ export default function SettingsPage() {
       <Tabs defaultValue="general">
         <TabsList className="mb-4">
           <TabsTrigger value="general">General</TabsTrigger>
-          <TabsTrigger value="crm">CRM</TabsTrigger>
           <TabsTrigger value="dialer">Dialer</TabsTrigger>
         </TabsList>
         
@@ -80,14 +79,6 @@ export default function SettingsPage() {
               </div>
               
               <Button className="mt-8">Save Changes</Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="crm">
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-center py-8 text-gray-500">CRM settings will be configured here.</p>
             </CardContent>
           </Card>
         </TabsContent>
