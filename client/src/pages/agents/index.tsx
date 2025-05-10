@@ -1,11 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusIcon, Search, UserPlus } from "lucide-react";
+import { PlusIcon, Search, UserPlus, PhoneCall } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { TableSkeleton } from "@/components/ui/skeleton";
+import { useLocation } from "wouter";
 
 export default function AgentsPage() {
+  const [_, navigate] = useLocation();
   const { data: agents, isLoading, error } = useQuery({
     queryKey: ["/api/agents"],
   });
@@ -79,10 +81,22 @@ export default function AgentsPage() {
               </CardContent>
               <CardFooter className="pt-2">
                 <div className="flex justify-between w-full">
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate(`/agents/${agent.id}`)}
+                  >
                     View Details
                   </Button>
-                  <Button variant="secondary" size="sm">
+                  <Button 
+                    variant="secondary" 
+                    size="sm"
+                    onClick={() => {
+                      // Test call functionality would go here
+                      alert('Test call feature coming soon');
+                    }}
+                  >
+                    <PhoneCall className="h-3 w-3 mr-1" />
                     Test Call
                   </Button>
                 </div>
