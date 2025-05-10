@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Select,
   SelectContent,
@@ -18,8 +19,10 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { TableSkeleton } from "@/components/ui/skeleton";
-import { DownloadIcon, Filter } from "lucide-react";
+import { DownloadIcon, Filter, CalendarIcon } from "lucide-react";
 import { formatDuration, formatPhoneNumber } from "@/lib/utils";
+import { DateRange } from "react-day-picker";
+import { format, addDays, subDays } from "date-fns";
 
 export default function CallsHistoryPage() {
   // State for filters
@@ -37,6 +40,12 @@ export default function CallsHistoryPage() {
     "from", "to", "agentName", "type", "duration", 
     "endedReason", "outcomeIds", "cost", "startedAt"
   ]);
+  
+  // State for date range
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: subDays(new Date(), 7), // May 3, 2025
+    to: new Date(),               // May 10, 2025
+  });
   
   const { data: calls, isLoading, error } = useQuery<any[]>({
     queryKey: ["/api/calls"],
@@ -83,6 +92,20 @@ export default function CallsHistoryPage() {
     // Filter by direction
     if (directionFilter !== "all" && call.direction !== directionFilter) {
       return false;
+    }
+    
+    // Filter by date range
+    if (dateRange?.from && dateRange?.to) {
+      const callDate = new Date(call.startedAt);
+      const startOfFromDay = new Date(dateRange.from);
+      startOfFromDay.setHours(0, 0, 0, 0);
+      
+      const endOfToDay = new Date(dateRange.to);
+      endOfToDay.setHours(23, 59, 59, 999);
+      
+      if (callDate < startOfFromDay || callDate > endOfToDay) {
+        return false;
+      }
     }
     
     return true;
@@ -443,15 +466,36 @@ export default function CallsHistoryPage() {
               </div>
               
               <div className="flex items-center">
-                <div className="bg-white px-3 py-1 border rounded-md text-sm mr-4 flex items-center">
-                  <span className="text-xs mr-2">May 03, 2025 - May 10, 2025</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-calendar">
-                    <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
-                    <line x1="16" x2="16" y1="2" y2="6" />
-                    <line x1="8" x2="8" y1="2" y2="6" />
-                    <line x1="3" x2="21" y1="10" y2="10" />
-                  </svg>
-                </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="bg-white px-3 py-1 border rounded-md text-sm mr-4 flex items-center h-9">
+                      <span className="text-xs mr-2">
+                        {dateRange?.from ? (
+                          dateRange.to ? (
+                            <>
+                              {format(dateRange.from, "MMM dd, yyyy")} - {format(dateRange.to, "MMM dd, yyyy")}
+                            </>
+                          ) : (
+                            format(dateRange.from, "MMM dd, yyyy")
+                          )
+                        ) : (
+                          "Select date range"
+                        )}
+                      </span>
+                      <CalendarIcon className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <Calendar
+                      initialFocus
+                      mode="range"
+                      defaultMonth={dateRange?.from}
+                      selected={dateRange}
+                      onSelect={setDateRange}
+                      numberOfMonths={2}
+                    />
+                  </PopoverContent>
+                </Popover>
                 <Button variant="outline" size="sm">
                   <DownloadIcon className="h-4 w-4 mr-2" />
                   Download as CSV
