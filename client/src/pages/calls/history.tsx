@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Select,
@@ -19,7 +18,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { TableSkeleton } from "@/components/ui/skeleton";
-import { DownloadIcon, Filter, CalendarIcon } from "lucide-react";
+import { DownloadIcon, CalendarIcon } from "lucide-react";
 import { formatDuration, formatPhoneNumber } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
 import { format, addDays, subDays } from "date-fns";
@@ -35,11 +34,7 @@ export default function CallsHistoryPage() {
   const [outcomeFilter, setOutcomeFilter] = useState<string>("all");
   const [directionFilter, setDirectionFilter] = useState<string>("all");
   
-  // State for selected columns
-  const [selectedColumns, setSelectedColumns] = useState<string[]>([
-    "from", "to", "agentName", "type", "duration", 
-    "endedReason", "outcomeIds", "cost", "startedAt"
-  ]);
+  // State for table display
   
   // State for date range
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
@@ -245,262 +240,41 @@ export default function CallsHistoryPage() {
               </div>
             </div>
             
-            <div className="flex items-center justify-between">
-              <div className="flex space-x-4 items-center">
-                <div className="text-xs text-gray-500">Columns</div>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-[200px] justify-between">
-                      Columns
-                      <Filter className="ml-2 h-4 w-4 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[220px] p-0" align="start">
-                    <div className="p-4 space-y-3">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id="column-id" 
-                          checked={selectedColumns.includes('id')}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedColumns([...selectedColumns, 'id']);
-                            } else {
-                              setSelectedColumns(selectedColumns.filter(col => col !== 'id'));
-                            }
-                          }}
-                        />
-                        <label htmlFor="column-id" className="text-sm cursor-pointer">
-                          Id
-                        </label>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id="column-agentId" 
-                          checked={selectedColumns.includes('agentId')}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedColumns([...selectedColumns, 'agentId']);
-                            } else {
-                              setSelectedColumns(selectedColumns.filter(col => col !== 'agentId'));
-                            }
-                          }}
-                        />
-                        <label htmlFor="column-agentId" className="text-sm cursor-pointer">
-                          AgentId
-                        </label>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id="column-from" 
-                          checked={selectedColumns.includes('from')}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedColumns([...selectedColumns, 'from']);
-                            } else {
-                              setSelectedColumns(selectedColumns.filter(col => col !== 'from'));
-                            }
-                          }}
-                        />
-                        <label htmlFor="column-from" className="text-sm cursor-pointer">
-                          From
-                        </label>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id="column-to" 
-                          checked={selectedColumns.includes('to')}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedColumns([...selectedColumns, 'to']);
-                            } else {
-                              setSelectedColumns(selectedColumns.filter(col => col !== 'to'));
-                            }
-                          }}
-                        />
-                        <label htmlFor="column-to" className="text-sm cursor-pointer">
-                          To
-                        </label>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id="column-agentName" 
-                          checked={selectedColumns.includes('agentName')}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedColumns([...selectedColumns, 'agentName']);
-                            } else {
-                              setSelectedColumns(selectedColumns.filter(col => col !== 'agentName'));
-                            }
-                          }}
-                        />
-                        <label htmlFor="column-agentName" className="text-sm cursor-pointer">
-                          AgentName
-                        </label>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id="column-type" 
-                          checked={selectedColumns.includes('type')}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedColumns([...selectedColumns, 'type']);
-                            } else {
-                              setSelectedColumns(selectedColumns.filter(col => col !== 'type'));
-                            }
-                          }}
-                        />
-                        <label htmlFor="column-type" className="text-sm cursor-pointer">
-                          Type
-                        </label>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id="column-duration" 
-                          checked={selectedColumns.includes('duration')}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedColumns([...selectedColumns, 'duration']);
-                            } else {
-                              setSelectedColumns(selectedColumns.filter(col => col !== 'duration'));
-                            }
-                          }}
-                        />
-                        <label htmlFor="column-duration" className="text-sm cursor-pointer">
-                          Duration
-                        </label>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id="column-endedReason" 
-                          checked={selectedColumns.includes('endedReason')}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedColumns([...selectedColumns, 'endedReason']);
-                            } else {
-                              setSelectedColumns(selectedColumns.filter(col => col !== 'endedReason'));
-                            }
-                          }}
-                        />
-                        <label htmlFor="column-endedReason" className="text-sm cursor-pointer">
-                          EndedReason
-                        </label>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id="column-outcomeIds" 
-                          checked={selectedColumns.includes('outcomeIds')}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedColumns([...selectedColumns, 'outcomeIds']);
-                            } else {
-                              setSelectedColumns(selectedColumns.filter(col => col !== 'outcomeIds'));
-                            }
-                          }}
-                        />
-                        <label htmlFor="column-outcomeIds" className="text-sm cursor-pointer">
-                          OutcomeIds
-                        </label>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id="column-cost" 
-                          checked={selectedColumns.includes('cost')}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedColumns([...selectedColumns, 'cost']);
-                            } else {
-                              setSelectedColumns(selectedColumns.filter(col => col !== 'cost'));
-                            }
-                          }}
-                        />
-                        <label htmlFor="column-cost" className="text-sm cursor-pointer">
-                          Cost
-                        </label>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id="column-startedAt" 
-                          checked={selectedColumns.includes('startedAt')}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedColumns([...selectedColumns, 'startedAt']);
-                            } else {
-                              setSelectedColumns(selectedColumns.filter(col => col !== 'startedAt'));
-                            }
-                          }}
-                        />
-                        <label htmlFor="column-startedAt" className="text-sm cursor-pointer">
-                          StartedAt
-                        </label>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id="column-endedAt" 
-                          checked={selectedColumns.includes('endedAt')}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedColumns([...selectedColumns, 'endedAt']);
-                            } else {
-                              setSelectedColumns(selectedColumns.filter(col => col !== 'endedAt'));
-                            }
-                          }}
-                        />
-                        <label htmlFor="column-endedAt" className="text-sm cursor-pointer">
-                          EndedAt
-                        </label>
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              
-              <div className="flex items-center">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="bg-white px-3 py-1 border rounded-md text-sm mr-4 flex items-center h-9">
-                      <span className="text-xs mr-2">
-                        {dateRange?.from ? (
-                          dateRange.to ? (
-                            <>
-                              {format(dateRange.from, "MMM dd, yyyy")} - {format(dateRange.to, "MMM dd, yyyy")}
-                            </>
-                          ) : (
-                            format(dateRange.from, "MMM dd, yyyy")
-                          )
+            <div className="flex items-center justify-end mb-4">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="bg-white px-3 py-1 border rounded-md text-sm mr-4 flex items-center h-9">
+                    <span className="text-xs mr-2">
+                      {dateRange?.from ? (
+                        dateRange.to ? (
+                          <>
+                            {format(dateRange.from, "MMM dd, yyyy")} - {format(dateRange.to, "MMM dd, yyyy")}
+                          </>
                         ) : (
-                          "Select date range"
-                        )}
-                      </span>
-                      <CalendarIcon className="h-4 w-4" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="end">
-                    <Calendar
-                      initialFocus
-                      mode="range"
-                      defaultMonth={dateRange?.from}
-                      selected={dateRange}
-                      onSelect={setDateRange}
-                      numberOfMonths={2}
-                    />
-                  </PopoverContent>
-                </Popover>
-                <Button variant="outline" size="sm">
-                  <DownloadIcon className="h-4 w-4 mr-2" />
-                  Download as CSV
-                </Button>
-              </div>
+                          format(dateRange.from, "MMM dd, yyyy")
+                        )
+                      ) : (
+                        "Select date range"
+                      )}
+                    </span>
+                    <CalendarIcon className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={dateRange?.from}
+                    selected={dateRange}
+                    onSelect={setDateRange}
+                    numberOfMonths={2}
+                  />
+                </PopoverContent>
+              </Popover>
+              <Button variant="outline" size="sm">
+                <DownloadIcon className="h-4 w-4 mr-2" />
+                Download as CSV
+              </Button>
             </div>
           </div>
 
