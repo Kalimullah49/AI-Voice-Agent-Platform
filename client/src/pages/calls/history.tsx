@@ -24,6 +24,50 @@ import { DateRange } from "react-day-picker";
 import { format, addDays, subDays } from "date-fns";
 
 export default function CallsHistoryPage() {
+  // Function to handle CSV download
+  const handleDownloadCSV = (calls: any[]) => {
+    // Define CSV headers
+    const headers = [
+      "From",
+      "To",
+      "Agent Name",
+      "Direction",
+      "Duration (mins)",
+      "Ended Reason",
+      "Outcome",
+      "Total cost",
+      "Started At"
+    ];
+    
+    // Format call data for CSV
+    const csvData = calls.map(call => [
+      formatPhoneNumber(call.fromNumber),
+      formatPhoneNumber(call.toNumber),
+      call.agent || "Recovery Agent",
+      call.direction === 'inbound' ? 'Inbound' : 'Outbound',
+      Math.floor(call.duration / 60),
+      call.endedReason || 'N/A',
+      call.outcome === 'transferred' ? 'Transferred' : 'No outcome',
+      `$${call.cost.toFixed(2)}`,
+      new Date(call.startedAt).toLocaleString()
+    ]);
+    
+    // Combine headers and data
+    const csvContent = [
+      headers.join(","),
+      ...csvData.map(row => row.join(","))
+    ].join("\n");
+    
+    // Create and download the CSV file
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `call_history_${format(new Date(), "yyyy-MM-dd")}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
   // State for filters
   const [minDuration, setMinDuration] = useState<number>(5);
   const [maxDuration, setMaxDuration] = useState<number>(10);
@@ -268,7 +312,11 @@ export default function CallsHistoryPage() {
                   />
                 </PopoverContent>
               </Popover>
-              <Button variant="outline" size="sm">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => handleDownloadCSV(filteredCalls)}
+              >
                 <DownloadIcon className="h-4 w-4 mr-2" />
                 Download as CSV
               </Button>
