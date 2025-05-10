@@ -46,7 +46,7 @@ import {
 import { createCampaign, getContactGroups, getPhoneNumbers } from "@/lib/api";
 
 export default function CampaignsPage() {
-  const navigate = useNavigate();
+  const [, navigate] = useLocation();
   
   // State for campaign creation form
   const [campaignName, setCampaignName] = useState("");
@@ -115,7 +115,10 @@ export default function CampaignsPage() {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold tracking-tight">Campaigns Management</h2>
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button 
+            variant="outline" 
+            onClick={() => navigate("/settings?tab=dialer")}
+          >
             <Settings className="h-4 w-4 mr-2" />
             Dialer Settings
           </Button>

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { 
   Card, 
   CardContent, 
@@ -28,6 +29,17 @@ export default function SettingsPage() {
   const [selectedTimezone, setSelectedTimezone] = useState("America/New_York");
   const [outboundCallsLimit, setOutboundCallsLimit] = useState("");
   const [ringingDurationLimit, setRingingDurationLimit] = useState("");
+  const [activeTab, setActiveTab] = useState("general");
+  const [location] = useLocation();
+  
+  useEffect(() => {
+    // Check if there's a tab parameter in the URL
+    const searchParams = new URLSearchParams(window.location.search);
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'dialer') {
+      setActiveTab('dialer');
+    }
+  }, [location]);
 
   // Timezone options
   const timezones = [
@@ -47,7 +59,7 @@ export default function SettingsPage() {
         <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
       </div>
 
-      <Tabs defaultValue="general">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-4">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="dialer">Dialer</TabsTrigger>
