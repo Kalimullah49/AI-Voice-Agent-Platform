@@ -1,3 +1,18 @@
+
+// API Provider configurations
+export type APIConfig = {
+  provider: string;
+  apiKey: string;
+  model?: string;
+  options?: Record<string, any>;
+};
+
+export type AgentAPIConfig = {
+  llm: APIConfig;
+  voice: APIConfig;
+};
+
+
 import { pgTable, text, serial, integer, boolean, timestamp, varchar, real } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";

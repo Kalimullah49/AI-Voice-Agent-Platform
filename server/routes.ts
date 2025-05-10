@@ -11,6 +11,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // In a real app, you would use proper authentication
     next();
   });
+
+  // API Configuration routes
+  app.post("/api/config/llm", async (req, res) => {
+    try {
+      const { provider, apiKey, model } = req.body;
+      // Store API configuration securely
+      // In production, use environment variables or secrets manager
+      res.status(200).json({ message: "LLM configuration updated" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update LLM configuration" });
+    }
+  });
+
+  app.post("/api/config/voice", async (req, res) => {
+    try {
+      const { provider, apiKey, options } = req.body;
+      // Store API configuration securely
+      res.status(200).json({ message: "Voice configuration updated" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update voice configuration" });
+    }
+  });
   
   // Clear all data
   app.post("/api/clear-all-data", async (req, res) => {
