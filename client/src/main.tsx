@@ -7,7 +7,7 @@ import { ThemeProvider } from "./components/layouts/ThemeProvider";
 
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider defaultTheme="light" storageKey="aimai-theme">
+    <ThemeProvider defaultTheme="light" storageKey="synergy-theme">
       <App />
     </ThemeProvider>
   </QueryClientProvider>
