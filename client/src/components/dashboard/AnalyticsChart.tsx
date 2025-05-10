@@ -9,7 +9,8 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer
+  ResponsiveContainer,
+  Cell
 } from "recharts";
 
 interface AnalyticsChartProps {
@@ -17,7 +18,7 @@ interface AnalyticsChartProps {
 }
 
 export default function AnalyticsChart({ type }: AnalyticsChartProps) {
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error } = useQuery<any>({
     queryKey: ["/api/metrics/dashboard"],
   });
 
@@ -84,31 +85,37 @@ export default function AnalyticsChart({ type }: AnalyticsChartProps) {
 
   // Call Outcomes Chart
   const callOutcomes = [
-    { name: "Customer Ended Call", value: data.callOutcomes.customerEnded },
-    { name: "Transferred", value: data.callOutcomes.transferred },
-    { name: "Agent Ended Call", value: data.callOutcomes.agentEnded }
+    { name: "Customer Ended Call", value: data.callOutcomes.customerEnded, color: "#EAB308" }, // Gold color
+    { name: "Transferred", value: data.callOutcomes.transferred, color: "#8B5CF6" }, // Purple color
+    { name: "Agent Ended Call", value: data.callOutcomes.agentEnded, color: "#3B82F6" } // Blue color
   ];
 
   return (
     <Card>
       <CardContent className="px-4 py-5 sm:p-6">
         <h3 className="text-base font-semibold text-gray-900 mb-4">Calls Outcome</h3>
-        <div className="h-[180px]">
+        <div className="h-[280px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={callOutcomes}
-              layout="vertical"
-              margin={{ top: 5, right: 5, left: 60, bottom: 5 }}
+              layout="horizontal"
+              margin={{ top: 5, right: 15, left: 15, bottom: 30 }}
             >
               <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
-              <XAxis type="number" axisLine={false} tickLine={false} />
-              <YAxis 
-                type="category" 
+              <XAxis 
                 dataKey="name" 
                 axisLine={false} 
                 tickLine={false}
-                width={100}
-                tick={{ fontSize: 12 }}
+                angle={-45}
+                textAnchor="end"
+                height={50}
+                tick={{ fontSize: 11 }}
+              />
+              <YAxis 
+                type="number"
+                axisLine={false} 
+                tickLine={false}
+                label={{ value: 'Count', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
               />
               <Tooltip
                 formatter={(value) => [`${value} calls`, "Calls"]}
@@ -119,7 +126,17 @@ export default function AnalyticsChart({ type }: AnalyticsChartProps) {
                   boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
                 }}
               />
-              <Bar dataKey="value" fill="#6366F1" radius={[0, 4, 4, 0]} />
+              <Bar 
+                dataKey="value" 
+                radius={[4, 4, 0, 0]}
+                fill="#8884d8"
+              >
+                {
+                  callOutcomes.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))
+                }
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
