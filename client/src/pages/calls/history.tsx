@@ -14,7 +14,6 @@ import {
 import { TableSkeleton } from "@/components/ui/skeleton";
 import { DownloadIcon, Filter } from "lucide-react";
 import { formatDuration, formatPhoneNumber } from "@/lib/utils";
-import { Slider } from "@/components/ui/slider";
 
 export default function CallsHistoryPage() {
   // State for filters
@@ -162,31 +161,52 @@ export default function CallsHistoryPage() {
           </div>
           
           <div className="mb-6">
-            <div className="flex flex-col space-y-6 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <div className="text-xs text-gray-500 mb-2">Min duration: {minDuration} mins</div>
-                <Slider
-                  defaultValue={[minDuration]}
-                  min={0}
-                  max={60}
-                  step={1}
-                  value={[minDuration]}
-                  onValueChange={(values) => setMinDuration(values[0])}
-                  className="w-full bg-blue-100"
-                />
+                <label className="text-xs text-gray-500 mb-1 block">Min Duration:</label>
+                <Select value={String(minDuration)} onValueChange={(value) => setMinDuration(Number(value))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Min duration" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">0 minutes</SelectItem>
+                    <SelectItem value="1">1 minute</SelectItem>
+                    <SelectItem value="2">2 minutes</SelectItem>
+                    <SelectItem value="3">3 minutes</SelectItem>
+                    <SelectItem value="4">4 minutes</SelectItem>
+                    <SelectItem value="5">5 minutes</SelectItem>
+                    <SelectItem value="6">6 minutes</SelectItem>
+                    <SelectItem value="7">7 minutes</SelectItem>
+                    <SelectItem value="8">8 minutes</SelectItem>
+                    <SelectItem value="9">9 minutes</SelectItem>
+                    <SelectItem value="10">10 minutes</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               
               <div>
-                <div className="text-xs text-gray-500 mb-2">Max duration: {maxDuration} mins</div>
-                <Slider
-                  defaultValue={[maxDuration]}
-                  min={0}
-                  max={60}
-                  step={1}
-                  value={[maxDuration]}
-                  onValueChange={(values) => setMaxDuration(values[0])}
-                  className="w-full bg-blue-100"
-                />
+                <label className="text-xs text-gray-500 mb-1 block">Max Duration:</label>
+                <Select value={String(maxDuration)} onValueChange={(value) => setMaxDuration(Number(value))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Max duration" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 minute</SelectItem>
+                    <SelectItem value="2">2 minutes</SelectItem>
+                    <SelectItem value="3">3 minutes</SelectItem>
+                    <SelectItem value="4">4 minutes</SelectItem>
+                    <SelectItem value="5">5 minutes</SelectItem>
+                    <SelectItem value="6">6 minutes</SelectItem>
+                    <SelectItem value="7">7 minutes</SelectItem>
+                    <SelectItem value="8">8 minutes</SelectItem>
+                    <SelectItem value="9">9 minutes</SelectItem>
+                    <SelectItem value="10">10 minutes</SelectItem>
+                    <SelectItem value="15">15 minutes</SelectItem>
+                    <SelectItem value="20">20 minutes</SelectItem>
+                    <SelectItem value="30">30 minutes</SelectItem>
+                    <SelectItem value="60">60 minutes</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             
