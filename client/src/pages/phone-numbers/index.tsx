@@ -51,7 +51,7 @@ export default function PhoneNumbersPage() {
           </Button>
           <Dialog>
             <DialogTrigger asChild>
-              <Button variant="outline">
+              <Button>
                 <PlusIcon className="h-4 w-4 mr-2" />
                 Import Phone Number
               </Button>
@@ -90,10 +90,6 @@ export default function PhoneNumbersPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-          <Button>
-            <PlusIcon className="h-4 w-4 mr-2" />
-            Buy Phone Number
-          </Button>
         </div>
       </div>
 
@@ -188,11 +184,10 @@ export default function PhoneNumbersPage() {
               </div>
               <h3 className="text-lg font-medium text-gray-900 mb-1">No phone numbers found</h3>
               <p className="text-gray-500 mb-4">
-                Buy or import phone numbers to assign to your agents.
+                Import phone numbers from your Twilio account to assign to your agents.
               </p>
               <div className="flex gap-2 justify-center">
-                <Button variant="outline">Import Number</Button>
-                <Button>Buy Number</Button>
+                <Button>Import Number</Button>
               </div>
             </div>
           )}
