@@ -43,12 +43,14 @@ export interface IStorage {
   getContactGroup(id: number): Promise<ContactGroup | undefined>;
   createContactGroup(contactGroup: InsertContactGroup): Promise<ContactGroup>;
   getAllContactGroups(): Promise<ContactGroup[]>;
+  deleteContactGroup(id: number): Promise<boolean>;
   
   // Contact operations
   getContact(id: number): Promise<Contact | undefined>;
   createContact(contact: InsertContact): Promise<Contact>;
   getAllContacts(): Promise<Contact[]>;
   getContactsByGroupId(groupId: number): Promise<Contact[]>;
+  deleteContact(id: number): Promise<boolean>;
   
   // Campaign operations
   getCampaign(id: number): Promise<Campaign | undefined>;
@@ -267,6 +269,23 @@ export class MemStorage implements IStorage {
     return Array.from(this.contactGroups.values());
   }
   
+  async deleteContactGroup(id: number): Promise<boolean> {
+    const group = this.contactGroups.get(id);
+    if (!group) {
+      return false;
+    }
+    
+    // Delete all contacts in this group first
+    const contactsInGroup = await this.getContactsByGroupId(id);
+    for (const contact of contactsInGroup) {
+      await this.deleteContact(contact.id);
+    }
+    
+    // Delete the group itself
+    this.contactGroups.delete(id);
+    return true;
+  }
+  
   // Contact operations
   async getContact(id: number): Promise<Contact | undefined> {
     return this.contacts.get(id);
@@ -286,6 +305,16 @@ export class MemStorage implements IStorage {
   
   async getContactsByGroupId(groupId: number): Promise<Contact[]> {
     return Array.from(this.contacts.values()).filter(contact => contact.groupId === groupId);
+  }
+  
+  async deleteContact(id: number): Promise<boolean> {
+    const contact = this.contacts.get(id);
+    if (!contact) {
+      return false;
+    }
+    
+    this.contacts.delete(id);
+    return true;
   }
   
   // Campaign operations

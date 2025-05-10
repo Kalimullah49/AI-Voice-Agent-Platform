@@ -233,6 +233,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
   });
+  
+  app.delete("/api/contact-groups/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteContactGroup(id);
+      if (!success) {
+        return res.status(404).json({ message: "Contact group not found" });
+      }
+      res.status(200).json({ message: "Contact group deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete contact group" });
+    }
+  });
 
   // Contact routes
   app.get("/api/contacts", async (req, res) => {
@@ -255,6 +268,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         res.status(500).json({ message: "Failed to create contact" });
       }
+    }
+  });
+  
+  app.delete("/api/contacts/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteContact(id);
+      if (!success) {
+        return res.status(404).json({ message: "Contact not found" });
+      }
+      res.status(200).json({ message: "Contact deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete contact" });
+    }
+  });
+  
+  // CSV upload route for contacts
+  app.post("/api/contacts/csv-upload", async (req, res) => {
+    try {
+      const { contacts, groupId } = req.body;
+      
+      if (!Array.isArray(contacts) || !groupId) {
+        return res.status(400).json({ message: "Invalid data. Expected contacts array and groupId" });
+      }
+      
+      const createdContacts = [];
+      
+      for (const contactData of contacts) {
+        // Add groupId to each contact
+        contactData.groupId = groupId;
+        
+        try {
+          const validatedData = insertContactSchema.parse(contactData);
+          const contact = await storage.createContact(validatedData);
+          createdContacts.push(contact);
+        } catch (err) {
+          console.error("Error creating contact:", err);
+          // Continue with other contacts even if one fails
+        }
+      }
+      
+      res.status(201).json({ 
+        message: `Successfully created ${createdContacts.length} contacts`,
+        contacts: createdContacts
+      });
+    } catch (error) {
+      console.error("Error uploading CSV:", error);
+      res.status(500).json({ message: "Failed to upload CSV" });
     }
   });
 
