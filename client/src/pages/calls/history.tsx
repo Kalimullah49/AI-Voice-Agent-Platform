@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,11 +14,67 @@ import {
 import { TableSkeleton } from "@/components/ui/skeleton";
 import { DownloadIcon, Filter } from "lucide-react";
 import { formatDuration, formatPhoneNumber } from "@/lib/utils";
+import { Slider } from "@/components/ui/slider";
 
 export default function CallsHistoryPage() {
+  // State for filters
+  const [durationRange, setDurationRange] = useState<[number, number]>([5, 10]);
+  const [callerPhoneFilter, setCallerPhoneFilter] = useState<string>("");
+  const [calleePhoneFilter, setCalleePhoneFilter] = useState<string>("");
+  const [agentFilter, setAgentFilter] = useState<string>("all");
+  const [endedReasonFilter, setEndedReasonFilter] = useState<string>("all");
+  const [outcomeFilter, setOutcomeFilter] = useState<string>("all");
+  const [directionFilter, setDirectionFilter] = useState<string>("all");
+  
   const { data: calls, isLoading, error } = useQuery<any[]>({
     queryKey: ["/api/calls"],
   });
+  
+  // Filter the calls based on the current filters
+  const filteredCalls = calls?.filter((call) => {
+    // Filter by duration
+    const callDurationMinutes = Math.floor(call.duration / 60);
+    if (callDurationMinutes < durationRange[0] || callDurationMinutes > durationRange[1]) {
+      return false;
+    }
+    
+    // Filter by caller phone number
+    if (callerPhoneFilter && !call.fromNumber.includes(callerPhoneFilter)) {
+      return false;
+    }
+    
+    // Filter by callee phone number
+    if (calleePhoneFilter && !call.toNumber.includes(calleePhoneFilter)) {
+      return false;
+    }
+    
+    // Filter by agent
+    if (agentFilter !== "all" && call.agent !== agentFilter) {
+      return false;
+    }
+    
+    // Filter by ended reason
+    if (endedReasonFilter !== "all" && call.endedReason !== (
+      endedReasonFilter === "agent" ? "Agent Ended Call" : 
+      endedReasonFilter === "customer" ? "Customer Ended Call" : 
+      endedReasonFilter
+    )) {
+      return false;
+    }
+    
+    // Filter by outcome
+    if (outcomeFilter !== "all" && 
+        (outcomeFilter === "no-outcome" ? call.outcome !== null : call.outcome !== outcomeFilter)) {
+      return false;
+    }
+    
+    // Filter by direction
+    if (directionFilter !== "all" && call.direction !== directionFilter) {
+      return false;
+    }
+    
+    return true;
+  }) || [];
 
   return (
     <div className="space-y-6">
@@ -32,15 +89,23 @@ export default function CallsHistoryPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Filter caller phone number:</label>
-              <Input placeholder="Caller phone number" />
+              <Input 
+                placeholder="Caller phone number" 
+                value={callerPhoneFilter}
+                onChange={(e) => setCallerPhoneFilter(e.target.value)}
+              />
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Filter callee phone number:</label>
-              <Input placeholder="Callee phone number" />
+              <Input 
+                placeholder="Callee phone number" 
+                value={calleePhoneFilter}
+                onChange={(e) => setCalleePhoneFilter(e.target.value)}
+              />
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Filter Agents:</label>
-              <Select>
+              <Select value={agentFilter} onValueChange={setAgentFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="All agents" />
                 </SelectTrigger>
@@ -56,7 +121,7 @@ export default function CallsHistoryPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Filter Ended Reason:</label>
-              <Select>
+              <Select value={endedReasonFilter} onValueChange={setEndedReasonFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="All reasons" />
                 </SelectTrigger>
@@ -69,7 +134,7 @@ export default function CallsHistoryPage() {
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Filter Outcome:</label>
-              <Select>
+              <Select value={outcomeFilter} onValueChange={setOutcomeFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="All outcomes" />
                 </SelectTrigger>
@@ -82,7 +147,7 @@ export default function CallsHistoryPage() {
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Filter Direction:</label>
-              <Select>
+              <Select value={directionFilter} onValueChange={setDirectionFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="All directions" />
                 </SelectTrigger>
@@ -97,12 +162,18 @@ export default function CallsHistoryPage() {
           
           <div className="mb-6">
             <div className="flex flex-col space-y-2 mb-4">
-              <div className="w-full h-2 bg-gray-100 rounded-full">
-                <div className="bg-blue-500 h-2 rounded-full w-[80%]"></div>
-              </div>
+              <Slider
+                defaultValue={durationRange}
+                min={0}
+                max={60}
+                step={1}
+                value={durationRange}
+                onValueChange={(values) => setDurationRange(values as [number, number])}
+                className="w-full"
+              />
               <div className="flex justify-between text-xs text-gray-500">
-                <span>Min duration: 5 mins</span>
-                <span>Max duration: 10 mins</span>
+                <span>Min duration: {durationRange[0]} mins</span>
+                <span>Max duration: {durationRange[1]} mins</span>
               </div>
             </div>
             
@@ -143,7 +214,7 @@ export default function CallsHistoryPage() {
             <TableSkeleton />
           ) : error ? (
             <div className="text-center text-red-500 py-4">Failed to load call history</div>
-          ) : calls && calls.length > 0 ? (
+          ) : filteredCalls.length > 0 ? (
             <div className="rounded-md border overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
@@ -161,7 +232,7 @@ export default function CallsHistoryPage() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {calls.map((call: any) => (
+                    {filteredCalls.map((call: any) => (
                       <tr key={call.id}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {formatPhoneNumber(call.fromNumber)}
