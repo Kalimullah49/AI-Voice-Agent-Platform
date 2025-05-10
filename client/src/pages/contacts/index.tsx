@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, ChangeEvent } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   Card, 
@@ -10,13 +10,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TableSkeleton } from "@/components/ui/skeleton";
-import { PlusIcon, MoreHorizontal, UserPlus } from "lucide-react";
+import { PlusIcon, Trash2, UserPlus, UploadCloud } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { apiRequest } from "@/lib/queryClient";
+import { toast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -48,6 +50,13 @@ export default function ContactsPage() {
   const [state, setState] = useState<string>("");
   const [country, setCountry] = useState<string>("");
   const [zipCode, setZipCode] = useState<string>("");
+  
+  // State for file upload
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [csvData, setCsvData] = useState<any[]>([]);
+  const [uploadStep, setUploadStep] = useState<number>(1);
+  const [showUploadDialog, setShowUploadDialog] = useState<boolean>(false);
   
   const queryClient = useQueryClient();
   
@@ -108,6 +117,99 @@ export default function ContactsPage() {
       setState("");
       setCountry("");
       setZipCode("");
+    }
+  });
+  
+  // Mutation for deleting a contact group
+  const deleteGroupMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/contact-groups/${id}`, {
+        method: 'DELETE'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete contact group');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      // Invalidate the contact groups query to refetch the data
+      queryClient.invalidateQueries({ queryKey: ["/api/contact-groups"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
+      
+      if (selectedGroupId) {
+        setSelectedGroupId(null);
+        setSelectedGroupName("");
+      }
+      
+      toast({
+        title: "Group deleted",
+        description: "The contact group has been deleted successfully."
+      });
+    }
+  });
+  
+  // Mutation for deleting a contact
+  const deleteContactMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/contacts/${id}`, {
+        method: 'DELETE'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete contact');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      // Invalidate the contacts query to refetch the data
+      queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
+      
+      toast({
+        title: "Contact deleted",
+        description: "The contact has been deleted successfully."
+      });
+    }
+  });
+  
+  // Mutation for uploading a CSV file
+  const uploadCsvMutation = useMutation({
+    mutationFn: async (data: { contacts: any[], groupId: number }) => {
+      const response = await fetch('/api/contacts/csv-upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to upload CSV file');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      // Invalidate the contacts query to refetch the data
+      queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
+      
+      // Reset upload state
+      setShowUploadDialog(false);
+      setUploadStep(1);
+      setUploadedFile(null);
+      setCsvData([]);
+      
+      toast({
+        title: "Contacts imported",
+        description: `Successfully imported contacts from the CSV file.`
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload CSV file. Please try again.",
+        variant: "destructive"
+      });
     }
   });
   
@@ -257,8 +359,13 @@ export default function ContactsPage() {
                           {new Date(group.createdAt).toLocaleDateString()}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <Button variant="ghost" size="sm" className="p-0 h-auto bg-red-500 w-8 h-8 rounded-md">
-                            <MoreHorizontal className="h-4 w-4 text-white" />
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="p-0 h-auto bg-red-500 w-8 h-8 rounded-md"
+                            onClick={() => deleteGroupMutation.mutate(group.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-white" />
                           </Button>
                         </td>
                       </tr>
