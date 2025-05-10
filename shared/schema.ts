@@ -135,8 +135,15 @@ export const contacts = pgTable("contacts", {
   id: serial("id").primaryKey(),
   groupId: integer("group_id").references(() => contactGroups.id),
   name: text("name").notNull(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
   phoneNumber: text("phone_number").notNull(),
   email: text("email"),
+  address: text("address"),
+  city: text("city"),
+  state: text("state"),
+  country: text("country"),
+  zipCode: text("zip_code"),
   dnc: boolean("dnc").default(false), // Do Not Call flag
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -144,8 +151,15 @@ export const contacts = pgTable("contacts", {
 export const insertContactSchema = createInsertSchema(contacts).pick({
   groupId: true,
   name: true,
+  firstName: true,
+  lastName: true,
   phoneNumber: true,
   email: true,
+  address: true,
+  city: true,
+  state: true,
+  country: true,
+  zipCode: true,
   dnc: true,
 });
 
