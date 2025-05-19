@@ -4,13 +4,23 @@ import { storage } from "./storage";
 import { insertUserSchema, insertAgentSchema, insertCallSchema, insertActionSchema, insertPhoneNumberSchema, insertContactGroupSchema, insertContactSchema, insertCampaignSchema } from "@shared/schema";
 import { z } from "zod";
 import { testApiConnection, synthesizeSpeech, getAvailableVoices, createVapiAssistant, VapiAssistantParams } from "./utils/vapi";
+import { isAuthenticated } from "./replitAuth";
+import { DatabaseStorage } from "./database-storage";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // API routes
-  app.use("/api", (req, res, next) => {
-    // Authentication middleware (simplified for demo)
-    // In a real app, you would use proper authentication
-    next();
+  // Create a database storage instance for our routes
+  const dbStorage = new DatabaseStorage();
+  
+  // Auth user route
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await dbStorage.getUser(userId);
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
   });
 
   // API Configuration routes

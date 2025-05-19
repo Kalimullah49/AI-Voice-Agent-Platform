@@ -129,7 +129,7 @@ export class DatabaseStorage implements IStorage {
   
   async deleteContactGroup(id: number): Promise<boolean> {
     const result = await db.delete(contactGroups).where(eq(contactGroups.id, id));
-    return result.count > 0;
+    return result !== undefined;
   }
   
   // Contact operations
@@ -153,7 +153,7 @@ export class DatabaseStorage implements IStorage {
   
   async deleteContact(id: number): Promise<boolean> {
     const result = await db.delete(contacts).where(eq(contacts.id, id));
-    return result.count > 0;
+    return result !== undefined;
   }
   
   // Campaign operations
