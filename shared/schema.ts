@@ -28,10 +28,11 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User model for Replit Auth
+// User model with custom authentication
 export const users = pgTable("users", {
-  id: varchar("id").primaryKey().notNull(), // Replit user ID from auth
-  email: varchar("email").unique(),
+  id: serial("id").primaryKey().notNull(), // Auto-incremented ID
+  email: varchar("email").unique().notNull(),
+  password: varchar("password").notNull(),  // Hashed password
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
@@ -41,21 +42,36 @@ export const users = pgTable("users", {
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
-  id: true,
   email: true,
+  password: true,
   firstName: true,
   lastName: true,
   profileImageUrl: true,
   role: true,
 });
 
-export const upsertUserSchema = createInsertSchema(users).pick({
-  id: true,
-  email: true,
-  firstName: true,
-  lastName: true,
-  profileImageUrl: true,
-  role: true,
+export const registerUserSchema = createInsertSchema(users)
+  .pick({
+    email: true,
+    password: true,
+    firstName: true,
+    lastName: true,
+  })
+  .extend({
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+export const loginUserSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+export const verifyCodeSchema = z.object({
+  code: z.string().length(6, "Verification code must be 6 characters"),
 });
 
 // Agent model
@@ -223,7 +239,9 @@ export const insertCampaignSchema = createInsertSchema(campaigns).pick({
 // Define types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
-export type UpsertUser = z.infer<typeof upsertUserSchema>;
+export type RegisterUser = z.infer<typeof registerUserSchema>;
+export type LoginUser = z.infer<typeof loginUserSchema>;
+
 
 export type Agent = typeof agents.$inferSelect;
 export type InsertAgent = z.infer<typeof insertAgentSchema>;

@@ -1,12 +1,12 @@
 import { Route, Switch } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/providers/AuthProvider";
 import NotFound from "@/pages/not-found";
 import AppLayout from "@/components/layouts/AppLayout";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Dashboard from "@/pages/dashboard";
-import Login from "@/pages/auth/login";
-import Register from "@/pages/auth/register";
+import AuthPage from "@/pages/auth";
 import AgentsPage from "@/pages/agents";
 import AgentDetailPage from "@/pages/agents/[id]";
 import ActionsPage from "@/pages/actions";
@@ -31,6 +31,9 @@ function Router() {
         <ProtectedAppRoute>
           <Dashboard />
         </ProtectedAppRoute>
+      </Route>
+      <Route path="/auth">
+        <AuthPage />
       </Route>
       <Route path="/agents">
         <ProtectedAppRoute>
@@ -93,7 +96,9 @@ function App() {
   return (
     <TooltipProvider>
       <Toaster />
-      <Router />
+      <AuthProvider>
+        <Router />
+      </AuthProvider>
     </TooltipProvider>
   );
 }

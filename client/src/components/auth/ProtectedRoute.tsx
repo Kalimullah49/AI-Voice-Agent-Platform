@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/providers/AuthProvider';
 import { Redirect } from 'wouter';
 import { Loader2 } from 'lucide-react';
 
@@ -19,9 +19,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
   
   if (!user) {
-    // Redirect to login via the API endpoint
-    window.location.href = '/api/login';
-    return null;
+    return <Redirect to="/auth" />;
   }
   
   return <>{children}</>;

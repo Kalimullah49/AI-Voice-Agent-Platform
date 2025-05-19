@@ -11,17 +11,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create a database storage instance for our routes
   const dbStorage = new DatabaseStorage();
   
-  // Auth user route
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await dbStorage.getUser(userId);
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
+  // Setup custom authentication
+  const { setupAuth, isAuthenticated } = await import('./auth');
+  setupAuth(app);
 
   // API Configuration routes
   app.post("/api/config/llm", async (req, res) => {
