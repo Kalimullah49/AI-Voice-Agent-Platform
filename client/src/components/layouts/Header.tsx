@@ -10,7 +10,13 @@ export default function Header() {
     
     if (pathSegments.length === 0) return 'Dashboard';
     
+    // Special case for phone-numbers path
+    if (pathSegments[0] === 'phone-numbers') {
+      return 'Phone Numbers';
+    }
+    
     if (pathSegments.length === 1) {
+      // Title case other single word paths
       return pathSegments[0].charAt(0).toUpperCase() + pathSegments[0].slice(1);
     }
     
