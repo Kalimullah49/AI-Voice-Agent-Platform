@@ -68,6 +68,7 @@ export default function AgentDetailPage() {
     responseIntelligenceLevel: "Genius Mode",
     active: true,
     // Voice settings
+    voiceId: "",
     voiceGuidance: 1,
     speed: 10,
     temperature: 0.4,
@@ -76,6 +77,10 @@ export default function AgentDetailPage() {
     officeAmbience: false,
     keyboard: false,
     phoneRinging: false,
+    // Voice selection state
+    voicesLoading: false,
+    availableVoices: [],
+    selectedVoice: null,
   });
   
   // Update local state when agent data is loaded
@@ -322,16 +327,131 @@ export default function AgentDetailPage() {
               {/* Voice selection */}
               <div className="space-y-2">
                 <h3 className="text-lg font-medium">Voice</h3>
-                <div className="flex items-center space-x-4 pt-2">
-                  <div className="flex items-center gap-2 bg-muted rounded-md px-4 py-2">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
-                      R
-                    </div>
-                    <span>Richie</span>
+                <div className="flex flex-col space-y-4 pt-2">
+                  <div className="flex items-center space-x-2">
+                    <button 
+                      className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/90 transition-colors"
+                      onClick={() => {
+                        // Set state to indicate loading
+                        setAgentData(prev => ({
+                          ...prev,
+                          voicesLoading: true
+                        }));
+                        
+                        // Fetch available voices
+                        fetch('/api/vapi/voices')
+                          .then(res => res.json())
+                          .then(data => {
+                            if (data.success && data.voices && data.voices.length > 0) {
+                              setAgentData(prev => ({
+                                ...prev,
+                                availableVoices: data.voices,
+                                voicesLoading: false
+                              }));
+                              toast({
+                                title: "Voices Loaded",
+                                description: `Successfully loaded ${data.voices.length} voices from ElevenLabs.`,
+                              });
+                            } else {
+                              setAgentData(prev => ({
+                                ...prev,
+                                availableVoices: [],
+                                voicesLoading: false
+                              }));
+                              toast({
+                                title: "Failed to Load Voices",
+                                description: data.message || "No voices found. Please check your ElevenLabs API token.",
+                                variant: "destructive"
+                              });
+                            }
+                          })
+                          .catch(err => {
+                            setAgentData(prev => ({
+                              ...prev,
+                              voicesLoading: false
+                            }));
+                            toast({
+                              title: "Error",
+                              description: "Failed to fetch voices. Please check your API token and try again.",
+                              variant: "destructive"
+                            });
+                            console.error("Error fetching voices:", err);
+                          });
+                      }}
+                    >
+                      {agentData.voicesLoading ? "Loading..." : "Load Voices from ElevenLabs"}
+                    </button>
+                    {agentData.selectedVoice && (
+                      <div className="flex items-center gap-2 bg-muted rounded-md px-4 py-2">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
+                          {agentData.selectedVoice.name?.charAt(0) || "V"}
+                        </div>
+                        <span>{agentData.selectedVoice.name || "Default Voice"}</span>
+                      </div>
+                    )}
                   </div>
-                  <Button variant="outline" size="sm">Emir Cowan (M)</Button>
-                  <Button variant="outline" size="sm">Male - Agent 1</Button>
-                  <Button variant="outline" size="sm">Female</Button>
+                  
+                  {agentData.availableVoices && agentData.availableVoices.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                      {agentData.availableVoices.map((voice: any) => (
+                        <div 
+                          key={voice.voice_id}
+                          className={`p-3 border rounded-md cursor-pointer hover:bg-muted/50 transition-colors ${
+                            agentData.selectedVoice?.voice_id === voice.voice_id ? 'border-primary bg-primary/10' : ''
+                          }`}
+                          onClick={() => {
+                            setAgentData(prev => ({
+                              ...prev,
+                              selectedVoice: voice,
+                              voiceId: voice.voice_id
+                            }));
+                          }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
+                                {voice.name.charAt(0)}
+                              </div>
+                              <div>
+                                <div className="font-medium">{voice.name}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  {voice.gender && voice.accent 
+                                    ? `${voice.gender}, ${voice.accent} accent` 
+                                    : voice.category || ''}
+                                </div>
+                              </div>
+                            </div>
+                            {voice.preview_url && (
+                              <button
+                                className="p-1 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const audio = new Audio(voice.preview_url);
+                                  audio.play();
+                                }}
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-4 pt-2">
+                      <div className="flex items-center gap-2 bg-muted rounded-md px-4 py-2">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
+                          R
+                        </div>
+                        <span>Richie</span>
+                      </div>
+                      <Button variant="outline" size="sm">Emir Cowan (M)</Button>
+                      <Button variant="outline" size="sm">Male - Agent 1</Button>
+                      <Button variant="outline" size="sm">Female</Button>
+                    </div>
+                  )}
                 </div>
               </div>
               
@@ -371,7 +491,7 @@ export default function AgentDetailPage() {
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({
                             text,
-                            voiceId: 'man-1', // TODO: Make this configurable
+                            voiceId: agentData.voiceId || agentData.selectedVoice?.voice_id || 'man-1',
                             speed: agentData.speed,
                             temperature: agentData.temperature,
                             textGuidance: agentData.textGuidance,

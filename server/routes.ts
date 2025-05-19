@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, insertAgentSchema, insertCallSchema, insertActionSchema, insertPhoneNumberSchema, insertContactGroupSchema, insertContactSchema, insertCampaignSchema } from "@shared/schema";
 import { z } from "zod";
-import { testApiConnection, synthesizeSpeech } from "./utils/vapi";
+import { testApiConnection, synthesizeSpeech, getAvailableVoices } from "./utils/vapi";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes
@@ -241,6 +241,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       res.status(500).json({ success: false, message: "An error occurred while testing the API connection" });
+    }
+  });
+  
+  app.get("/api/vapi/voices", async (req, res) => {
+    try {
+      const voices = await getAvailableVoices();
+      if (voices.length > 0) {
+        res.json({ success: true, voices });
+      } else {
+        res.status(404).json({ 
+          success: false, 
+          message: "No voices found. Please check your ElevenLabs API token.",
+          voices: [] 
+        });
+      }
+    } catch (error) {
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to fetch available voices", 
+        voices: [] 
+      });
     }
   });
   

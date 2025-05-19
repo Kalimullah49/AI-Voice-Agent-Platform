@@ -125,3 +125,73 @@ export async function testApiConnection(): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Voice information interface
+ */
+export interface VoiceInfo {
+  voice_id: string;
+  name: string;
+  category: string;
+  description?: string;
+  preview_url?: string;
+  gender?: string;
+  age?: string;
+  accent?: string;
+  language?: string;
+  use_case?: string;
+  style?: string;
+  is_clone?: boolean;
+}
+
+/**
+ * Get available voices from ElevenLabs
+ * @returns Array of voice information objects
+ */
+export async function getAvailableVoices(): Promise<VoiceInfo[]> {
+  if (!VAPI_AI_TOKEN) {
+    console.error('VAPI_AI_TOKEN is not defined. Please set it in your environment variables.');
+    return [];
+  }
+
+  try {
+    // Use ElevenLabs API to get available voices
+    const response = await fetch('https://api.elevenlabs.io/v1/voices', {
+      method: 'GET',
+      headers: {
+        'xi-api-key': VAPI_AI_TOKEN // ElevenLabs uses the same token format
+      }
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error(`ElevenLabs API error: ${response.status} - ${errorData}`);
+      return [];
+    }
+
+    const data = await response.json() as any;
+    
+    // Map the response to our interface
+    if (data && data.voices && Array.isArray(data.voices)) {
+      return data.voices.map((voice: any) => ({
+        voice_id: voice.voice_id,
+        name: voice.name,
+        category: voice.category || 'unknown',
+        description: voice.description,
+        preview_url: voice.preview_url,
+        gender: voice.labels?.gender,
+        age: voice.labels?.age,
+        accent: voice.labels?.accent,
+        language: voice.labels?.language,
+        use_case: voice.labels?.use_case,
+        style: voice.labels?.style,
+        is_clone: voice.labels?.is_clone === 'true'
+      }));
+    }
+    
+    return [];
+  } catch (error) {
+    console.error('Error fetching available voices:', error);
+    return [];
+  }
+}
