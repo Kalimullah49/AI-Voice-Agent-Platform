@@ -328,46 +328,71 @@ export default function AgentDetailPage() {
                     setIsWebCallActive(false);
                   }
                 } else {
-                  // Create a new script tag with a unique ID based on timestamp
-                  const script = document.createElement('script');
-                  const timestamp = new Date().getTime();
-                  script.id = `vapi-test-script-${timestamp}`;
+                  // First, make sure we've properly cleaned up any existing instances
+                  try {
+                    // Remove all existing Vapi scripts first
+                    document.querySelectorAll('script[src*="vapi"]').forEach(el => {
+                      if (el && el.parentNode) {
+                        el.parentNode.removeChild(el);
+                      }
+                    });
+                    
+                    // Remove all Vapi-related elements
+                    document.querySelectorAll('[id^="vapi"]').forEach(el => {
+                      if (el && el.parentNode) {
+                        el.parentNode.removeChild(el);
+                      }
+                    });
+                  } catch (err) {
+                    console.warn("Error during cleanup:", err);
+                  }
                   
-                  // Use a more robust script that assigns global variables
-                  script.innerHTML = `
-                    // Store reference to prevent garbage collection
-                    window.vapiCleanupFunctions = window.vapiCleanupFunctions || [];
-                    
-                    const assistant = "${agentData.vapiAssistantId}";
-                    const apiKey = "317c2afe-8d25-4a7f-8ec8-613a6265dd14";
-                    
-                    (function (d, t) {
-                      var g = document.createElement(t),
-                        s = d.getElementsByTagName(t)[0];
-                      g.src = "https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js";
-                      g.defer = true;
-                      g.async = true;
-                      s.parentNode.insertBefore(g, s);
-  
-                      g.onload = function () {
-                        try {
-                          // Store the instance globally for better cleanup
-                          window.vapiCurrentInstance = window.vapiSDK.run({
+                  // Now add the fresh Vapi script directly
+                  const script = document.createElement('script');
+                  script.src = "https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js";
+                  script.defer = true;
+                  script.async = true;
+                  script.id = 'vapi-sdk-loader';
+                  
+                  // Handle script load error
+                  script.onerror = () => {
+                    toast({
+                      title: "Failed to load Vapi SDK",
+                      description: "Could not load the call widget. Please try again later.",
+                      variant: "destructive"
+                    });
+                    setIsWebCallActive(false);
+                  };
+                  
+                  // Initialization script
+                  const initScript = document.createElement('script');
+                  initScript.id = 'vapi-init-script';
+                  
+                  // Wait for SDK to load before running init
+                  script.onload = () => {
+                    // Add the actual initialization script
+                    initScript.innerHTML = `
+                      try {
+                        const assistant = "${agentData.vapiAssistantId}";
+                        const apiKey = "317c2afe-8d25-4a7f-8ec8-613a6265dd14";
+                        
+                        // Run the Vapi SDK with the proper configuration
+                        if (window.vapiSDK) {
+                          window.vapiSDK.run({
                             apiKey: apiKey,
                             assistant: assistant,
                           });
-                          
-                          // Store a reference to the destroy function
-                          window.vapiCleanupFunctions.push(function() {
-                            if (window.vapiSDK) window.vapiSDK.destroy();
-                          });
-                        } catch (err) {
-                          console.error("Failed to initialize Vapi widget:", err);
+                        } else {
+                          console.error("Vapi SDK not available");
                         }
-                      };
-                    })(document, "script");
-                  `;
+                      } catch (err) {
+                        console.error("Error initializing Vapi widget:", err);
+                      }
+                    `;
+                    document.body.appendChild(initScript);
+                  };
                   
+                  // Add the script to the page
                   document.body.appendChild(script);
                   setIsWebCallActive(true);
                   
