@@ -229,7 +229,7 @@ export interface VapiAssistantParams {
 
   voice: {
     provider: string;
-    voiceId: string;
+    voiceId?: string; // Make voiceId optional
     speed?: number;
     temperature?: number;
     guidance?: number;

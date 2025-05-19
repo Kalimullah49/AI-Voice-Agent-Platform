@@ -194,6 +194,22 @@ export default function AgentDetailPage() {
     }));
   };
   
+  // Helper function to map intelligence levels to OpenAI models
+  const getOpenAIModel = (intelligenceLevel: string): string => {
+    switch (intelligenceLevel) {
+      case "Genius Mode":
+        return "gpt-4";
+      case "Enhanced Mode":
+        return "gpt-4o";
+      case "Standard Mode":
+        return "gpt-3.5-turbo";
+      case "Basic Mode":
+        return "gpt-3.5-turbo";
+      default:
+        return "gpt-4o"; // Default to gpt-4o if unspecified
+    }
+  };
+  
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
@@ -250,7 +266,7 @@ export default function AgentDetailPage() {
                 },
                 model: {
                   provider: "openai",
-                  model: "gpt-4o",
+                  model: getOpenAIModel(agentData.responseIntelligenceLevel),
                   messages: [
                     {
                       role: "system",
@@ -261,7 +277,7 @@ export default function AgentDetailPage() {
                 voice: {
                   provider: "elevenlabs",
                   voiceId: agentData.selectedVoice?.voice_id || agentData.voiceId || "Rachel",
-                  speed: agentData.speed ? agentData.speed / 10 : 1.0, // Convert to 0-1 range
+                  speed: agentData.speed ? Math.min(agentData.speed / 10, 1.0) : 1.0, // Convert to 0-1 range, max 1.0
                   temperature: agentData.temperature || 0.4,
                   guidance: agentData.voiceGuidance || 1.0
                 },
