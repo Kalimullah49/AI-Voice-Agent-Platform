@@ -91,15 +91,13 @@ export async function loginUser(credentials: LoginData): Promise<User> {
 
 // Function to register a new user
 export async function registerUser(data: RegisterData): Promise<User> {
-  // Remove confirmPassword before sending to API
-  const { confirmPassword, ...userData } = data;
-  
+  // Send the complete data including confirmPassword to the API
   const response = await fetch("/api/auth/register", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(userData),
+    body: JSON.stringify(data),
   });
   
   if (!response.ok) {
