@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useLocation, useRoute } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { TestCallModal } from "../../components/agents/TestCallModal";
+import { WebCallScript } from "../../components/agents/WebCallScript";
 import { 
   Tabs, 
   TabsContent, 
@@ -250,6 +250,11 @@ export default function AgentDetailPage() {
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Agent Settings</h2>
         <div className="flex gap-2">
+          {/* Add Web Call Script when agent has a Vapi assistant ID */}
+          {agentData.vapiAssistantId && (
+            <WebCallScript assistantId={agentData.vapiAssistantId} />
+          )}
+          
           <Button variant="outline" size="sm" className="mr-2"
             onClick={() => {
               // Create Vapi assistant from agent data
