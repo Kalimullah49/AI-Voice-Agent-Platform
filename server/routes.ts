@@ -159,9 +159,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Delete an agent
-  app.delete("/api/agents/:id", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/agents/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.session.userId;
       const id = parseInt(req.params.id);
       
       // First check if the agent exists and belongs to this user
@@ -208,9 +208,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Call routes
-  app.get("/api/calls", isAuthenticated, async (req: any, res) => {
+  app.get("/api/calls", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.session.userId;
       
       // Get all agents for this user
       const userAgents = await storage.getAllAgentsByUserId(userId);
@@ -229,9 +229,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/calls/:id", isAuthenticated, async (req: any, res) => {
+  app.get("/api/calls/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.session.userId;
       const id = parseInt(req.params.id);
       const call = await storage.getCall(id);
       
