@@ -1,15 +1,48 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusIcon, Search, UserPlus, PhoneCall } from "lucide-react";
+import { PlusIcon, Search, UserPlus, PhoneCall, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { TableSkeleton } from "@/components/ui/skeleton";
 import { useLocation } from "wouter";
+import { toast } from "@/hooks/use-toast";
 
 export default function AgentsPage() {
   const [_, navigate] = useLocation();
-  const { data: agents, isLoading, error } = useQuery({
+  const queryClient = useQueryClient();
+  const { data: agents = [], isLoading, error } = useQuery<any[]>({
     queryKey: ["/api/agents"],
+  });
+  
+  // Mutation for deleting an agent
+  const deleteAgentMutation = useMutation({
+    mutationFn: async (agentId: number) => {
+      const response = await fetch(`/api/agents/${agentId}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete agent');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      // Invalidate the agents query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
+      toast({
+        title: "Agent deleted",
+        description: "The agent has been successfully deleted.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete agent. Please try again.",
+        variant: "destructive"
+      });
+    }
   });
 
   return (
@@ -77,7 +110,7 @@ export default function AgentsPage() {
             <div className="text-center text-red-500">Failed to load agents</div>
           </CardContent>
         </Card>
-      ) : agents && agents.length > 0 ? (
+      ) : agents && Array.isArray(agents) && agents.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {agents.map((agent: any) => (
             <Card key={agent.id} className="overflow-hidden">
@@ -118,17 +151,36 @@ export default function AgentsPage() {
                   >
                     View Details
                   </Button>
-                  <Button 
-                    variant="secondary" 
-                    size="sm"
-                    onClick={() => {
-                      // Test call functionality would go here
-                      alert('Test call feature coming soon');
-                    }}
-                  >
-                    <PhoneCall className="h-3 w-3 mr-1" />
-                    Test Call
-                  </Button>
+                  <div className="flex space-x-2">
+                    <Button 
+                      variant="secondary" 
+                      size="sm"
+                      onClick={() => {
+                        // Test call functionality would go here
+                        alert('Test call feature coming soon');
+                      }}
+                    >
+                      <PhoneCall className="h-3 w-3 mr-1" />
+                      Test Call
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      size="sm"
+                      disabled={deleteAgentMutation.isPending}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm(`Are you sure you want to delete the agent "${agent.name}"?`)) {
+                          deleteAgentMutation.mutate(agent.id);
+                        }
+                      }}
+                    >
+                      {deleteAgentMutation.isPending ? (
+                        <div className="h-3 w-3 animate-spin rounded-full border-2 border-t-transparent" />
+                      ) : (
+                        <Trash2 className="h-3 w-3" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </CardFooter>
             </Card>

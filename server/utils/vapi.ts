@@ -138,6 +138,52 @@ export async function synthesizeSpeech(options: VoiceSynthesisOptions): Promise<
 }
 
 /**
+ * Delete a Vapi assistant by its ID
+ * @param assistantId The ID of the assistant to delete
+ * @returns Success status and message
+ */
+export async function deleteVapiAssistant(assistantId: string): Promise<{ success: boolean; message?: string; }> {
+  try {
+    // Check if Vapi API token is available
+    if (!VAPI_AI_TOKEN) {
+      return {
+        success: false,
+        message: "Vapi.ai API token is not defined. Please set VAPI_AI_TOKEN in your environment variables."
+      };
+    }
+    
+    // Make API request to Vapi.ai to delete the assistant
+    const response = await fetch(`${VAPI_API_BASE_URL}/assistant/${assistantId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${VAPI_AI_TOKEN}`
+      }
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json() as any;
+      console.error(`Vapi.ai API error during deletion: ${response.status} - `, errorData);
+      return {
+        success: false,
+        message: `Error deleting Vapi assistant: ${errorData.message || errorData.error || 'Unknown error'}`
+      };
+    }
+    
+    return {
+      success: true,
+      message: "Vapi assistant deleted successfully"
+    };
+  } catch (error) {
+    console.error('Error deleting Vapi assistant:', error);
+    return {
+      success: false,
+      message: `Error deleting Vapi assistant: ${(error as Error).message}`
+    };
+  }
+}
+
+/**
  * Test API connection to Vapi.ai
  * @returns Boolean indicating if the connection was successful
  */

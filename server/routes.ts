@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, insertAgentSchema, insertCallSchema, insertActionSchema, insertPhoneNumberSchema, insertContactGroupSchema, insertContactSchema, insertCampaignSchema } from "@shared/schema";
 import { z } from "zod";
-import { testApiConnection, synthesizeSpeech, getAvailableVoices, createVapiAssistant, VapiAssistantParams } from "./utils/vapi";
+import { testApiConnection, synthesizeSpeech, getAvailableVoices, createVapiAssistant, deleteVapiAssistant, VapiAssistantParams } from "./utils/vapi";
 import { isAuthenticated } from "./replitAuth";
 import { DatabaseStorage } from "./database-storage";
 
@@ -193,7 +193,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "You don't have permission to delete this agent" });
       }
       
-      // Delete the agent
+      // If the agent has a Vapi assistant ID, delete it from Vapi.ai first
+      if (existingAgent.vapiAssistantId) {
+        try {
+          console.log(`Attempting to delete Vapi assistant: ${existingAgent.vapiAssistantId}`);
+          const vapiDeleteResult = await deleteVapiAssistant(existingAgent.vapiAssistantId);
+          
+          if (vapiDeleteResult.success) {
+            console.log(`Successfully deleted Vapi assistant: ${existingAgent.vapiAssistantId}`);
+          } else {
+            console.warn(`Failed to delete Vapi assistant: ${existingAgent.vapiAssistantId}. Error: ${vapiDeleteResult.message}`);
+            // Continue with agent deletion even if Vapi assistant deletion fails
+          }
+        } catch (vapiError) {
+          console.error("Error deleting Vapi assistant:", vapiError);
+          // Continue with agent deletion even if Vapi assistant deletion fails
+        }
+      }
+      
+      // Delete the agent from our database
       const success = await storage.deleteAgent(id);
       
       if (success) {
