@@ -430,7 +430,10 @@ export default function PhoneNumbersPage() {
                 Import phone numbers from your Twilio account to assign to your agents.
               </p>
               <div className="flex gap-2 justify-center">
-                <Button>Import Number</Button>
+                <Button variant="outline" className="flex items-center">
+                  <PlusIcon className="h-4 w-4 mr-2" />
+                  Import phone number
+                </Button>
               </div>
             </div>
           )}
