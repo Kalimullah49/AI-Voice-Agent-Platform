@@ -11,6 +11,15 @@ interface TestCallModalProps {
 
 export function TestCallModal({ open, onClose, assistantId }: TestCallModalProps) {
   const [scriptLoaded, setScriptLoaded] = useState(false);
+  const [callActive, setCallActive] = useState(false);
+  
+  // Function to destroy the Vapi widget
+  const destroyVapiWidget = () => {
+    if (window.vapiSDK) {
+      window.vapiSDK.destroy();
+      setCallActive(false);
+    }
+  };
   
   useEffect(() => {
     if (!open || !assistantId) return;
@@ -28,7 +37,7 @@ export function TestCallModal({ open, onClose, assistantId }: TestCallModalProps
       // Initialize Vapi once the script is loaded
       if (window.vapiSDK) {
         window.vapiSDK.run({
-          apiKey: process.env.VAPI_AI_TOKEN || '', // This won't expose the token in the frontend
+          apiKey: process.env.VAPI_AI_TOKEN || '',
           assistant: assistantId,
           config: {
             position: 'center', // Show the call button in the center
@@ -37,6 +46,7 @@ export function TestCallModal({ open, onClose, assistantId }: TestCallModalProps
             customText: 'Test Vapi Call' // Custom button text
           },
         });
+        setCallActive(true);
       }
     };
     
@@ -50,9 +60,7 @@ export function TestCallModal({ open, onClose, assistantId }: TestCallModalProps
       }
       
       // Clean up Vapi instance
-      if (window.vapiSDK) {
-        window.vapiSDK.destroy();
-      }
+      destroyVapiWidget();
       
       setScriptLoaded(false);
     };
@@ -94,6 +102,18 @@ export function TestCallModal({ open, onClose, assistantId }: TestCallModalProps
           <div className="text-sm text-gray-500 mt-4">
             <p>Note: This test call uses your Vapi.ai account and may incur charges based on your Vapi plan.</p>
           </div>
+          
+          {callActive && (
+            <div className="flex justify-center w-full mt-4">
+              <Button 
+                variant="destructive" 
+                onClick={destroyVapiWidget}
+                className="gap-2"
+              >
+                End Call & Hide Widget
+              </Button>
+            </div>
+          )}
         </div>
         
         <div className="flex justify-end">
