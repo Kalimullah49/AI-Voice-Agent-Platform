@@ -244,11 +244,10 @@ export interface VapiAssistantParams {
 }
 
 /**
- * Create a Vapi assistant using the Vapi.ai API
- * @param params The assistant parameters
- * @returns The created assistant or error message
+ * Get a list of assistants from Vapi.ai
+ * @returns A list of assistants or an error message
  */
-export async function createVapiAssistant(params: VapiAssistantParams): Promise<{ success: boolean; assistant?: any; message?: string; }> {
+export async function getVapiAssistants(): Promise<{ success: boolean; assistants?: any[]; message?: string; }> {
   try {
     // Check if Vapi API token is available
     if (!VAPI_AI_TOKEN) {
@@ -258,11 +257,98 @@ export async function createVapiAssistant(params: VapiAssistantParams): Promise<
       };
     }
     
-    console.log(`Creating Vapi assistant: ${params.name}`);
-    
-    // Make API request to Vapi.ai to create assistant
+    // Make API request to Vapi.ai to get assistants
     const response = await fetch(`${VAPI_API_BASE_URL}/assistant`, {
-      method: 'POST',
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${VAPI_AI_TOKEN}`
+      }
+    });
+    
+    const responseData = await response.json() as any;
+    
+    if (!response.ok) {
+      console.error(`Vapi.ai API error: ${response.status} - `, responseData);
+      return {
+        success: false,
+        message: `Error getting Vapi assistants: ${responseData.message || responseData.error || 'Unknown error'}`
+      };
+    }
+    
+    return {
+      success: true,
+      assistants: responseData
+    };
+  } catch (error) {
+    console.error('Error getting Vapi assistants:', error);
+    return {
+      success: false,
+      message: `Error getting Vapi assistants: ${(error as Error).message}`
+    };
+  }
+}
+
+/**
+ * Find a Vapi assistant by metadata.agentId
+ * @param agentId The agent ID to look for in metadata
+ * @returns The assistant ID if found, null otherwise
+ */
+export async function findVapiAssistantByAgentId(agentId: string | number): Promise<string | null> {
+  try {
+    const result = await getVapiAssistants();
+    
+    if (!result.success || !result.assistants) {
+      return null;
+    }
+    
+    const assistant = result.assistants.find(assistant => 
+      assistant.metadata && 
+      assistant.metadata.agentId && 
+      assistant.metadata.agentId.toString() === agentId.toString()
+    );
+    
+    return assistant ? assistant.id : null;
+  } catch (error) {
+    console.error('Error finding Vapi assistant by agent ID:', error);
+    return null;
+  }
+}
+
+/**
+ * Create or update a Vapi assistant using the Vapi.ai API
+ * @param params The assistant parameters
+ * @returns The created/updated assistant or error message
+ */
+export async function createVapiAssistant(params: VapiAssistantParams): Promise<{ success: boolean; assistant?: any; message?: string; updated?: boolean }> {
+  try {
+    // Check if Vapi API token is available
+    if (!VAPI_AI_TOKEN) {
+      return {
+        success: false,
+        message: "Vapi.ai API token is not defined. Please set VAPI_AI_TOKEN in your environment variables."
+      };
+    }
+    
+    // Check if assistant already exists for this agent
+    const existingAssistantId = params.metadata?.agentId 
+      ? await findVapiAssistantByAgentId(params.metadata.agentId)
+      : null;
+    
+    let url = `${VAPI_API_BASE_URL}/assistant`;
+    let method = 'POST';
+    
+    if (existingAssistantId) {
+      console.log(`Updating existing Vapi assistant: ${existingAssistantId} for agent: ${params.metadata?.agentId}`);
+      url = `${VAPI_API_BASE_URL}/assistant/${existingAssistantId}`;
+      method = 'PATCH';
+    } else {
+      console.log(`Creating Vapi assistant: ${params.name}`);
+    }
+    
+    // Make API request to Vapi.ai to create or update assistant
+    const response = await fetch(url, {
+      method,
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${VAPI_AI_TOKEN}`
@@ -276,13 +362,14 @@ export async function createVapiAssistant(params: VapiAssistantParams): Promise<
       console.error(`Vapi.ai API error: ${response.status} - `, responseData);
       return {
         success: false,
-        message: `Error creating Vapi assistant: ${responseData.message || responseData.error || 'Unknown error'}`
+        message: `Error ${existingAssistantId ? 'updating' : 'creating'} Vapi assistant: ${responseData.message || responseData.error || 'Unknown error'}`
       };
     }
     
     return {
       success: true,
-      assistant: responseData
+      assistant: responseData,
+      updated: !!existingAssistantId
     };
   } catch (error) {
     console.error('Error creating Vapi assistant:', error);

@@ -277,15 +277,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       }
       
-      // Create the assistant via Vapi API
+      // Create or update the assistant via Vapi API
       const result = await createVapiAssistant(assistantParams);
       
       if (result.success) {
-        console.log("Successfully created Vapi assistant:", result.assistant?.id);
+        const action = result.updated ? "updated" : "created";
+        console.log(`Successfully ${action} Vapi assistant: ${result.assistant?.id}`);
         res.status(201).json({
           success: true,
           assistant: result.assistant,
-          message: "Successfully created Vapi assistant"
+          updated: result.updated,
+          message: `Successfully ${action} Vapi assistant`
         });
       } else {
         res.status(400).json({
