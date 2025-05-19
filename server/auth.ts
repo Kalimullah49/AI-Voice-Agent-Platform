@@ -57,6 +57,13 @@ export function setupAuth(app: Express) {
   // Registration endpoint
   app.post("/api/auth/register", async (req: Request, res: Response) => {
     try {
+      // Make sure confirmPassword is in the request body
+      if (!req.body.confirmPassword) {
+        return res.status(400).json({ 
+          message: "Confirm password is required" 
+        });
+      }
+      
       // Validate request body
       const validatedData = registerUserSchema.parse(req.body);
       
