@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, insertAgentSchema, insertCallSchema, insertActionSchema, insertPhoneNumberSchema, insertContactGroupSchema, insertContactSchema, insertCampaignSchema } from "@shared/schema";
 import { z } from "zod";
+import { testApiConnection, synthesizeSpeech } from "./utils/vapi";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes
@@ -226,6 +227,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(phoneNumbers);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch phone numbers" });
+    }
+  });
+  
+  // Vapi.ai API Routes
+  app.get("/api/vapi/test-connection", async (req, res) => {
+    try {
+      const isConnected = await testApiConnection();
+      if (isConnected) {
+        res.json({ success: true, message: "Successfully connected to Vapi.ai API" });
+      } else {
+        res.status(401).json({ success: false, message: "Failed to connect to Vapi.ai API. Please check your token." });
+      }
+    } catch (error) {
+      res.status(500).json({ success: false, message: "An error occurred while testing the API connection" });
+    }
+  });
+  
+  app.post("/api/vapi/synthesize", async (req, res) => {
+    try {
+      const { text, voiceId, speed, temperature, textGuidance, voiceGuidance, backgroundNoise } = req.body;
+      
+      if (!text) {
+        return res.status(400).json({ success: false, message: "Text is required" });
+      }
+      
+      const audioUrl = await synthesizeSpeech({
+        text,
+        voiceId,
+        speed,
+        temperature,
+        textGuidance,
+        voiceGuidance,
+        backgroundNoise
+      });
+      
+      if (audioUrl) {
+        res.json({ success: true, audioUrl });
+      } else {
+        res.status(500).json({ success: false, message: "Failed to synthesize speech" });
+      }
+    } catch (error) {
+      res.status(500).json({ success: false, message: "An error occurred during speech synthesis" });
     }
   });
 

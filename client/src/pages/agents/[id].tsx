@@ -338,6 +338,111 @@ export default function AgentDetailPage() {
               <Separator />
               
               {/* Voice Guidance */}
+              {/* Vapi.ai Integration Test */}
+              <div className="mb-6 p-4 border rounded-md bg-muted/30">
+                <h3 className="text-lg font-medium mb-2">Test Voice Synthesis</h3>
+                <div className="flex flex-col space-y-4">
+                  <div>
+                    <label className="block text-sm mb-1">Test text to synthesize</label>
+                    <textarea 
+                      className="w-full p-2 border rounded-md" 
+                      rows={2}
+                      placeholder="Enter text to hear with this voice..."
+                      id="testVoiceText"
+                      defaultValue="Hello, this is a test of the voice synthesis system. How does it sound?"
+                    ></textarea>
+                  </div>
+                  <div className="flex space-x-2">
+                    <button
+                      className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                      onClick={() => {
+                        const text = (document.getElementById('testVoiceText') as HTMLTextAreaElement).value;
+                        if (!text) return;
+                        
+                        // Set loading state
+                        const button = document.activeElement as HTMLButtonElement;
+                        const originalText = button.innerText;
+                        button.innerText = 'Generating...';
+                        button.disabled = true;
+                        
+                        // Make API request to synthesize speech
+                        fetch('/api/vapi/synthesize', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            text,
+                            voiceId: 'man-1', // TODO: Make this configurable
+                            speed: agentData.speed,
+                            temperature: agentData.temperature,
+                            textGuidance: agentData.textGuidance,
+                            voiceGuidance: agentData.voiceGuidance,
+                            backgroundNoise: {
+                              officeAmbience: agentData.officeAmbience,
+                              keyboard: agentData.keyboard,
+                              phoneRinging: agentData.phoneRinging
+                            }
+                          })
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                          if (data.success && data.audioUrl) {
+                            // Create audio element and play the synthesized speech
+                            const audioPlayer = document.getElementById('audioPlayer') as HTMLAudioElement;
+                            audioPlayer.src = data.audioUrl;
+                            audioPlayer.play();
+                          } else {
+                            toast({
+                              title: "Voice Synthesis Failed",
+                              description: data.message || "Could not generate speech. Please check your Vapi.ai token.",
+                              variant: "destructive"
+                            });
+                          }
+                        })
+                        .catch(err => {
+                          toast({
+                            title: "Error",
+                            description: "Failed to connect to the voice synthesis service. Please check your Vapi.ai token in the .env file.",
+                            variant: "destructive"
+                          });
+                          console.error("Voice synthesis error:", err);
+                        })
+                        .finally(() => {
+                          // Reset button state
+                          button.innerText = originalText;
+                          button.disabled = false;
+                        });
+                      }}
+                    >
+                      Generate & Play
+                    </button>
+                    <button
+                      className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/90 transition-colors"
+                      onClick={() => {
+                        fetch('/api/vapi/test-connection')
+                          .then(res => res.json())
+                          .then(data => {
+                            toast({
+                              title: data.success ? "Connection Successful" : "Connection Failed",
+                              description: data.message,
+                              variant: data.success ? "default" : "destructive"
+                            });
+                          })
+                          .catch(err => {
+                            toast({
+                              title: "Error",
+                              description: "Failed to test API connection. Please check your network and try again.",
+                              variant: "destructive"
+                            });
+                          });
+                      }}
+                    >
+                      Test API Connection
+                    </button>
+                  </div>
+                  <audio id="audioPlayer" controls className="w-full" />
+                </div>
+              </div>
+              
               <div className="space-y-4">
                 <div>
                   <div className="flex items-center justify-between">
