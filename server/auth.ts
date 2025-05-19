@@ -77,8 +77,9 @@ export function setupAuth(app: Express) {
       // Hash password
       const hashedPassword = await hashPassword(validatedData.password);
       
-      // Create user
+      // Create user with a UUID as ID
       const user = await storage.createUser({
+        id: uuidv4(), // Generate a UUID for the user
         email: validatedData.email,
         password: hashedPassword,
         firstName: validatedData.firstName,
