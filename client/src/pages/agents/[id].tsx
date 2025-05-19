@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useLocation, useRoute } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
@@ -83,6 +83,43 @@ export default function AgentDetailPage() {
     selectedVoice: null,
   });
   
+  // Fetch available voices function
+  const fetchVoices = () => {
+    // Set state to indicate loading
+    setAgentData(prev => ({
+      ...prev,
+      voicesLoading: true
+    }));
+    
+    // Fetch available voices from API
+    fetch('/api/vapi/voices')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.voices && data.voices.length > 0) {
+          setAgentData(prev => ({
+            ...prev,
+            availableVoices: data.voices,
+            voicesLoading: false
+          }));
+          console.log("Successfully loaded voices:", data.voices.length);
+        } else {
+          setAgentData(prev => ({
+            ...prev,
+            availableVoices: [],
+            voicesLoading: false
+          }));
+          console.error("Failed to load voices:", data.message);
+        }
+      })
+      .catch(err => {
+        setAgentData(prev => ({
+          ...prev,
+          voicesLoading: false
+        }));
+        console.error("Error fetching voices:", err);
+      });
+  };
+  
   // Update local state when agent data is loaded
   useEffect(() => {
     if (agent) {
@@ -99,6 +136,9 @@ export default function AgentDetailPage() {
         keyboard: agent.keyboard || false,
         phoneRinging: agent.phoneRinging || false,
       });
+      
+      // Fetch voices when the agent details are loaded
+      fetchVoices();
     }
   }, [agent]);
   
@@ -329,58 +369,19 @@ export default function AgentDetailPage() {
                 <h3 className="text-lg font-medium">Voice</h3>
                 <div className="flex flex-col space-y-4 pt-2">
                   <div className="flex items-center space-x-2">
-                    <button 
-                      className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/90 transition-colors"
-                      onClick={() => {
-                        // Set state to indicate loading
-                        setAgentData(prev => ({
-                          ...prev,
-                          voicesLoading: true
-                        }));
-                        
-                        // Fetch available voices
-                        fetch('/api/vapi/voices')
-                          .then(res => res.json())
-                          .then(data => {
-                            if (data.success && data.voices && data.voices.length > 0) {
-                              setAgentData(prev => ({
-                                ...prev,
-                                availableVoices: data.voices,
-                                voicesLoading: false
-                              }));
-                              toast({
-                                title: "Voices Loaded",
-                                description: `Successfully loaded ${data.voices.length} voices from ElevenLabs.`,
-                              });
-                            } else {
-                              setAgentData(prev => ({
-                                ...prev,
-                                availableVoices: [],
-                                voicesLoading: false
-                              }));
-                              toast({
-                                title: "Failed to Load Voices",
-                                description: data.message || "No voices found. Please check your ElevenLabs API token.",
-                                variant: "destructive"
-                              });
-                            }
-                          })
-                          .catch(err => {
-                            setAgentData(prev => ({
-                              ...prev,
-                              voicesLoading: false
-                            }));
-                            toast({
-                              title: "Error",
-                              description: "Failed to fetch voices. Please check your API token and try again.",
-                              variant: "destructive"
-                            });
-                            console.error("Error fetching voices:", err);
-                          });
-                      }}
-                    >
-                      {agentData.voicesLoading ? "Loading..." : "Load Voices from ElevenLabs"}
-                    </button>
+                    {agentData.voicesLoading ? (
+                      <div className="flex items-center">
+                        <div className="animate-spin w-5 h-5 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
+                        <span>Loading voices...</span>
+                      </div>
+                    ) : (
+                      <div className="text-sm text-muted-foreground">
+                        {agentData.availableVoices && agentData.availableVoices.length > 0 
+                          ? `${agentData.availableVoices.length} voices available - click on any voice to select it`
+                          : "No voices found - check your ElevenLabs API key in the .env file"
+                        }
+                      </div>
+                    )}
                     {agentData.selectedVoice && (
                       <div className="flex items-center gap-2 bg-muted rounded-md px-4 py-2">
                         <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
