@@ -43,6 +43,7 @@ export default function AgentDetailPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("general");
+  const [isTestCallModalOpen, setIsTestCallModalOpen] = useState(false);
   
   // Get agent data
   const { 
@@ -1205,6 +1206,15 @@ ${agentData.script || "- Acknowledge the caller's courage in reaching out\n- Ask
           </Card>
         </TabsContent>
       </Tabs>
+      {/* Test Call Modal */}
+      {agent && isTestCallModalOpen && (
+        <TestCallModal
+          isOpen={isTestCallModalOpen}
+          onClose={() => setIsTestCallModalOpen(false)}
+          agent={agent}
+          apiKey={process.env.VAPI_AI_TOKEN || ""}
+        />
+      )}
     </div>
   );
 }
