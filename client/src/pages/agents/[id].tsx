@@ -250,6 +250,20 @@ export default function AgentDetailPage() {
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Agent Settings</h2>
         <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => {
+            // Handle test call
+            if (!agentData.vapiAssistantId) {
+              toast({
+                title: "Deploy First",
+                description: "You need to deploy this agent to Vapi before testing",
+                variant: "destructive"
+              });
+              return;
+            }
+            setIsTestCallModalOpen(true);
+          }}>
+            Test Call
+          </Button>
           <Button variant="outline" size="sm" 
             onClick={() => {
               // Create Vapi assistant from agent data
