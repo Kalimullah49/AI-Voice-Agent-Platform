@@ -259,7 +259,6 @@ export default function AgentDetailPage() {
                 recordingEnabled: true,
                 voicemailDetectionEnabled: true,
                 endCallFunctionEnabled: true,
-                transferCallFunctionEnabled: true,
                 metadata: {
                   agentId: id,
                   createdFrom: "AimAI Platform",
@@ -275,7 +274,7 @@ export default function AgentDetailPage() {
                   ]
                 },
                 voice: {
-                  provider: "elevenlabs",
+                  provider: "11labs",
                   voiceId: agentData.selectedVoice?.voice_id || agentData.voiceId || "Rachel",
                   speed: agentData.speed ? Math.min(agentData.speed / 10, 1.0) : 1.0, // Convert to 0-1 range, max 1.0
                   temperature: agentData.temperature || 0.4,
@@ -284,8 +283,7 @@ export default function AgentDetailPage() {
                 transcriber: {
                   provider: "deepgram",
                   model: "nova-2-general",
-                  language: "en",
-                  endUtteranceSilenceThreshold: 288
+                  language: "en"
                 }
               };
               
