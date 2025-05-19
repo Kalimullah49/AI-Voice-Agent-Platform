@@ -299,9 +299,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Create a Vapi.ai assistant
-  app.post("/api/vapi/assistants", async (req, res) => {
+  // Create a Vapi.ai assistant - requires authentication
+  app.post("/api/vapi/assistants", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const assistantParams = req.body as VapiAssistantParams;
       
       if (!assistantParams || !assistantParams.name) {
@@ -310,6 +311,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "Invalid assistant data. Name is required." 
         });
       }
+      
+      // Ensure metadata includes the current user ID
+      if (!assistantParams.metadata) {
+        assistantParams.metadata = {};
+      }
+      
+      // Ensure the agentId is associated with the current user if specified
+      if (assistantParams.metadata.agentId) {
+        const agent = await storage.getAgent(parseInt(assistantParams.metadata.agentId));
+        
+        if (!agent) {
+          return res.status(404).json({
+            success: false,
+            message: "Agent not found"
+          });
+        }
+        
+        // Check if this agent belongs to the current user
+        if (agent.userId !== userId) {
+          return res.status(403).json({
+            success: false, 
+            message: "You don't have permission to update this agent"
+          });
+        }
+      }
+      
+      // Set the userId in metadata to track ownership
+      assistantParams.metadata.userId = userId;
       
       // Ensure some required fields have default values if not provided
       if (!assistantParams.model) {
@@ -338,6 +367,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (result.success) {
         const action = result.updated ? "updated" : "created";
         console.log(`Successfully ${action} Vapi assistant: ${result.assistant?.id}`);
+        
+        // If agent ID is provided, update the agent with the Vapi assistant ID
+        if (assistantParams.metadata.agentId) {
+          const agentId = parseInt(assistantParams.metadata.agentId);
+          
+          // Update the agent with the Vapi assistant ID
+          await storage.updateAgent(agentId, {
+            vapiAssistantId: result.assistant.id
+          });
+          
+          console.log(`Updated agent ${agentId} with Vapi assistant ID: ${result.assistant.id}`);
+        }
+        
         res.status(201).json({
           success: true,
           assistant: result.assistant,

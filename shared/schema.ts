@@ -74,6 +74,7 @@ export const agents = pgTable("agents", {
   responseIntelligenceLevel: text("response_intelligence_level"),
   active: boolean("active").default(false),
   userId: varchar("user_id").references(() => users.id), // Reference to user who created the agent
+  vapiAssistantId: text("vapi_assistant_id"), // Reference to the Vapi.ai assistant ID
 });
 
 export const insertAgentSchema = createInsertSchema(agents).pick({
@@ -90,6 +91,7 @@ export const insertAgentSchema = createInsertSchema(agents).pick({
   responseIntelligenceLevel: true,
   active: true,
   userId: true,
+  vapiAssistantId: true,
 });
 
 // Call model
