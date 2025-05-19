@@ -274,7 +274,8 @@ export default function AgentDetailPage() {
                   ]
                 },
                 voice: {
-                  provider: "vapi"
+                  provider: "vapi",
+                  voiceId: "Savannah" // Using one of Vapi's standard voices
                 },
                 transcriber: {
                   provider: "deepgram",
