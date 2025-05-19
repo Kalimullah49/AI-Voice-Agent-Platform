@@ -22,7 +22,9 @@ export function TestCallModal({ isOpen, onClose, agent, apiKey }: TestCallModalP
     return () => {
       if (vapiInstanceRef.current) {
         try {
-          vapiInstanceRef.current.stop();
+          if (typeof vapiInstanceRef.current.stop === 'function') {
+            vapiInstanceRef.current.stop();
+          }
         } catch (error) {
           console.error('Error stopping Vapi call:', error);
         }
@@ -46,16 +48,11 @@ export function TestCallModal({ isOpen, onClose, agent, apiKey }: TestCallModalP
     try {
       setStatus('connecting');
       
-      // Initialize Vapi
+      // Create Vapi client with the API key
       const vapi = new Vapi(apiKey);
       vapiInstanceRef.current = vapi;
       
-      // Mount the call UI to our container
-      if (callContainerRef.current) {
-        vapi.mount(callContainerRef.current);
-      }
-      
-      // Start the call
+      // Start the call with the Vapi assistant ID
       await vapi.start(agent.vapiAssistantId);
       
       setStatus('connected');
@@ -74,7 +71,9 @@ export function TestCallModal({ isOpen, onClose, agent, apiKey }: TestCallModalP
   const handleEndCall = () => {
     if (vapiInstanceRef.current) {
       try {
-        vapiInstanceRef.current.stop();
+        if (typeof vapiInstanceRef.current.stop === 'function') {
+          vapiInstanceRef.current.stop();
+        }
       } catch (error) {
         console.error('Error stopping Vapi call:', error);
       }

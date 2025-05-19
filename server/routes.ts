@@ -244,6 +244,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get Vapi token for client-side use (for the web SDK)
+  app.get("/api/vapi/token", (req, res) => {
+    try {
+      const token = process.env.VAPI_AI_TOKEN;
+      
+      if (!token) {
+        return res.status(400).json({
+          success: false,
+          message: "Vapi.ai API token is not defined"
+        });
+      }
+      
+      res.json({
+        success: true,
+        token
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to get Vapi token"
+      });
+    }
+  });
+  
   // Create a Vapi.ai assistant
   app.post("/api/vapi/assistants", async (req, res) => {
     try {
