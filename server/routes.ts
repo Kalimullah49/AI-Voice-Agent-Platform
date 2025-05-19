@@ -175,6 +175,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to update agent" });
     }
   });
+  
+  // Delete an agent
+  app.delete("/api/agents/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseInt(req.params.id);
+      
+      // First check if the agent exists and belongs to this user
+      const existingAgent = await storage.getAgent(id);
+      if (!existingAgent) {
+        return res.status(404).json({ message: "Agent not found" });
+      }
+      
+      // Check if this agent belongs to the current user
+      if (existingAgent.userId !== userId) {
+        return res.status(403).json({ message: "You don't have permission to delete this agent" });
+      }
+      
+      // Delete the agent
+      const success = await storage.deleteAgent(id);
+      
+      if (success) {
+        res.status(200).json({ success: true, message: "Agent deleted successfully" });
+      } else {
+        res.status(500).json({ success: false, message: "Failed to delete agent" });
+      }
+    } catch (error) {
+      console.error("Error deleting agent:", error);
+      res.status(500).json({ message: "Failed to delete agent" });
+    }
+  });
 
   // Call routes
   app.get("/api/calls", isAuthenticated, async (req: any, res) => {
