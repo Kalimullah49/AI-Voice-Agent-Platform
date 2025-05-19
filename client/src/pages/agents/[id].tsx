@@ -38,11 +38,32 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+// Add global type definition for Vapi SDK
+declare global {
+  interface Window {
+    vapiSDK: {
+      run: (config: {
+        apiKey: string;
+        assistant: string;
+        config?: {
+          position?: 'left' | 'right' | 'center';
+          size?: 'small' | 'medium' | 'large';
+          chatWidget?: boolean;
+          customText?: string;
+          [key: string]: any;
+        };
+      }) => any;
+      destroy: () => void;
+    };
+  }
+}
+
 export default function AgentDetailPage() {
   const { id } = useParams();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("general");
+  const [isWebCallActive, setIsWebCallActive] = useState(false);
   
   // Get agent data
   const { 
@@ -253,46 +274,67 @@ export default function AgentDetailPage() {
           {/* Test call button for Vapi integration */}
           {agentData.vapiAssistantId && (
             <Button 
-              variant="outline" 
+              variant={isWebCallActive ? "destructive" : "outline"}
               size="sm" 
               className="mr-2" 
               onClick={() => {
-                // Add the script directly to the page when the button is clicked
-                const script = document.createElement('script');
-                script.innerHTML = `
-                  var vapiInstance = null;
-                  const assistant = "${agentData.vapiAssistantId}";
-                  const apiKey = "317c2afe-8d25-4a7f-8ec8-613a6265dd14";
-                  const buttonConfig = {}; // Modify this as required
-
-                  (function (d, t) {
-                    var g = document.createElement(t),
-                      s = d.getElementsByTagName(t)[0];
-                    g.src =
-                      "https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js";
-                    g.defer = true;
-                    g.async = true;
-                    s.parentNode.insertBefore(g, s);
-
-                    g.onload = function () {
-                      vapiInstance = window.vapiSDK.run({
-                        apiKey: apiKey,
-                        assistant: assistant,
-                        config: buttonConfig, // optional
-                      });
-                    };
-                  })(document, "script");
-                `;
-                document.body.appendChild(script);
-                
-                toast({
-                  title: "Test Call Widget Added",
-                  description: "Look for the call button on the bottom right of the page to start a test call",
-                });
+                if (isWebCallActive) {
+                  // Destroy the widget if it's already active
+                  if (window.vapiSDK) {
+                    window.vapiSDK.destroy();
+                    setIsWebCallActive(false);
+                    
+                    // Remove the script tag
+                    const existingScript = document.getElementById('vapi-test-script');
+                    if (existingScript) {
+                      document.body.removeChild(existingScript);
+                    }
+                    
+                    toast({
+                      title: "Test Call Widget Removed",
+                      description: "The call widget has been removed from the page",
+                    });
+                  }
+                } else {
+                  // Add the script directly to the page when the button is clicked
+                  const script = document.createElement('script');
+                  script.id = 'vapi-test-script';
+                  script.innerHTML = `
+                    var vapiInstance = null;
+                    const assistant = "${agentData.vapiAssistantId}";
+                    const apiKey = "317c2afe-8d25-4a7f-8ec8-613a6265dd14";
+                    const buttonConfig = {}; // Modify this as required
+  
+                    (function (d, t) {
+                      var g = document.createElement(t),
+                        s = d.getElementsByTagName(t)[0];
+                      g.src =
+                        "https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js";
+                      g.defer = true;
+                      g.async = true;
+                      s.parentNode.insertBefore(g, s);
+  
+                      g.onload = function () {
+                        vapiInstance = window.vapiSDK.run({
+                          apiKey: apiKey,
+                          assistant: assistant,
+                          config: buttonConfig, // optional
+                        });
+                      };
+                    })(document, "script");
+                  `;
+                  document.body.appendChild(script);
+                  setIsWebCallActive(true);
+                  
+                  toast({
+                    title: "Test Call Widget Added",
+                    description: "Look for the call button on the bottom right of the page to start a test call",
+                  });
+                }
               }}
             >
               <PhoneCall className="h-4 w-4 mr-2" />
-              Test Web Call
+              {isWebCallActive ? "Stop Web Test Call" : "Test Web Call"}
             </Button>
           )}
           
