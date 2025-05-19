@@ -129,19 +129,23 @@ export default function PhoneNumbersPage() {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold tracking-tight">Phone Numbers</h2>
         <div className="flex gap-2">
+          <Button variant="outline" className="flex items-center">
+            <PlusIcon className="h-4 w-4 mr-2" />
+            Import phone number
+          </Button>
+          
           <Button variant="outline" asChild>
             <a href="https://www.twilio.com/console/phone-numbers" target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="h-4 w-4 mr-2" />
               Twilio Accounts
             </a>
           </Button>
           
-          {/* Buy Twilio Number button */}
+          {/* Buy Phone Number button */}
           <Dialog open={showPurchaseDialog} onOpenChange={setShowPurchaseDialog}>
             <DialogTrigger asChild>
-              <Button variant="primary">
+              <Button variant="default" className="bg-blue-600 hover:bg-blue-700 text-white">
                 <PhoneCall className="h-4 w-4 mr-2" />
-                Buy Twilio Number
+                Buy Phone Number
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
