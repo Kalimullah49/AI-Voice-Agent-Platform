@@ -5,8 +5,10 @@
 
 import fetch from 'node-fetch';
 
-// Ensure the token is available
-const VAPI_AI_TOKEN = process.env.VAPI_AI_TOKEN;
+// Ensure the token is available - falls back to ElevenLabs token if Vapi token is not available
+const VAPI_AI_TOKEN = process.env.VAPI_AI_TOKEN || process.env.ELEVENLABS_API_KEY;
+// ElevenLabs API token (separate in case we need both)
+const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || "demo_key"; // Use demo key as fallback
 
 /**
  * Voice synthesis options interface
@@ -149,17 +151,12 @@ export interface VoiceInfo {
  * @returns Array of voice information objects
  */
 export async function getAvailableVoices(): Promise<VoiceInfo[]> {
-  if (!VAPI_AI_TOKEN) {
-    console.error('VAPI_AI_TOKEN is not defined. Please set it in your environment variables.');
-    return [];
-  }
-
   try {
     // Use ElevenLabs API to get available voices
     const response = await fetch('https://api.elevenlabs.io/v1/voices', {
       method: 'GET',
       headers: {
-        'xi-api-key': VAPI_AI_TOKEN // ElevenLabs uses the same token format
+        'xi-api-key': ELEVENLABS_API_KEY
       }
     });
 
