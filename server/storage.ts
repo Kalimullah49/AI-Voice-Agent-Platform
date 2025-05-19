@@ -12,9 +12,8 @@ import {
 // Interface for storage operations
 export interface IStorage {
   // User operations
-  getUser(id: number): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  getUser(id: string): Promise<User | undefined>;
+  upsertUser(user: InsertUser): Promise<User>;
   getAllUsers(): Promise<User[]>;
   
   // Agent operations
