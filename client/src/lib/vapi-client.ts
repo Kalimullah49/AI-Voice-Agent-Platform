@@ -46,11 +46,12 @@ export async function initializeVapiCall(assistantId: string, apiKey: string) {
       success: true,
       instance: vapi
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error initializing Vapi call:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to initialize Vapi call';
     return {
       success: false,
-      message: error.message || 'Failed to initialize Vapi call'
+      message: errorMessage
     };
   }
 }
