@@ -49,6 +49,16 @@ export const insertUserSchema = createInsertSchema(users).pick({
   role: true,
 });
 
+export const upsertUserSchema = createInsertSchema(users).pick({
+  id: true,
+  email: true,
+  firstName: true,
+  lastName: true,
+  profileImageUrl: true,
+});
+
+export type UpsertUser = z.infer<typeof upsertUserSchema>;
+
 // Agent model
 export const agents = pgTable("agents", {
   id: serial("id").primaryKey(),
@@ -210,6 +220,7 @@ export const insertCampaignSchema = createInsertSchema(campaigns).pick({
 // Define types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type UpsertUser = z.infer<typeof upsertUserSchema>;
 
 export type Agent = typeof agents.$inferSelect;
 export type InsertAgent = z.infer<typeof insertAgentSchema>;

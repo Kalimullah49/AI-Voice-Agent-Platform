@@ -1,4 +1,5 @@
 import { useLocation } from 'wouter';
+import UserMenu from '@/components/auth/UserMenu';
 
 export default function Header() {
   const [location] = useLocation();
@@ -24,6 +25,9 @@ export default function Header() {
     <header className="bg-white shadow-sm">
       <div className="px-4 sm:px-6 md:px-8 py-4 flex justify-between items-center">
         <h1 className="text-lg font-semibold text-gray-900">{getPageTitle()}</h1>
+        <div className="flex items-center space-x-4">
+          <UserMenu />
+        </div>
       </div>
     </header>
   );

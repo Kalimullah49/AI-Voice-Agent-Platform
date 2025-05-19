@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import {
   User, Agent, Call, Action, PhoneNumber, ContactGroup, Contact, Campaign,
   InsertUser, InsertAgent, InsertCall, InsertAction, InsertPhoneNumber,
-  InsertContactGroup, InsertContact, InsertCampaign,
+  InsertContactGroup, InsertContact, InsertCampaign, UpsertUser,
   users, agents, calls, actions, phoneNumbers, contactGroups, contacts, campaigns,
 } from "@shared/schema";
 import { IStorage } from './storage';
@@ -16,7 +16,7 @@ export class DatabaseStorage implements IStorage {
     return results[0];
   }
   
-  async upsertUser(userData: InsertUser): Promise<User> {
+  async upsertUser(userData: UpsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
       .values({ 

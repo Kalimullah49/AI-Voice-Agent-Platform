@@ -3,6 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import AppLayout from "@/components/layouts/AppLayout";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Dashboard from "@/pages/dashboard";
 import Login from "@/pages/auth/login";
 import Register from "@/pages/auth/register";
@@ -18,39 +19,73 @@ import BillingPage from "@/pages/billing";
 import SettingsPage from "@/pages/settings";
 
 function Router() {
-  // For demo purposes, we're not implementing real authentication
-  // In a real app, you would use a hook like useAuth to check if the user is authenticated
-  const isAuthenticated = true;
-
-  if (!isAuthenticated) {
-    return (
-      <Switch>
-        <Route path="/login" component={Login} />
-        <Route path="/register" component={Register} />
-        <Route path="*">
-          <Login />
-        </Route>
-      </Switch>
-    );
-  }
+  const ProtectedAppRoute = ({ children }: { children: React.ReactNode }) => (
+    <ProtectedRoute>
+      <AppLayout>{children}</AppLayout>
+    </ProtectedRoute>
+  );
 
   return (
-    <AppLayout>
-      <Switch>
-        <Route path="/" component={Dashboard} />
-        <Route path="/agents" component={AgentsPage} />
-        <Route path="/agents/:id" component={AgentDetailPage} />
-        <Route path="/actions" component={ActionsPage} />
-        <Route path="/actions/create" component={CreateActionPage} />
-        <Route path="/calls/history" component={CallsHistoryPage} />
-        <Route path="/contacts" component={ContactsPage} />
-        <Route path="/campaigns" component={CampaignsPage} />
-        <Route path="/phone-numbers" component={PhoneNumbersPage} />
-        <Route path="/billing" component={BillingPage} />
-        <Route path="/settings" component={SettingsPage} />
-        <Route component={NotFound} />
-      </Switch>
-    </AppLayout>
+    <Switch>
+      <Route path="/">
+        <ProtectedAppRoute>
+          <Dashboard />
+        </ProtectedAppRoute>
+      </Route>
+      <Route path="/agents">
+        <ProtectedAppRoute>
+          <AgentsPage />
+        </ProtectedAppRoute>
+      </Route>
+      <Route path="/agents/:id">
+        <ProtectedAppRoute>
+          <AgentDetailPage />
+        </ProtectedAppRoute>
+      </Route>
+      <Route path="/actions">
+        <ProtectedAppRoute>
+          <ActionsPage />
+        </ProtectedAppRoute>
+      </Route>
+      <Route path="/actions/create">
+        <ProtectedAppRoute>
+          <CreateActionPage />
+        </ProtectedAppRoute>
+      </Route>
+      <Route path="/calls/history">
+        <ProtectedAppRoute>
+          <CallsHistoryPage />
+        </ProtectedAppRoute>
+      </Route>
+      <Route path="/contacts">
+        <ProtectedAppRoute>
+          <ContactsPage />
+        </ProtectedAppRoute>
+      </Route>
+      <Route path="/campaigns">
+        <ProtectedAppRoute>
+          <CampaignsPage />
+        </ProtectedAppRoute>
+      </Route>
+      <Route path="/phone-numbers">
+        <ProtectedAppRoute>
+          <PhoneNumbersPage />
+        </ProtectedAppRoute>
+      </Route>
+      <Route path="/billing">
+        <ProtectedAppRoute>
+          <BillingPage />
+        </ProtectedAppRoute>
+      </Route>
+      <Route path="/settings">
+        <ProtectedAppRoute>
+          <SettingsPage />
+        </ProtectedAppRoute>
+      </Route>
+      <Route>
+        <NotFound />
+      </Route>
+    </Switch>
   );
 }
 
