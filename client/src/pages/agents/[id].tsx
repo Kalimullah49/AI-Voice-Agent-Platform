@@ -660,7 +660,7 @@ export default function AgentDetailPage() {
                     
                     <button
                       id="playPauseBtn"
-                      className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/90 transition-colors"
+                      className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/90 transition-colors ml-2"
                       data-state="paused"
                       style={{ display: 'none' }}
                       onClick={(e) => {
@@ -691,30 +691,6 @@ export default function AgentDetailPage() {
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polygon points="5 3 19 12 5 21 5 3"></polygon>
                       </svg>
-                    </button>
-                    
-                    <button
-                      className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/90 transition-colors"
-                      onClick={() => {
-                        fetch('/api/vapi/test-connection')
-                          .then(res => res.json())
-                          .then(data => {
-                            toast({
-                              title: data.success ? "Connection Successful" : "Connection Failed",
-                              description: data.message,
-                              variant: data.success ? "default" : "destructive"
-                            });
-                          })
-                          .catch(err => {
-                            toast({
-                              title: "Error",
-                              description: "Failed to test API connection. Please check your network and try again.",
-                              variant: "destructive"
-                            });
-                          });
-                      }}
-                    >
-                      Test API Connection
                     </button>
                   </div>
                   
