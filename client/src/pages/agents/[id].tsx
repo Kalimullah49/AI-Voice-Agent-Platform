@@ -233,9 +233,87 @@ export default function AgentDetailPage() {
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Agent Settings</h2>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" 
+            onClick={() => {
+              // Create Vapi assistant from agent data
+              const assistantParams = {
+                name: agentData.name,
+                firstMessage: agentData.initialMessage || "Hello, how can I assist you today?",
+                endCallMessage: "Thank you for calling. Goodbye!",
+                recordingEnabled: true,
+                voicemailDetectionEnabled: true,
+                endCallFunctionEnabled: true,
+                transferCallFunctionEnabled: true,
+                metadata: {
+                  agentId: id,
+                  createdFrom: "AimAI Platform",
+                },
+                model: {
+                  provider: "openai",
+                  model: "gpt-4o",
+                  messages: [
+                    {
+                      role: "system",
+                      content: `${agentData.persona || ""}\n\n${agentData.agentRules || ""}\n\n${agentData.script || "You are a helpful AI assistant."}`
+                    }
+                  ]
+                },
+                voice: {
+                  provider: "elevenlabs",
+                  voiceId: agentData.selectedVoice?.voice_id || agentData.voiceId || "Rachel",
+                  speed: agentData.speed ? agentData.speed / 10 : 1.0, // Convert to 0-1 range
+                  temperature: agentData.temperature || 0.4,
+                  guidance: agentData.voiceGuidance || 1.0
+                },
+                transcriber: {
+                  provider: "deepgram",
+                  model: "nova-2-general",
+                  language: "en",
+                  endUtteranceSilenceThreshold: 288
+                }
+              };
+              
+              // Call API to create assistant
+              fetch('/api/vapi/assistants', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(assistantParams)
+              })
+              .then(res => res.json())
+              .then(data => {
+                if (data.success) {
+                  toast({
+                    title: "Vapi Assistant Created",
+                    description: "Your agent has been deployed to Vapi.ai successfully!",
+                  });
+                  // Update agent with Vapi assistant ID
+                  if (data.assistant && data.assistant.id) {
+                    const updateData = {
+                      ...agentData,
+                      vapiAssistantId: data.assistant.id
+                    };
+                    updateAgentMutation.mutate(updateData);
+                  }
+                } else {
+                  toast({
+                    title: "Failed to Create Assistant",
+                    description: data.message || "Check your Vapi.ai API token in the .env file.",
+                    variant: "destructive"
+                  });
+                }
+              })
+              .catch(error => {
+                toast({
+                  title: "Error",
+                  description: "Failed to create Vapi assistant. Please try again.",
+                  variant: "destructive"
+                });
+                console.error("Vapi assistant creation error:", error);
+              });
+            }}
+          >
             <PhoneCall className="h-4 w-4 mr-2" />
-            Call
+            Deploy to Vapi
           </Button>
           <Button variant="outline" size="sm">
             <Sparkles className="h-4 w-4 mr-2" />

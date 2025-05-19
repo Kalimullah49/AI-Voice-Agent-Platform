@@ -10,6 +10,9 @@ const VAPI_AI_TOKEN = process.env.VAPI_AI_TOKEN || '';
 // ElevenLabs API token (separate in case we need both)
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || '';
 
+// Vapi.ai API Base URL
+const VAPI_API_BASE_URL = 'https://api.vapi.ai';
+
 /**
  * Voice synthesis options interface
  */
@@ -176,6 +179,118 @@ export interface VoiceInfo {
   use_case?: string;
   style?: string;
   is_clone?: boolean;
+}
+
+// Interface for Vapi Assistant Creation
+export interface VapiAssistantParams {
+  name: string;
+  firstMessage: string;
+  endCallMessage?: string;
+  forwardingPhoneNumber?: string;
+  serverUrl?: string;
+  serverUrlSecret?: string;
+  recordingEnabled?: boolean;
+  hipaaEnabled?: boolean;
+  voicemailDetectionEnabled?: boolean;
+  endCallFunctionEnabled?: boolean;
+  transferCallFunctionEnabled?: boolean;
+  metadata?: Record<string, any>;
+
+  model: {
+    provider: string;
+    model: string;
+    messages: Array<{
+      role: string;
+      content: string;
+    }>;
+    tools?: Array<{
+      type: string;
+      function: {
+        name: string;
+        description: string;
+        parameters: {
+          type: string;
+          properties: Record<string, any>;
+          required: string[];
+        };
+      };
+    }>;
+    knowledgeBase?: {
+      provider: string;
+      files?: Array<{
+        id: string;
+        name: string;
+      }>;
+      server?: {
+        url: string;
+      };
+    };
+  };
+
+  voice: {
+    provider: string;
+    voiceId: string;
+    speed?: number;
+    temperature?: number;
+    guidance?: number;
+  };
+
+  transcriber?: {
+    provider: string;
+    model?: string;
+    language?: string;
+    endUtteranceSilenceThreshold?: number;
+  };
+}
+
+/**
+ * Create a Vapi assistant using the Vapi.ai API
+ * @param params The assistant parameters
+ * @returns The created assistant or error message
+ */
+export async function createVapiAssistant(params: VapiAssistantParams): Promise<{ success: boolean; assistant?: any; message?: string; }> {
+  try {
+    // Check if Vapi API token is available
+    if (!VAPI_AI_TOKEN) {
+      return {
+        success: false,
+        message: "Vapi.ai API token is not defined. Please set VAPI_AI_TOKEN in your environment variables."
+      };
+    }
+    
+    console.log(`Creating Vapi assistant: ${params.name}`);
+    
+    // Make API request to Vapi.ai to create assistant
+    const response = await fetch(`${VAPI_API_BASE_URL}/assistant`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${VAPI_AI_TOKEN}`
+      },
+      body: JSON.stringify(params)
+    });
+    
+    const responseData = await response.json() as any;
+    
+    if (!response.ok) {
+      console.error(`Vapi.ai API error: ${response.status} - `, responseData);
+      return {
+        success: false,
+        message: `Error creating Vapi assistant: ${responseData.message || responseData.error || 'Unknown error'}`
+      };
+    }
+    
+    return {
+      success: true,
+      assistant: responseData
+    };
+  } catch (error) {
+    console.error('Error creating Vapi assistant:', error);
+    return {
+      success: false,
+      message: `Error creating Vapi assistant: ${error instanceof Error ? error.message : 'Unknown error'}`
+    };
+  }
 }
 
 /**

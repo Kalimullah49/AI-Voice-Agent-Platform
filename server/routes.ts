@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, insertAgentSchema, insertCallSchema, insertActionSchema, insertPhoneNumberSchema, insertContactGroupSchema, insertContactSchema, insertCampaignSchema } from "@shared/schema";
 import { z } from "zod";
-import { testApiConnection, synthesizeSpeech, getAvailableVoices } from "./utils/vapi";
+import { testApiConnection, synthesizeSpeech, getAvailableVoices, createVapiAssistant, VapiAssistantParams } from "./utils/vapi";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes
@@ -241,6 +241,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       res.status(500).json({ success: false, message: "An error occurred while testing the API connection" });
+    }
+  });
+  
+  // Create a Vapi.ai assistant
+  app.post("/api/vapi/assistants", async (req, res) => {
+    try {
+      const assistantParams = req.body as VapiAssistantParams;
+      
+      if (!assistantParams || !assistantParams.name) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Invalid assistant data. Name is required." 
+        });
+      }
+      
+      // Ensure some required fields have default values if not provided
+      if (!assistantParams.model) {
+        assistantParams.model = {
+          provider: "openai",
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: "You are a helpful AI assistant that answers clearly and politely."
+            }
+          ]
+        };
+      }
+      
+      if (!assistantParams.voice) {
+        assistantParams.voice = {
+          provider: "elevenlabs",
+          voiceId: assistantParams.voiceId || "Rachel"
+        };
+      }
+      
+      // Create the assistant via Vapi API
+      const result = await createVapiAssistant(assistantParams);
+      
+      if (result.success) {
+        console.log("Successfully created Vapi assistant:", result.assistant?.id);
+        res.status(201).json({
+          success: true,
+          assistant: result.assistant,
+          message: "Successfully created Vapi assistant"
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          message: result.message || "Failed to create Vapi assistant"
+        });
+      }
+    } catch (error) {
+      console.error("Error creating Vapi assistant:", error);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : "An error occurred while creating the Vapi assistant"
+      });
     }
   });
   
