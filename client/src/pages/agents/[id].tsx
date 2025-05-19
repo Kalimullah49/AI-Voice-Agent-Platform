@@ -262,7 +262,7 @@ export default function AgentDetailPage() {
                 script.innerHTML = `
                   var vapiInstance = null;
                   const assistant = "${agentData.vapiAssistantId}";
-                  const apiKey = "${process.env.VAPI_AI_TOKEN || '317c2afe-8d25-4a7f-8ec8-613a6265dd14'}";
+                  const apiKey = "317c2afe-8d25-4a7f-8ec8-613a6265dd14";
                   const buttonConfig = {}; // Modify this as required
 
                   (function (d, t) {
