@@ -63,7 +63,7 @@ export interface IStorage {
 
 // Memory storage implementation
 export class MemStorage implements IStorage {
-  private users: Map<number, User>;
+  private users: Map<string, User>;
   private agents: Map<number, Agent>;
   private calls: Map<number, Call>;
   private actions: Map<number, Action>;
