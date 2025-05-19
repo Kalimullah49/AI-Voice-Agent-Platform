@@ -93,75 +93,133 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Agent routes
-  app.get("/api/agents", async (req, res) => {
+  app.get("/api/agents", isAuthenticated, async (req: any, res) => {
     try {
-      const agents = await storage.getAllAgents();
+      const userId = req.user.claims.sub;
+      
+      // Get all agents and filter by user ID
+      const agents = await storage.getAllAgentsByUserId(userId);
       res.json(agents);
     } catch (error) {
+      console.error("Error fetching agents:", error);
       res.status(500).json({ message: "Failed to fetch agents" });
     }
   });
 
-  app.get("/api/agents/:id", async (req, res) => {
+  app.get("/api/agents/:id", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const id = parseInt(req.params.id);
       const agent = await storage.getAgent(id);
+      
       if (!agent) {
         return res.status(404).json({ message: "Agent not found" });
       }
+      
+      // Check if this agent belongs to the current user
+      if (agent.userId !== userId) {
+        return res.status(403).json({ message: "You don't have permission to access this agent" });
+      }
+      
       res.json(agent);
     } catch (error) {
+      console.error("Error fetching agent:", error);
       res.status(500).json({ message: "Failed to fetch agent" });
     }
   });
 
-  app.post("/api/agents", async (req, res) => {
+  app.post("/api/agents", isAuthenticated, async (req: any, res) => {
     try {
-      const agentData = insertAgentSchema.parse(req.body);
+      const userId = req.user.claims.sub;
+      
+      // Add the user ID to the agent data
+      const agentData = insertAgentSchema.parse({
+        ...req.body,
+        userId
+      });
+      
       const agent = await storage.createAgent(agentData);
       res.status(201).json(agent);
     } catch (error) {
       if (error instanceof z.ZodError) {
         res.status(400).json({ message: "Invalid agent data", errors: error.errors });
       } else {
+        console.error("Error creating agent:", error);
         res.status(500).json({ message: "Failed to create agent" });
       }
     }
   });
 
-  app.patch("/api/agents/:id", async (req, res) => {
+  app.patch("/api/agents/:id", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const id = parseInt(req.params.id);
-      const agentData = req.body;
-      const agent = await storage.updateAgent(id, agentData);
-      if (!agent) {
+      
+      // First check if the agent exists and belongs to this user
+      const existingAgent = await storage.getAgent(id);
+      if (!existingAgent) {
         return res.status(404).json({ message: "Agent not found" });
       }
+      
+      // Check if this agent belongs to the current user
+      if (existingAgent.userId !== userId) {
+        return res.status(403).json({ message: "You don't have permission to update this agent" });
+      }
+      
+      const agentData = req.body;
+      const agent = await storage.updateAgent(id, agentData);
+      
       res.json(agent);
     } catch (error) {
+      console.error("Error updating agent:", error);
       res.status(500).json({ message: "Failed to update agent" });
     }
   });
 
   // Call routes
-  app.get("/api/calls", async (req, res) => {
+  app.get("/api/calls", isAuthenticated, async (req: any, res) => {
     try {
-      const calls = await storage.getAllCalls();
-      res.json(calls);
+      const userId = req.user.claims.sub;
+      
+      // Get all agents for this user
+      const userAgents = await storage.getAllAgentsByUserId(userId);
+      const userAgentIds = userAgents.map(agent => agent.id);
+      
+      // Get all calls and filter to only include calls for this user's agents
+      const allCalls = await storage.getAllCalls();
+      const userCalls = allCalls.filter(call => 
+        call.agentId === null || userAgentIds.includes(call.agentId)
+      );
+      
+      res.json(userCalls);
     } catch (error) {
+      console.error("Error fetching calls:", error);
       res.status(500).json({ message: "Failed to fetch calls" });
     }
   });
 
-  app.get("/api/calls/:id", async (req, res) => {
+  app.get("/api/calls/:id", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const id = parseInt(req.params.id);
       const call = await storage.getCall(id);
+      
       if (!call) {
         return res.status(404).json({ message: "Call not found" });
       }
+      
+      // Get all agents for this user to check permissions
+      const userAgents = await storage.getAllAgentsByUserId(userId);
+      const userAgentIds = userAgents.map(agent => agent.id);
+      
+      // Check if this call belongs to one of the user's agents
+      if (call.agentId !== null && !userAgentIds.includes(call.agentId)) {
+        return res.status(403).json({ message: "You don't have permission to access this call" });
+      }
+      
       res.json(call);
     } catch (error) {
+      console.error("Error fetching call:", error);
       res.status(500).json({ message: "Failed to fetch call" });
     }
   });

@@ -63,6 +63,10 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(agents);
   }
   
+  async getAllAgentsByUserId(userId: string): Promise<Agent[]> {
+    return await db.select().from(agents).where(eq(agents.userId, userId));
+  }
+  
   // Call operations
   async getCall(id: number): Promise<Call | undefined> {
     const results = await db.select().from(calls).where(eq(calls.id, id));

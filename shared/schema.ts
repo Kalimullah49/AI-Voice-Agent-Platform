@@ -73,6 +73,7 @@ export const agents = pgTable("agents", {
   summarizerPrompt: text("summarizer_prompt"),
   responseIntelligenceLevel: text("response_intelligence_level"),
   active: boolean("active").default(false),
+  userId: varchar("user_id").references(() => users.id), // Reference to user who created the agent
 });
 
 export const insertAgentSchema = createInsertSchema(agents).pick({
@@ -88,6 +89,7 @@ export const insertAgentSchema = createInsertSchema(agents).pick({
   summarizerPrompt: true,
   responseIntelligenceLevel: true,
   active: true,
+  userId: true,
 });
 
 // Call model

@@ -1,5 +1,5 @@
 import { 
-  users, type User, type InsertUser,
+  users, type User, type InsertUser, type UpsertUser,
   agents, type Agent, type InsertAgent,
   calls, type Call, type InsertCall,
   actions, type Action, type InsertAction,
@@ -21,6 +21,7 @@ export interface IStorage {
   createAgent(agent: InsertAgent): Promise<Agent>;
   updateAgent(id: number, agent: Partial<InsertAgent>): Promise<Agent | undefined>;
   getAllAgents(): Promise<Agent[]>;
+  getAllAgentsByUserId(userId: string): Promise<Agent[]>;
   
   // Call operations
   getCall(id: number): Promise<Call | undefined>;
@@ -99,98 +100,37 @@ export class MemStorage implements IStorage {
     this.contactGroupId = 1;
     this.contactId = 1;
     this.campaignId = 1;
-    
-    // Initialize with a default admin user
-    this.createUser({
-      username: "admin",
-      password: "password",
-      name: "Administrator",
-      email: "admin@aimai.example",
-      role: "admin"
-    });
-    
-    // Initialize with a default agent
-    const agent = this.createAgent({
-      name: "Recovery Agent",
-      type: "inbound",
-      persona: "Professional, empathetic, knowledgeable about addiction recovery",
-      toneStyle: "Warm, supportive, clear",
-      initialMessage: "Thank you for calling our addiction recovery center. My name is Recovery Agent. How can I help you today?",
-      companyBackground: "Our addiction recovery center offers comprehensive treatment programs including detox, residential treatment, and outpatient care.",
-      agentRules: "Always collect the caller's name, verify if they're calling for themselves or a loved one, gather insurance information if appropriate.",
-      edgeCases: "If caller has no insurance, inform them about financial assistance options.",
-      script: "Hello, thank you for calling our addiction recovery center. My name is Recovery Agent. How may I assist you today?",
-      summarizerPrompt: "Summarize the caller's name, reason for calling, and key concerns.",
-      responseIntelligenceLevel: "Genius Mode",
-      active: true
-    }) as Agent;
-    
-    // Initialize with an outbound agent
-    const outboundAgent = this.createAgent({
-      name: "Outreach Agent",
-      type: "outbound",
-      persona: "Friendly, informative, solutions-oriented",
-      toneStyle: "Conversational, professional",
-      initialMessage: "Hello, this is Outreach Agent calling from the Recovery Center. Do you have a moment to talk about our programs?",
-      companyBackground: "Our recovery center has been helping people overcome addiction since 2010. We offer a range of treatment options and accept most insurance plans.",
-      agentRules: "Introduce yourself clearly, ask if it's a good time to talk, explain reason for calling, collect contact info for follow-up if interested.",
-      edgeCases: "If person is currently in crisis, offer to transfer them to our 24/7 helpline.",
-      script: "Hi, I'm calling from Recovery Center about your recent inquiry. Is now a good time to discuss treatment options?",
-      summarizerPrompt: "Summarize the prospect's level of interest, preferred treatment type, and any objections raised.",
-      responseIntelligenceLevel: "Enhanced Mode",
-      active: true
-    }) as Agent;
-    
-    // Initialize with phone numbers
-    this.createPhoneNumber({
-      number: "(424) 855-1030",
-      agentId: agent.id,
-      active: true
-    });
-    
-    this.createPhoneNumber({
-      number: "(310) 933-2876",
-      agentId: outboundAgent.id,
-      active: true
-    });
-    
-    // Initialize with sample calls
-    for (let i = 1; i <= 12; i++) {
-      const duration = Math.floor(Math.random() * 300) + 30; // 30 to 330 seconds
-      const cost = parseFloat((duration * 0.005).toFixed(2)); // $0.005 per second
-      const startTime = new Date();
-      startTime.setHours(startTime.getHours() - i);
-      
-      this.createCall({
-        fromNumber: `(${Math.floor(Math.random() * 900) + 100}) ${Math.floor(Math.random() * 900) + 100}-${Math.floor(Math.random() * 9000) + 1000}`,
-        toNumber: "(424) 855-1030",
-        agentId: agent.id,
-        direction: "inbound",
-        duration: duration,
-        endedReason: ["Agent Ended Call", "Customer Ended Call", "Transferred"][Math.floor(Math.random() * 3)],
-        outcome: ["transferred", "no-outcome"][Math.floor(Math.random() * 2)],
-        cost: cost
-      });
-    }
   }
   
   // User operations
-  async getUser(id: number): Promise<User | undefined> {
+  async getUser(id: string): Promise<User | undefined> {
     return this.users.get(id);
   }
   
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
-  }
-  
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.userId++;
+  async upsertUser(userData: InsertUser): Promise<User> {
     const timestamp = new Date();
-    const user: User = { ...insertUser, id, createdAt: timestamp };
-    this.users.set(id, user);
-    return user;
+    const existingUser = this.users.get(userData.id);
+    
+    if (existingUser) {
+      // Update existing user
+      const updatedUser: User = { 
+        ...existingUser, 
+        ...userData,
+        updatedAt: timestamp
+      };
+      this.users.set(userData.id, updatedUser);
+      return updatedUser;
+    } else {
+      // Create new user
+      const newUser: User = {
+        ...userData,
+        createdAt: timestamp,
+        updatedAt: null,
+        role: userData.role || "user"
+      } as User;
+      this.users.set(userData.id, newUser);
+      return newUser;
+    }
   }
   
   async getAllUsers(): Promise<User[]> {
@@ -220,6 +160,10 @@ export class MemStorage implements IStorage {
   
   async getAllAgents(): Promise<Agent[]> {
     return Array.from(this.agents.values());
+  }
+  
+  async getAllAgentsByUserId(userId: string): Promise<Agent[]> {
+    return Array.from(this.agents.values()).filter(agent => agent.userId === userId);
   }
   
   // Call operations
