@@ -49,146 +49,89 @@ const DEFAULT_VOICE_OPTIONS = {
  * @returns URL to the audio file
  */
 export async function synthesizeSpeech(options: VoiceSynthesisOptions): Promise<{ success: boolean; audioUrl?: string; message?: string }> {
-  // Try ElevenLabs API first, then fall back to Vapi if needed
-  if (ELEVENLABS_API_KEY) {
-    try {
-      // Merge options with defaults for ElevenLabs settings
-      const mergedOptions = {
-        ...DEFAULT_VOICE_OPTIONS,
-        ...options
-      };
-
-      // Voice ID is required
-      if (!mergedOptions.voiceId) {
-        return {
-          success: false,
-          message: "Voice ID is required for text-to-speech synthesis"
-        };
-      }
-
-      // Create ElevenLabs request payload
-      const elevenLabsPayload = {
-        text: mergedOptions.text,
-        model_id: "eleven_monolingual_v1",
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.5,
-          style: 0.0,
-          use_speaker_boost: true,
-          speaking_rate: mergedOptions.speed || 1.0
-        }
-      };
-
-      // Call ElevenLabs API
-      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${mergedOptions.voiceId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'xi-api-key': ELEVENLABS_API_KEY
-        },
-        body: JSON.stringify(elevenLabsPayload)
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorMsg;
-        try {
-          const errorData = JSON.parse(errorText);
-          errorMsg = errorData.detail?.message || errorText;
-        } catch (e) {
-          errorMsg = errorText;
-        }
-        console.error(`ElevenLabs API error: ${response.status} - ${errorMsg}`);
-        
-        return {
-          success: false,
-          message: `ElevenLabs API error: ${errorMsg}`
-        };
-      }
-
-      // Get audio data as ArrayBuffer
-      const audioData = await response.arrayBuffer();
-      
-      // Convert audio data to base64
-      const base64Audio = Buffer.from(audioData).toString('base64');
-      const audioUrl = `data:audio/mpeg;base64,${base64Audio}`;
-      
-      return {
-        success: true,
-        audioUrl
-      };
-    } catch (error) {
-      console.error('Error in ElevenLabs speech synthesis:', error);
+  try {
+    // Check if ElevenLabs API key is available
+    if (!ELEVENLABS_API_KEY) {
       return {
         success: false,
-        message: `Error in ElevenLabs speech synthesis: ${error instanceof Error ? error.message : 'Unknown error'}`
+        message: "ElevenLabs API key is not defined. Please set it in your environment variables."
       };
     }
-  } 
-  // Fall back to Vapi if ElevenLabs API key is not available
-  else if (VAPI_AI_TOKEN) {
-    try {
-      // Merge options with defaults
-      const mergedOptions = {
-        ...DEFAULT_VOICE_OPTIONS,
-        ...options,
-        backgroundNoise: {
-          ...DEFAULT_VOICE_OPTIONS.backgroundNoise,
-          ...(options.backgroundNoise || {})
-        }
-      };
+    
+    // Merge options with defaults for ElevenLabs settings
+    const mergedOptions = {
+      ...DEFAULT_VOICE_OPTIONS,
+      ...options
+    };
 
-      // Prepare request payload
-      const payload = {
-        text: mergedOptions.text,
-        voice_id: mergedOptions.voiceId,
-        speed: mergedOptions.speed,
-        temperature: mergedOptions.temperature,
-        text_guidance: mergedOptions.textGuidance,
-        voice_guidance: mergedOptions.voiceGuidance,
-        background_noise: Object.entries(mergedOptions.backgroundNoise)
-          .filter(([_, value]) => value)
-          .map(([key]) => key)
-      };
-
-      // Make API request to Vapi.ai
-      const response = await fetch('https://api.vapi.ai/tts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${VAPI_AI_TOKEN}`
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.text();
-        console.error(`Vapi.ai API error: ${response.status} - ${errorData}`);
-        return {
-          success: false,
-          message: `Vapi.ai API error: ${errorData}`
-        };
-      }
-
-      const data = await response.json() as any;
-      return {
-        success: true,
-        audioUrl: data.audio_url
-      };
-    } catch (error) {
-      console.error('Error in Vapi.ai speech synthesis:', error);
+    // Voice ID is required
+    if (!mergedOptions.voiceId) {
       return {
         success: false,
-        message: `Error in Vapi.ai speech synthesis: ${error instanceof Error ? error.message : 'Unknown error'}`
+        message: "Voice ID is required for text-to-speech synthesis"
       };
     }
+
+    // Create ElevenLabs request payload
+    const elevenLabsPayload = {
+      text: mergedOptions.text,
+      model_id: "eleven_monolingual_v1",
+      voice_settings: {
+        stability: 0.5,
+        similarity_boost: 0.5,
+        style: 0.0,
+        use_speaker_boost: true,
+        speaking_rate: mergedOptions.speed || 1.0
+      }
+    };
+
+    console.log(`Synthesizing speech with ElevenLabs API for voice ID: ${mergedOptions.voiceId}`);
+
+    // Call ElevenLabs API
+    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${mergedOptions.voiceId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'xi-api-key': ELEVENLABS_API_KEY
+      },
+      body: JSON.stringify(elevenLabsPayload)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMsg;
+      try {
+        const errorData = JSON.parse(errorText);
+        errorMsg = errorData.detail?.message || errorText;
+      } catch (e) {
+        errorMsg = errorText;
+      }
+      console.error(`ElevenLabs API error: ${response.status} - ${errorMsg}`);
+      
+      return {
+        success: false,
+        message: `ElevenLabs API error: ${errorMsg}`
+      };
+    }
+
+    // Get audio data as ArrayBuffer
+    const audioData = await response.arrayBuffer();
+    
+    // Convert audio data to base64
+    const base64Audio = Buffer.from(audioData).toString('base64');
+    const audioUrl = `data:audio/mpeg;base64,${base64Audio}`;
+    
+    return {
+      success: true,
+      audioUrl
+    };
+  } catch (error) {
+    console.error('Error in ElevenLabs speech synthesis:', error);
+    return {
+      success: false,
+      message: `Error in ElevenLabs speech synthesis: ${error instanceof Error ? error.message : 'Unknown error'}`
+    };
   }
-  
-  // No API keys available
-  return {
-    success: false,
-    message: 'No API keys available for text-to-speech synthesis. Please set ELEVENLABS_API_KEY or VAPI_AI_TOKEN in your environment variables.'
-  };
 }
 
 /**
@@ -196,23 +139,23 @@ export async function synthesizeSpeech(options: VoiceSynthesisOptions): Promise<
  * @returns Boolean indicating if the connection was successful
  */
 export async function testApiConnection(): Promise<boolean> {
-  if (!VAPI_AI_TOKEN) {
-    console.error('VAPI_AI_TOKEN is not defined. Please set it in your environment variables.');
+  if (!ELEVENLABS_API_KEY) {
+    console.error('ELEVENLABS_API_KEY is not defined. Please set it in your environment variables.');
     return false;
   }
 
   try {
-    // Simple test request to validate the API token
-    const response = await fetch('https://api.vapi.ai/voices', {
+    // Simple test request to validate the ElevenLabs API key
+    const response = await fetch('https://api.elevenlabs.io/v1/voices', {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${VAPI_AI_TOKEN}`
+        'xi-api-key': ELEVENLABS_API_KEY
       }
     });
 
     return response.ok;
   } catch (error) {
-    console.error('Error testing Vapi.ai API connection:', error);
+    console.error('Error testing ElevenLabs API connection:', error);
     return false;
   }
 }
@@ -260,7 +203,7 @@ export async function getAvailableVoices(): Promise<{ success: boolean; voices: 
 
     if (!response.ok) {
       const errorText = await response.text();
-      let errorData;
+      let errorData: any;
       try {
         errorData = JSON.parse(errorText);
       } catch (e) {
@@ -291,7 +234,7 @@ export async function getAvailableVoices(): Promise<{ success: boolean; voices: 
       }
     }
 
-    const data = await response.json();
+    const data = await response.json() as any;
     
     // Map the response to our interface
     if (data && data.voices && Array.isArray(data.voices)) {
