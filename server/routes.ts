@@ -246,20 +246,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/api/vapi/voices", async (req, res) => {
     try {
-      const voices = await getAvailableVoices();
-      if (voices.length > 0) {
-        res.json({ success: true, voices });
+      const result = await getAvailableVoices();
+      
+      if (result.success) {
+        res.json({
+          success: true,
+          voices: result.voices
+        });
       } else {
-        res.status(404).json({ 
-          success: false, 
-          message: "No voices found. Please check your ElevenLabs API token.",
-          voices: [] 
+        // Return a 200 response with failure details instead of 404
+        // This makes it easier for the client to handle and display the error message
+        res.json({
+          success: false,
+          message: result.message || "No voices found. Please check your ElevenLabs API key.",
+          voices: []
         });
       }
     } catch (error) {
+      console.error("Error in /api/vapi/voices endpoint:", error);
       res.status(500).json({ 
         success: false, 
-        message: "Failed to fetch available voices", 
+        message: "Server error while fetching available voices", 
         voices: [] 
       });
     }

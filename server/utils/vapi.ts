@@ -6,9 +6,9 @@
 import fetch from 'node-fetch';
 
 // Ensure the token is available - falls back to ElevenLabs token if Vapi token is not available
-const VAPI_AI_TOKEN = process.env.VAPI_AI_TOKEN || process.env.ELEVENLABS_API_KEY;
+const VAPI_AI_TOKEN = process.env.VAPI_AI_TOKEN || '';
 // ElevenLabs API token (separate in case we need both)
-const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || "demo_key"; // Use demo key as fallback
+const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || '';
 
 /**
  * Voice synthesis options interface
@@ -150,8 +150,17 @@ export interface VoiceInfo {
  * Get available voices from ElevenLabs
  * @returns Array of voice information objects
  */
-export async function getAvailableVoices(): Promise<VoiceInfo[]> {
+export async function getAvailableVoices(): Promise<{ success: boolean; voices: VoiceInfo[]; message?: string }> {
   try {
+    // Check if API key is available
+    if (!ELEVENLABS_API_KEY || ELEVENLABS_API_KEY === 'your_elevenlabs_key_here') {
+      return { 
+        success: false, 
+        voices: [],
+        message: "ElevenLabs API key is not set. Please add your API key to the .env file."
+      };
+    }
+
     // Use ElevenLabs API to get available voices
     const response = await fetch('https://api.elevenlabs.io/v1/voices', {
       method: 'GET',
@@ -161,34 +170,74 @@ export async function getAvailableVoices(): Promise<VoiceInfo[]> {
     });
 
     if (!response.ok) {
-      const errorData = await response.text();
-      console.error(`ElevenLabs API error: ${response.status} - ${errorData}`);
-      return [];
+      const errorText = await response.text();
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        errorData = { detail: errorText };
+      }
+      
+      console.error(`ElevenLabs API error: ${response.status} - ${errorText}`);
+      
+      // Return a descriptive error message based on the status code
+      if (response.status === 401) {
+        return { 
+          success: false, 
+          voices: [],
+          message: "Invalid ElevenLabs API key. Please check your API key in the .env file."
+        };
+      } else if (response.status === 429) {
+        return {
+          success: false,
+          voices: [],
+          message: "Too many requests to ElevenLabs API. Please try again later."
+        };
+      } else {
+        return {
+          success: false,
+          voices: [],
+          message: `ElevenLabs API error: ${errorData.detail?.message || errorText}`
+        };
+      }
     }
 
-    const data = await response.json() as any;
+    const data = await response.json();
     
     // Map the response to our interface
     if (data && data.voices && Array.isArray(data.voices)) {
-      return data.voices.map((voice: any) => ({
+      const mappedVoices = data.voices.map((voice: any) => ({
         voice_id: voice.voice_id,
         name: voice.name,
         category: voice.category || 'unknown',
-        description: voice.description,
-        preview_url: voice.preview_url,
-        gender: voice.labels?.gender,
-        age: voice.labels?.age,
-        accent: voice.labels?.accent,
-        language: voice.labels?.language,
-        use_case: voice.labels?.use_case,
-        style: voice.labels?.style,
+        description: voice.description || '',
+        preview_url: voice.preview_url || '',
+        gender: voice.labels?.gender || '',
+        age: voice.labels?.age || '',
+        accent: voice.labels?.accent || '',
+        language: voice.labels?.language || 'English',
+        use_case: voice.labels?.use_case || '',
+        style: voice.labels?.style || '',
         is_clone: voice.labels?.is_clone === 'true'
       }));
+      
+      return {
+        success: true,
+        voices: mappedVoices
+      };
     }
     
-    return [];
+    return {
+      success: false,
+      voices: [],
+      message: "No voices found in the ElevenLabs response."
+    };
   } catch (error) {
     console.error('Error fetching available voices:', error);
-    return [];
+    return {
+      success: false,
+      voices: [],
+      message: `Error connecting to ElevenLabs API: ${error instanceof Error ? error.message : 'Unknown error'}`
+    };
   }
 }
