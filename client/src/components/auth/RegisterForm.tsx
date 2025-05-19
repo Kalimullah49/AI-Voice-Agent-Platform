@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/providers/AuthProvider";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 export default function RegisterForm() {
@@ -27,42 +28,7 @@ export default function RegisterForm() {
     },
   });
 
-  const registerMutation = useMutation({
-    mutationFn: async (data: RegisterUser) => {
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to register");
-      }
-
-      return await response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Registration successful",
-        description: "You can now login with your credentials",
-      });
-      
-      // Switch to login tab
-      setTimeout(() => {
-        setLocation("/auth");
-      }, 1500);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Registration failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+  const { registerMutation } = useAuth();
 
   function onSubmit(data: RegisterUser) {
     registerMutation.mutate(data);

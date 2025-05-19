@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { useAuth } from '@/providers/AuthProvider';
+import { useAuth } from '../../providers/AuthProvider';
 import { Redirect } from 'wouter';
 import { Loader2 } from 'lucide-react';
 

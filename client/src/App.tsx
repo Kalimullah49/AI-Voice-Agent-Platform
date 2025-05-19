@@ -1,7 +1,6 @@
 import { Route, Switch } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider } from "@/providers/AuthProvider";
 import NotFound from "@/pages/not-found";
 import AppLayout from "@/components/layouts/AppLayout";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
@@ -95,10 +94,8 @@ function Router() {
 function App() {
   return (
     <TooltipProvider>
+      <Router />
       <Toaster />
-      <AuthProvider>
-        <Router />
-      </AuthProvider>
     </TooltipProvider>
   );
 }
