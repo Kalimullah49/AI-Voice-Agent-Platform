@@ -8,7 +8,7 @@
  */
 export async function getVapiToken(): Promise<{success: boolean, token?: string, message?: string}> {
   try {
-    const response = await fetch('/api/vapi/token');
+    const response = await fetch('/api/vapi/web-token');
     const data = await response.json();
     return data;
   } catch (error) {

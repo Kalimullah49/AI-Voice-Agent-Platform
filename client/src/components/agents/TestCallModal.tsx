@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
+import { getVapiToken } from "@/lib/vapi-client";
 
 // TypeScript declaration for global Vapi
 declare global {
@@ -54,6 +55,12 @@ export function TestCallModal({ isOpen, onClose, agent, apiKey }: TestCallModalP
     try {
       setStatus('connecting');
       
+      // Get the Vapi token securely from the backend
+      const tokenResponse = await getVapiToken();
+      if (!tokenResponse.success || !tokenResponse.token) {
+        throw new Error(tokenResponse.message || 'Failed to get Vapi token');
+      }
+      
       // Load the Vapi SDK script dynamically if needed
       const loadVapiScript = async () => {
         if (window.Vapi) return;
@@ -79,9 +86,14 @@ export function TestCallModal({ isOpen, onClose, agent, apiKey }: TestCallModalP
         throw new Error('Vapi SDK failed to load');
       }
       
-      // Create Vapi client with the API key
-      const vapi = new VapiSDK(apiKey);
+      // Create Vapi client with the securely obtained token
+      const vapi = new VapiSDK(tokenResponse.token);
       vapiInstanceRef.current = vapi;
+      
+      // Set up call container if needed
+      if (callContainerRef.current) {
+        vapi.setCallContainer(callContainerRef.current);
+      }
       
       // Start the call with the Vapi assistant ID
       await vapi.start(agent.vapiAssistantId);
@@ -90,10 +102,10 @@ export function TestCallModal({ isOpen, onClose, agent, apiKey }: TestCallModalP
     } catch (error) {
       console.error('Error starting Vapi call:', error);
       setStatus('error');
-      setErrorMessage('Failed to start test call. Please make sure your Vapi credentials are valid.');
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to start test call');
       toast({
         title: 'Call Error',
-        description: 'Failed to connect to Vapi. Please check your API key and assistant ID.',
+        description: 'Failed to connect to Vapi. Please check your assistant ID and try again.',
         variant: 'destructive'
       });
     }
