@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useLocation, useRoute } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { TestCallModal } from "../../components/agents/TestCallModal";
 import { 
   Tabs, 
   TabsContent, 
@@ -249,7 +250,7 @@ export default function AgentDetailPage() {
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Agent Settings</h2>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" 
+          <Button variant="outline" size="sm" className="mr-2"
             onClick={() => {
               // Create Vapi assistant from agent data
               const assistantParams = {
