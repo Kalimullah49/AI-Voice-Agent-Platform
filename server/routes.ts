@@ -450,6 +450,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Secure endpoint to provide Vapi token to authenticated clients
+  app.get("/api/vapi/token", isAuthenticated, (req, res) => {
+    if (!process.env.VAPI_AI_TOKEN) {
+      return res.status(500).json({ 
+        success: false,
+        message: "Vapi.ai token is not configured on the server" 
+      });
+    }
+    
+    res.json({ 
+      success: true,
+      token: process.env.VAPI_AI_TOKEN
+    });
+  });
+  
   app.get("/api/vapi/voices", async (req, res) => {
     try {
       const result = await getAvailableVoices();

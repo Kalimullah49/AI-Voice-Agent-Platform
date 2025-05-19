@@ -6,10 +6,14 @@ import { Input } from "@/components/ui/input";
 import { TableSkeleton } from "@/components/ui/skeleton";
 import { useLocation } from "wouter";
 import { toast } from "@/hooks/use-toast";
+import { TestCallModal } from "@/components/agents/TestCallModal";
+import { useState } from "react";
 
 export default function AgentsPage() {
   const [_, navigate] = useLocation();
   const queryClient = useQueryClient();
+  const [testCallModalOpen, setTestCallModalOpen] = useState(false);
+  const [selectedAssistantId, setSelectedAssistantId] = useState<string | undefined>();
   const { data: agents = [], isLoading, error } = useQuery<any[]>({
     queryKey: ["/api/agents"],
   });
@@ -153,17 +157,6 @@ export default function AgentsPage() {
                   </Button>
                   <div className="flex space-x-2">
                     <Button 
-                      variant="secondary" 
-                      size="sm"
-                      onClick={() => {
-                        // Test call functionality would go here
-                        alert('Test call feature coming soon');
-                      }}
-                    >
-                      <PhoneCall className="h-3 w-3 mr-1" />
-                      Test Call
-                    </Button>
-                    <Button 
                       variant="destructive" 
                       size="sm"
                       disabled={deleteAgentMutation.isPending}
@@ -202,6 +195,16 @@ export default function AgentsPage() {
           </CardContent>
         </Card>
       )}
+      
+      {/* Test Call Modal */}
+      <TestCallModal
+        open={testCallModalOpen}
+        onClose={() => {
+          setTestCallModalOpen(false);
+          setSelectedAssistantId(undefined);
+        }}
+        assistantId={selectedAssistantId}
+      />
     </div>
   );
 }
