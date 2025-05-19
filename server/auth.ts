@@ -6,6 +6,7 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import session from "express-session";
 import { v4 as uuidv4 } from "uuid";
+import { z } from "zod";
 
 const scryptAsync = promisify(scrypt);
 
@@ -92,7 +93,15 @@ export function setupAuth(app: Express) {
       return res.status(201).json(userWithoutPassword);
     } catch (error) {
       console.error("Registration error:", error);
-      return res.status(400).json({ message: error.message || "Registration failed" });
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation failed", 
+          errors: error.errors
+        });
+      }
+      return res.status(400).json({ 
+        message: error instanceof Error ? error.message : "Registration failed" 
+      });
     }
   });
 
@@ -115,7 +124,7 @@ export function setupAuth(app: Express) {
       }
       
       // Set user in session
-      req.session.userId = user.id;
+      req.session.userId = String(user.id);
       
       // Remove password from response
       const { password, ...userWithoutPassword } = user;
@@ -124,7 +133,15 @@ export function setupAuth(app: Express) {
       return res.status(200).json(userWithoutPassword);
     } catch (error) {
       console.error("Login error:", error);
-      return res.status(400).json({ message: error.message || "Login failed" });
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation failed", 
+          errors: error.errors
+        });
+      }
+      return res.status(400).json({ 
+        message: error instanceof Error ? error.message : "Login failed" 
+      });
     }
   });
 
