@@ -277,7 +277,6 @@ export default function AgentDetailPage() {
                   provider: "11labs",
                   voiceId: agentData.selectedVoice?.voice_id || agentData.voiceId || "Rachel",
                   speed: agentData.speed ? Math.min(agentData.speed / 10, 1.0) : 1.0, // Convert to 0-1 range, max 1.0
-                  temperature: agentData.temperature || 0.4,
                   guidance: agentData.voiceGuidance || 1.0
                 },
                 transcriber: {
