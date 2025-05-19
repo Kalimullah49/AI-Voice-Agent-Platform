@@ -357,7 +357,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!assistantParams.voice) {
         assistantParams.voice = {
           provider: "elevenlabs",
-          voiceId: assistantParams.voiceId || "Rachel"
+          voiceId: "Rachel" // Use a default voice if none provided
         };
       }
       
