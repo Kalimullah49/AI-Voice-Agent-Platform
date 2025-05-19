@@ -424,11 +424,91 @@ export default function AgentDetailPage() {
                             </div>
                             {voice.preview_url && (
                               <button
-                                className="p-1 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
+                                className="p-1 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors voice-preview-btn"
+                                data-voice-id={voice.voice_id}
+                                data-preview-url={voice.preview_url}
+                                data-playing="false"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  const audio = new Audio(voice.preview_url);
-                                  audio.play();
+                                  const button = e.currentTarget;
+                                  const isPlaying = button.getAttribute('data-playing') === 'true';
+                                  const voiceId = button.getAttribute('data-voice-id');
+                                  const previewUrl = button.getAttribute('data-preview-url');
+                                  
+                                  // Stop all other playing previews first
+                                  document.querySelectorAll('.voice-preview-btn').forEach((btn: any) => {
+                                    if (btn !== button && btn.getAttribute('data-playing') === 'true') {
+                                      btn.setAttribute('data-playing', 'false');
+                                      btn.innerHTML = `
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                        </svg>
+                                      `;
+                                      
+                                      // Stop the playing audio
+                                      const audioId = `preview-audio-${btn.getAttribute('data-voice-id')}`;
+                                      const existingAudio = document.getElementById(audioId) as HTMLAudioElement;
+                                      if (existingAudio) {
+                                        existingAudio.pause();
+                                        existingAudio.currentTime = 0;
+                                      }
+                                    }
+                                  });
+                                  
+                                  if (isPlaying) {
+                                    // If already playing, pause it
+                                    button.setAttribute('data-playing', 'false');
+                                    button.innerHTML = `
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                      </svg>
+                                    `;
+                                    
+                                    const audioId = `preview-audio-${voiceId}`;
+                                    const existingAudio = document.getElementById(audioId) as HTMLAudioElement;
+                                    if (existingAudio) {
+                                      existingAudio.pause();
+                                      existingAudio.currentTime = 0;
+                                    }
+                                  } else {
+                                    // If not playing, start playing
+                                    button.setAttribute('data-playing', 'true');
+                                    button.innerHTML = `
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <rect x="6" y="4" width="4" height="16"></rect>
+                                        <rect x="14" y="4" width="4" height="16"></rect>
+                                      </svg>
+                                    `;
+                                    
+                                    // Create or get audio element
+                                    const audioId = `preview-audio-${voiceId}`;
+                                    let audioElement = document.getElementById(audioId) as HTMLAudioElement;
+                                    
+                                    if (!audioElement) {
+                                      audioElement = document.createElement('audio');
+                                      audioElement.id = audioId;
+                                      audioElement.style.display = 'none';
+                                      audioElement.src = previewUrl || '';
+                                      
+                                      // When audio ends, reset the button
+                                      audioElement.addEventListener('ended', () => {
+                                        button.setAttribute('data-playing', 'false');
+                                        button.innerHTML = `
+                                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                          </svg>
+                                        `;
+                                      });
+                                      
+                                      document.body.appendChild(audioElement);
+                                    } else {
+                                      // Reset existing audio element
+                                      audioElement.currentTime = 0;
+                                    }
+                                    
+                                    // Play the audio
+                                    audioElement.play();
+                                  }
                                 }}
                               >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
