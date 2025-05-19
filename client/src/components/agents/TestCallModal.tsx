@@ -1,8 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import Vapi from '@vapi-ai/web';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
+
+// TypeScript declaration for global Vapi
+declare global {
+  interface Window {
+    Vapi: any;
+  }
+}
 
 interface TestCallModalProps {
   isOpen: boolean;
@@ -48,8 +54,33 @@ export function TestCallModal({ isOpen, onClose, agent, apiKey }: TestCallModalP
     try {
       setStatus('connecting');
       
+      // Load the Vapi SDK script dynamically if needed
+      const loadVapiScript = async () => {
+        if (window.Vapi) return;
+        
+        return new Promise<void>((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdn.vapi.ai/web-sdk@latest/index.js';
+          script.async = true;
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error('Failed to load Vapi SDK'));
+          document.head.appendChild(script);
+        });
+      };
+      
+      // Ensure the Vapi SDK is loaded
+      if (!window.Vapi) {
+        await loadVapiScript();
+      }
+      
+      // Use the global Vapi instance
+      const VapiSDK = window.Vapi;
+      if (!VapiSDK) {
+        throw new Error('Vapi SDK failed to load');
+      }
+      
       // Create Vapi client with the API key
-      const vapi = new Vapi(apiKey);
+      const vapi = new VapiSDK(apiKey);
       vapiInstanceRef.current = vapi;
       
       // Start the call with the Vapi assistant ID
