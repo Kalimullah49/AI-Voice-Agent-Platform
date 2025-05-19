@@ -275,7 +275,7 @@ export default function AgentDetailPage() {
                 },
                 voice: {
                   provider: "11labs",
-                  voiceId: agentData.selectedVoice?.voice_id || agentData.voiceId || "Rachel",
+                  voiceId: "29vD33N1CtxCmBIw89GW", // Using a default Vapi-provided voice (Bella)
                   speed: agentData.speed ? Math.min(agentData.speed / 10, 1.0) : 1.0 // Convert to 0-1 range, max 1.0
                 },
                 transcriber: {
