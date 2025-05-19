@@ -126,8 +126,7 @@ export default function PhoneNumbersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold tracking-tight">Phone Numbers</h2>
+      <div className="flex justify-end items-center">
         <div className="flex gap-2">
           <Button variant="outline" className="flex items-center">
             <PlusIcon className="h-4 w-4 mr-2" />
@@ -291,48 +290,7 @@ export default function PhoneNumbersPage() {
             </DialogContent>
           </Dialog>
           
-          {/* Import Number Dialog */}
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button>
-                <PlusIcon className="h-4 w-4 mr-2" />
-                Import Phone Number
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Import Phone Number</DialogTitle>
-                <DialogDescription>
-                  Enter a phone number to import from your Twilio account.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <label htmlFor="phone" className="text-sm font-medium">Phone Number</label>
-                  <Input id="phone" placeholder="+1 (415) 555-1234" />
-                </div>
-                <div className="grid gap-2">
-                  <label htmlFor="agent" className="text-sm font-medium">Assign to Agent</label>
-                  <Select>
-                    <SelectTrigger id="agent">
-                      <SelectValue placeholder="Select an agent" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {agents?.map((agent: any) => (
-                        <SelectItem key={agent.id} value={agent.id.toString()}>
-                          {agent.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline">Cancel</Button>
-                <Button>Import Number</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+
         </div>
       </div>
 
