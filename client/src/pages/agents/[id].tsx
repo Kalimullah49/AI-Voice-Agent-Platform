@@ -279,50 +279,95 @@ export default function AgentDetailPage() {
               className="mr-2" 
               onClick={() => {
                 if (isWebCallActive) {
-                  // Destroy the widget if it's already active
-                  if (window.vapiSDK) {
-                    window.vapiSDK.destroy();
-                    setIsWebCallActive(false);
+                  // Cleaner approach to removing the widget
+                  try {
+                    // Method 1: Try direct destroy
+                    if (window.vapiSDK) {
+                      try {
+                        window.vapiSDK.destroy();
+                      } catch (err) {
+                        console.warn("Could not destroy using vapiSDK:", err);
+                      }
+                    }
                     
-                    // Remove the script tag
+                    // Method 2: Remove all Vapi-related elements from DOM
+                    document.querySelectorAll('[id^="vapi"]').forEach(el => {
+                      if (el && el.parentNode) {
+                        el.parentNode.removeChild(el);
+                      }
+                    });
+                    
+                    // Method 3: Remove our script tag
                     const existingScript = document.getElementById('vapi-test-script');
-                    if (existingScript) {
-                      document.body.removeChild(existingScript);
+                    if (existingScript && existingScript.parentNode) {
+                      existingScript.parentNode.removeChild(existingScript);
+                    }
+                    
+                    // Reload the CSS to fix any style issues
+                    const links = document.getElementsByTagName('link');
+                    for (let i = 0; i < links.length; i++) {
+                      const link = links[i];
+                      if (link.rel === 'stylesheet') {
+                        link.href = link.href.replace(/\?.*|$/, '?' + new Date().getTime());
+                      }
                     }
                     
                     toast({
                       title: "Test Call Widget Removed",
                       description: "The call widget has been removed from the page",
                     });
+                  } catch (error) {
+                    console.error("Error removing Vapi widget:", error);
+                    toast({
+                      title: "Widget partially removed",
+                      description: "Some elements may remain. Refresh the page if needed.",
+                      variant: "destructive"
+                    });
+                  } finally {
+                    // Always update state even if there was an error
+                    setIsWebCallActive(false);
                   }
                 } else {
-                  // Add the script directly to the page when the button is clicked
+                  // Create a new script tag with a unique ID based on timestamp
                   const script = document.createElement('script');
-                  script.id = 'vapi-test-script';
+                  const timestamp = new Date().getTime();
+                  script.id = `vapi-test-script-${timestamp}`;
+                  
+                  // Use a more robust script that assigns global variables
                   script.innerHTML = `
-                    var vapiInstance = null;
+                    // Store reference to prevent garbage collection
+                    window.vapiCleanupFunctions = window.vapiCleanupFunctions || [];
+                    
                     const assistant = "${agentData.vapiAssistantId}";
                     const apiKey = "317c2afe-8d25-4a7f-8ec8-613a6265dd14";
-                    const buttonConfig = {}; // Modify this as required
-  
+                    
                     (function (d, t) {
                       var g = document.createElement(t),
                         s = d.getElementsByTagName(t)[0];
-                      g.src =
-                        "https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js";
+                      g.src = "https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js";
                       g.defer = true;
                       g.async = true;
                       s.parentNode.insertBefore(g, s);
   
                       g.onload = function () {
-                        vapiInstance = window.vapiSDK.run({
-                          apiKey: apiKey,
-                          assistant: assistant,
-                          config: buttonConfig, // optional
-                        });
+                        try {
+                          // Store the instance globally for better cleanup
+                          window.vapiCurrentInstance = window.vapiSDK.run({
+                            apiKey: apiKey,
+                            assistant: assistant,
+                          });
+                          
+                          // Store a reference to the destroy function
+                          window.vapiCleanupFunctions.push(function() {
+                            if (window.vapiSDK) window.vapiSDK.destroy();
+                          });
+                        } catch (err) {
+                          console.error("Failed to initialize Vapi widget:", err);
+                        }
                       };
                     })(document, "script");
                   `;
+                  
                   document.body.appendChild(script);
                   setIsWebCallActive(true);
                   
