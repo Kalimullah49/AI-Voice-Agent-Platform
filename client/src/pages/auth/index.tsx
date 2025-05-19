@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import LoginForm from "@/components/auth/LoginForm";
 import RegisterForm from "@/components/auth/RegisterForm";
+import ReplitLoginButton from "@/components/auth/ReplitLoginButton";
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState("login");
@@ -32,9 +33,31 @@ export default function AuthPage() {
                   </TabsList>
                   <TabsContent value="login">
                     <LoginForm />
+                    <div className="relative my-4">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-gray-300"></div>
+                      </div>
+                      <div className="relative flex justify-center text-sm">
+                        <span className="bg-white px-2 text-gray-500">Or continue with</span>
+                      </div>
+                    </div>
+                    <div className="mt-1">
+                      <ReplitLoginButton />
+                    </div>
                   </TabsContent>
                   <TabsContent value="register">
                     <RegisterForm />
+                    <div className="relative my-4">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-gray-300"></div>
+                      </div>
+                      <div className="relative flex justify-center text-sm">
+                        <span className="bg-white px-2 text-gray-500">Or sign up with</span>
+                      </div>
+                    </div>
+                    <div className="mt-1">
+                      <ReplitLoginButton />
+                    </div>
                   </TabsContent>
                 </Tabs>
               </CardContent>
