@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { insertUserSchema, insertAgentSchema, insertCallSchema, insertActionSchema, insertPhoneNumberSchema, insertContactGroupSchema, insertContactSchema, insertCampaignSchema } from "@shared/schema";
 import { z } from "zod";
 import { testApiConnection, synthesizeSpeech, getAvailableVoices, createVapiAssistant, deleteVapiAssistant, VapiAssistantParams } from "./utils/vapi";
-import { isAuthenticated } from "./replitAuth";
+// Our custom auth middleware will be imported dynamically
 import { DatabaseStorage } from "./database-storage";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -72,22 +72,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
+  // The auth/user endpoint was moved to auth.ts
 
   // Agent routes
-  app.get("/api/agents", isAuthenticated, async (req: any, res) => {
+  app.get("/api/agents", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.session.userId;
       
       // Get all agents and filter by user ID
       const agents = await storage.getAllAgentsByUserId(userId);
@@ -98,9 +88,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/agents/:id", isAuthenticated, async (req: any, res) => {
+  app.get("/api/agents/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.session.userId;
       const id = parseInt(req.params.id);
       const agent = await storage.getAgent(id);
       
@@ -120,9 +110,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/agents", isAuthenticated, async (req: any, res) => {
+  app.post("/api/agents", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.session.userId;
       
       // Add the user ID to the agent data
       const agentData = insertAgentSchema.parse({
@@ -142,9 +132,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/agents/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/agents/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.session.userId;
       const id = parseInt(req.params.id);
       
       // First check if the agent exists and belongs to this user
