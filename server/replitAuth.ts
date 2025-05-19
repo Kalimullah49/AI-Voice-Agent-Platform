@@ -68,7 +68,6 @@ async function upsertUser(
     firstName: claims["first_name"],
     lastName: claims["last_name"],
     profileImageUrl: claims["profile_image_url"],
-    role: "user", // Default role
   });
 }
 
@@ -90,14 +89,28 @@ export async function setupAuth(app: Express) {
     verified(null, user);
   };
 
-  for (const domain of process.env
-    .REPLIT_DOMAINS!.split(",")) {
+  // Get all domains to support both local and production environments
+  const domains = process.env.REPLIT_DOMAINS?.split(",") || [];
+  
+  // Add localhost for development testing
+  if (process.env.NODE_ENV !== "production") {
+    domains.push("localhost");
+    domains.push("127.0.0.1");
+  }
+  
+  for (const domain of domains) {
+    const name = `replitauth:${domain}`;
+    const protocol = domain === "localhost" || domain === "127.0.0.1" ? "http" : "https";
+    const callbackURL = `${protocol}://${domain}${domain === "localhost" || domain === "127.0.0.1" ? ":5000" : ""}/api/callback`;
+    
+    console.log(`Registering auth strategy: ${name} with callback: ${callbackURL}`);
+    
     const strategy = new Strategy(
       {
-        name: `replitauth:${domain}`,
+        name,
         config,
         scope: "openid email profile offline_access",
-        callbackURL: `https://${domain}/api/callback`,
+        callbackURL,
       },
       verify,
     );
