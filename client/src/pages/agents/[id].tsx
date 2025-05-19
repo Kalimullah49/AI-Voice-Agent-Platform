@@ -250,9 +250,50 @@ export default function AgentDetailPage() {
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Agent Settings</h2>
         <div className="flex gap-2">
-          {/* Add Web Call Script when agent has a Vapi assistant ID */}
+          {/* Test call button for Vapi integration */}
           {agentData.vapiAssistantId && (
-            <WebCallScript assistantId={agentData.vapiAssistantId} />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mr-2" 
+              onClick={() => {
+                // Add the script directly to the page when the button is clicked
+                const script = document.createElement('script');
+                script.innerHTML = `
+                  var vapiInstance = null;
+                  const assistant = "${agentData.vapiAssistantId}";
+                  const apiKey = "${process.env.VAPI_AI_TOKEN || '317c2afe-8d25-4a7f-8ec8-613a6265dd14'}";
+                  const buttonConfig = {}; // Modify this as required
+
+                  (function (d, t) {
+                    var g = document.createElement(t),
+                      s = d.getElementsByTagName(t)[0];
+                    g.src =
+                      "https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js";
+                    g.defer = true;
+                    g.async = true;
+                    s.parentNode.insertBefore(g, s);
+
+                    g.onload = function () {
+                      vapiInstance = window.vapiSDK.run({
+                        apiKey: apiKey,
+                        assistant: assistant,
+                        config: buttonConfig, // optional
+                      });
+                    };
+                  })(document, "script");
+                `;
+                document.body.appendChild(script);
+                
+                toast({
+                  title: "Test Call Widget Added",
+                  description: "Look for the call button on the bottom right of the page to start a test call",
+                });
+              }}
+            >
+              <PhoneCall className="h-4 w-4 mr-2" />
+              Test Web Call
+            </Button>
           )}
           
           <Button variant="outline" size="sm" className="mr-2"
