@@ -459,7 +459,7 @@ export default function AgentDetailPage() {
               <Separator />
               
               {/* Voice Guidance */}
-              {/* Vapi.ai Integration Test */}
+              {/* Voice Synthesis Test */}
               <div className="mb-6 p-4 border rounded-md bg-muted/30">
                 <h3 className="text-lg font-medium mb-2">Test Voice Synthesis</h3>
                 <div className="flex flex-col space-y-4">
@@ -470,18 +470,36 @@ export default function AgentDetailPage() {
                       rows={2}
                       placeholder="Enter text to hear with this voice..."
                       id="testVoiceText"
-                      defaultValue="Hello, this is a test of the voice synthesis system. How does it sound?"
+                      defaultValue="Hello, this is a test of the voice synthesis system using ElevenLabs. How does it sound?"
                     ></textarea>
                   </div>
-                  <div className="flex space-x-2">
+                  <div className="flex space-x-2 flex-wrap gap-2">
                     <button
-                      className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                      id="generateVoiceBtn"
+                      className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
                       onClick={() => {
                         const text = (document.getElementById('testVoiceText') as HTMLTextAreaElement).value;
-                        if (!text) return;
+                        if (!text) {
+                          toast({
+                            title: "Error",
+                            description: "Please enter text to synthesize",
+                            variant: "destructive"
+                          });
+                          return;
+                        }
+                        
+                        // Check if a voice is selected
+                        if (!agentData.voiceId && !agentData.selectedVoice?.voice_id) {
+                          toast({
+                            title: "Error",
+                            description: "Please select a voice first",
+                            variant: "destructive"
+                          });
+                          return;
+                        }
                         
                         // Set loading state
-                        const button = document.activeElement as HTMLButtonElement;
+                        const button = document.getElementById('generateVoiceBtn') as HTMLButtonElement;
                         const originalText = button.innerText;
                         button.innerText = 'Generating...';
                         button.disabled = true;
@@ -492,7 +510,7 @@ export default function AgentDetailPage() {
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({
                             text,
-                            voiceId: agentData.voiceId || agentData.selectedVoice?.voice_id || 'man-1',
+                            voiceId: agentData.voiceId || agentData.selectedVoice?.voice_id,
                             speed: agentData.speed,
                             temperature: agentData.temperature,
                             textGuidance: agentData.textGuidance,
@@ -507,14 +525,37 @@ export default function AgentDetailPage() {
                         .then(res => res.json())
                         .then(data => {
                           if (data.success && data.audioUrl) {
-                            // Create audio element and play the synthesized speech
+                            // Update audio element and play the synthesized speech
                             const audioPlayer = document.getElementById('audioPlayer') as HTMLAudioElement;
+                            
+                            // Set up audio controls behavior
                             audioPlayer.src = data.audioUrl;
-                            audioPlayer.play();
+                            audioPlayer.oncanplay = () => {
+                              audioPlayer.style.display = 'block';
+                              audioPlayer.play();
+                              
+                              // Update audio control buttons
+                              const playPauseBtn = document.getElementById('playPauseBtn');
+                              if (playPauseBtn) {
+                                playPauseBtn.innerHTML = `
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect x="6" y="4" width="4" height="16"></rect>
+                                    <rect x="14" y="4" width="4" height="16"></rect>
+                                  </svg>
+                                `;
+                                playPauseBtn.setAttribute('data-state', 'playing');
+                                playPauseBtn.style.display = 'inline-flex';
+                              }
+                            };
+                            
+                            toast({
+                              title: "Voice Generated",
+                              description: "Successfully generated voice audio",
+                            });
                           } else {
                             toast({
                               title: "Voice Synthesis Failed",
-                              description: data.message || "Could not generate speech. Please check your Vapi.ai token.",
+                              description: data.message || "Could not generate speech. Please check your ElevenLabs API key.",
                               variant: "destructive"
                             });
                           }
@@ -522,7 +563,7 @@ export default function AgentDetailPage() {
                         .catch(err => {
                           toast({
                             title: "Error",
-                            description: "Failed to connect to the voice synthesis service. Please check your Vapi.ai token in the .env file.",
+                            description: "Failed to connect to the voice synthesis service.",
                             variant: "destructive"
                           });
                           console.error("Voice synthesis error:", err);
@@ -536,6 +577,42 @@ export default function AgentDetailPage() {
                     >
                       Generate & Play
                     </button>
+                    
+                    <button
+                      id="playPauseBtn"
+                      className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/90 transition-colors"
+                      data-state="paused"
+                      style={{ display: 'none' }}
+                      onClick={(e) => {
+                        const audioPlayer = document.getElementById('audioPlayer') as HTMLAudioElement;
+                        const button = e.currentTarget;
+                        const state = button.getAttribute('data-state');
+                        
+                        if (state === 'paused') {
+                          audioPlayer.play();
+                          button.setAttribute('data-state', 'playing');
+                          button.innerHTML = `
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="6" y="4" width="4" height="16"></rect>
+                              <rect x="14" y="4" width="4" height="16"></rect>
+                            </svg>
+                          `;
+                        } else {
+                          audioPlayer.pause();
+                          button.setAttribute('data-state', 'paused');
+                          button.innerHTML = `
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                            </svg>
+                          `;
+                        }
+                      }}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                      </svg>
+                    </button>
+                    
                     <button
                       className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/90 transition-colors"
                       onClick={() => {
@@ -560,7 +637,27 @@ export default function AgentDetailPage() {
                       Test API Connection
                     </button>
                   </div>
-                  <audio id="audioPlayer" controls className="w-full" />
+                  
+                  {/* Hide the default audio controls and use our custom controls instead */}
+                  <audio 
+                    id="audioPlayer" 
+                    className="w-full hidden" 
+                    onEnded={() => {
+                      const playPauseBtn = document.getElementById('playPauseBtn');
+                      if (playPauseBtn) {
+                        playPauseBtn.setAttribute('data-state', 'paused');
+                        playPauseBtn.innerHTML = `
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                          </svg>
+                        `;
+                      }
+                    }}
+                  />
+                  
+                  <div className="text-xs text-muted-foreground mt-2">
+                    Note: Voice synthesis uses your selected voice via ElevenLabs API. Make sure a voice is selected first.
+                  </div>
                 </div>
               </div>
               

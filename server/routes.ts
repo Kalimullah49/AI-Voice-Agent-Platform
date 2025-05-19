@@ -280,23 +280,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ success: false, message: "Text is required" });
       }
       
-      const audioUrl = await synthesizeSpeech({
+      // Call the updated synthesizeSpeech function
+      const result = await synthesizeSpeech({
         text,
         voiceId,
-        speed,
-        temperature,
-        textGuidance,
-        voiceGuidance,
+        speed: typeof speed === 'string' ? parseFloat(speed) : speed,
+        temperature: typeof temperature === 'string' ? parseFloat(temperature) : temperature,
+        textGuidance: typeof textGuidance === 'string' ? parseFloat(textGuidance) : textGuidance,
+        voiceGuidance: typeof voiceGuidance === 'string' ? parseFloat(voiceGuidance) : voiceGuidance,
         backgroundNoise
       });
       
-      if (audioUrl) {
-        res.json({ success: true, audioUrl });
+      if (result.success && result.audioUrl) {
+        res.json({ success: true, audioUrl: result.audioUrl });
       } else {
-        res.status(500).json({ success: false, message: "Failed to synthesize speech" });
+        res.status(400).json({ 
+          success: false, 
+          message: result.message || "Failed to synthesize speech" 
+        });
       }
     } catch (error) {
-      res.status(500).json({ success: false, message: "An error occurred during speech synthesis" });
+      console.error("Error in voice synthesis:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: error instanceof Error ? error.message : "An error occurred during speech synthesis" 
+      });
     }
   });
 

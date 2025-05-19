@@ -48,58 +48,147 @@ const DEFAULT_VOICE_OPTIONS = {
  * @param options Voice synthesis options
  * @returns URL to the audio file
  */
-export async function synthesizeSpeech(options: VoiceSynthesisOptions): Promise<string | null> {
-  if (!VAPI_AI_TOKEN) {
-    console.error('VAPI_AI_TOKEN is not defined. Please set it in your environment variables.');
-    return null;
-  }
+export async function synthesizeSpeech(options: VoiceSynthesisOptions): Promise<{ success: boolean; audioUrl?: string; message?: string }> {
+  // Try ElevenLabs API first, then fall back to Vapi if needed
+  if (ELEVENLABS_API_KEY) {
+    try {
+      // Merge options with defaults for ElevenLabs settings
+      const mergedOptions = {
+        ...DEFAULT_VOICE_OPTIONS,
+        ...options
+      };
 
-  try {
-    // Merge options with defaults
-    const mergedOptions = {
-      ...DEFAULT_VOICE_OPTIONS,
-      ...options,
-      backgroundNoise: {
-        ...DEFAULT_VOICE_OPTIONS.backgroundNoise,
-        ...(options.backgroundNoise || {})
+      // Voice ID is required
+      if (!mergedOptions.voiceId) {
+        return {
+          success: false,
+          message: "Voice ID is required for text-to-speech synthesis"
+        };
       }
-    };
 
-    // Prepare request payload
-    const payload = {
-      text: mergedOptions.text,
-      voice_id: mergedOptions.voiceId,
-      speed: mergedOptions.speed,
-      temperature: mergedOptions.temperature,
-      text_guidance: mergedOptions.textGuidance,
-      voice_guidance: mergedOptions.voiceGuidance,
-      background_noise: Object.entries(mergedOptions.backgroundNoise)
-        .filter(([_, value]) => value)
-        .map(([key]) => key)
-    };
+      // Create ElevenLabs request payload
+      const elevenLabsPayload = {
+        text: mergedOptions.text,
+        model_id: "eleven_monolingual_v1",
+        voice_settings: {
+          stability: 0.5,
+          similarity_boost: 0.5,
+          style: 0.0,
+          use_speaker_boost: true,
+          speaking_rate: mergedOptions.speed || 1.0
+        }
+      };
 
-    // Make API request to Vapi.ai
-    const response = await fetch('https://api.vapi.ai/tts', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${VAPI_AI_TOKEN}`
-      },
-      body: JSON.stringify(payload)
-    });
+      // Call ElevenLabs API
+      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${mergedOptions.voiceId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'xi-api-key': ELEVENLABS_API_KEY
+        },
+        body: JSON.stringify(elevenLabsPayload)
+      });
 
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error(`Vapi.ai API error: ${response.status} - ${errorData}`);
-      return null;
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMsg;
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMsg = errorData.detail?.message || errorText;
+        } catch (e) {
+          errorMsg = errorText;
+        }
+        console.error(`ElevenLabs API error: ${response.status} - ${errorMsg}`);
+        
+        return {
+          success: false,
+          message: `ElevenLabs API error: ${errorMsg}`
+        };
+      }
+
+      // Get audio data as ArrayBuffer
+      const audioData = await response.arrayBuffer();
+      
+      // Convert audio data to base64
+      const base64Audio = Buffer.from(audioData).toString('base64');
+      const audioUrl = `data:audio/mpeg;base64,${base64Audio}`;
+      
+      return {
+        success: true,
+        audioUrl
+      };
+    } catch (error) {
+      console.error('Error in ElevenLabs speech synthesis:', error);
+      return {
+        success: false,
+        message: `Error in ElevenLabs speech synthesis: ${error instanceof Error ? error.message : 'Unknown error'}`
+      };
     }
+  } 
+  // Fall back to Vapi if ElevenLabs API key is not available
+  else if (VAPI_AI_TOKEN) {
+    try {
+      // Merge options with defaults
+      const mergedOptions = {
+        ...DEFAULT_VOICE_OPTIONS,
+        ...options,
+        backgroundNoise: {
+          ...DEFAULT_VOICE_OPTIONS.backgroundNoise,
+          ...(options.backgroundNoise || {})
+        }
+      };
 
-    const data = await response.json();
-    return data.audio_url;
-  } catch (error) {
-    console.error('Error synthesizing speech:', error);
-    return null;
+      // Prepare request payload
+      const payload = {
+        text: mergedOptions.text,
+        voice_id: mergedOptions.voiceId,
+        speed: mergedOptions.speed,
+        temperature: mergedOptions.temperature,
+        text_guidance: mergedOptions.textGuidance,
+        voice_guidance: mergedOptions.voiceGuidance,
+        background_noise: Object.entries(mergedOptions.backgroundNoise)
+          .filter(([_, value]) => value)
+          .map(([key]) => key)
+      };
+
+      // Make API request to Vapi.ai
+      const response = await fetch('https://api.vapi.ai/tts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${VAPI_AI_TOKEN}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error(`Vapi.ai API error: ${response.status} - ${errorData}`);
+        return {
+          success: false,
+          message: `Vapi.ai API error: ${errorData}`
+        };
+      }
+
+      const data = await response.json() as any;
+      return {
+        success: true,
+        audioUrl: data.audio_url
+      };
+    } catch (error) {
+      console.error('Error in Vapi.ai speech synthesis:', error);
+      return {
+        success: false,
+        message: `Error in Vapi.ai speech synthesis: ${error instanceof Error ? error.message : 'Unknown error'}`
+      };
+    }
   }
+  
+  // No API keys available
+  return {
+    success: false,
+    message: 'No API keys available for text-to-speech synthesis. Please set ELEVENLABS_API_KEY or VAPI_AI_TOKEN in your environment variables.'
+  };
 }
 
 /**
