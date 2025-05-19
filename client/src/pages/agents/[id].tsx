@@ -281,6 +281,56 @@ export default function AgentDetailPage() {
                 if (isWebCallActive) {
                   // Cleaner approach to removing the widget
                   try {
+                    // First, try multiple approaches to end any active calls
+                    // Method 1: Look for the specific End call button
+                    const endCallButton = document.querySelector('button[aria-label="End call"]');
+                    if (endCallButton) {
+                      console.log("Found active call button, hanging up call...");
+                      (endCallButton as HTMLButtonElement).click();
+                    }
+                    
+                    // Method 2: Look for any vapi call button that might be active
+                    const vapiCallButtons = document.querySelectorAll('button[class*="vapi"]');
+                    vapiCallButtons.forEach(button => {
+                      console.log("Clicking potential call control button");
+                      (button as HTMLButtonElement).click();
+                    });
+                    
+                    // Method 3: Try to find hangup button by text content
+                    const allButtons = document.querySelectorAll('button');
+                    for (const button of allButtons) {
+                      if (button.textContent?.toLowerCase().includes('hang up') || 
+                          button.textContent?.toLowerCase().includes('end') ||
+                          button.textContent?.toLowerCase().includes('cancel')) {
+                        console.log("Found button with hang up text:", button.textContent);
+                        (button as HTMLButtonElement).click();
+                      }
+                    }
+                    
+                    // Method 4: Force disconnect by setting a global variable vapi uses
+                    try {
+                      const disconnectScript = document.createElement('script');
+                      disconnectScript.textContent = `
+                        try {
+                          // Try multiple ways to force call termination
+                          if (window.vapiSDK && window.vapiSDK.hangup) {
+                            window.vapiSDK.hangup();
+                          }
+                          
+                          // Force any ongoing call to disconnect
+                          if (window.vapiCurrentInstance && window.vapiCurrentInstance.hangup) {
+                            window.vapiCurrentInstance.hangup();
+                          }
+                          
+                          // Set global flag to help clean up
+                          window.vapiCallEnded = true;
+                        } catch(e) { console.warn("Error in hangup script:", e); }
+                      `;
+                      document.head.appendChild(disconnectScript);
+                    } catch (err) {
+                      console.warn("Error injecting disconnect script:", err);
+                    }
+                    
                     // Method 1: Try direct destroy
                     if (window.vapiSDK) {
                       try {
@@ -297,11 +347,29 @@ export default function AgentDetailPage() {
                       }
                     });
                     
-                    // Method 3: Remove our script tag
-                    const existingScript = document.getElementById('vapi-test-script');
-                    if (existingScript && existingScript.parentNode) {
-                      existingScript.parentNode.removeChild(existingScript);
-                    }
+                    // Remove any other Vapi elements that might have different IDs
+                    document.querySelectorAll('div[class*="vapi"]').forEach(el => {
+                      if (el && el.parentNode) {
+                        el.parentNode.removeChild(el);
+                      }
+                    });
+                    
+                    // Method 3: Remove our script tags
+                    const scriptSelectors = [
+                      '#vapi-test-script',
+                      '#vapi-sdk-loader',
+                      '#vapi-init-script',
+                      'script[src*="vapi"]'
+                    ];
+                    
+                    scriptSelectors.forEach(selector => {
+                      const elements = document.querySelectorAll(selector);
+                      elements.forEach(el => {
+                        if (el && el.parentNode) {
+                          el.parentNode.removeChild(el);
+                        }
+                      });
+                    });
                     
                     // Reload the CSS to fix any style issues
                     const links = document.getElementsByTagName('link');
