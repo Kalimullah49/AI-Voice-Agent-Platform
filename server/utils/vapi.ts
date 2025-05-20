@@ -499,7 +499,8 @@ export async function registerPhoneNumberWithVapi(
     
     console.log(`Attempting to register phone number with Vapi.ai: ${formattedPhoneNumber}`);
     
-    // Direct API call to Vapi.ai with complete payload
+    // Direct API call to Vapi.ai with the correct payload format 
+    // Based on the error message, they're expecting different field names
     const response = await fetch(`${VAPI_API_BASE_URL}/phone-number`, {
       method: 'POST',
       headers: {
@@ -507,12 +508,10 @@ export async function registerPhoneNumberWithVapi(
         'Authorization': `Bearer ${VAPI_AI_TOKEN}`
       },
       body: JSON.stringify({
-        phoneNumber: formattedPhoneNumber,
+        number: formattedPhoneNumber,
         provider: "twilio",
-        account: {
-          accountSid: twilioAccountSid,
-          authToken: twilioAuthToken
-        }
+        twilioAccountSid: twilioAccountSid,
+        twilioAuthToken: twilioAuthToken
       })
     });
     
@@ -572,7 +571,6 @@ export async function registerPhoneNumberWithVapi(
       message: `Error registering phone number with Vapi: ${error instanceof Error ? error.message : String(error)}`
     };
   }
-}
 }
 
 /**
