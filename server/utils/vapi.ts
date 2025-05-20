@@ -5,10 +5,13 @@
 
 import fetch from 'node-fetch';
 
-// Ensure the token is available - falls back to ElevenLabs token if Vapi token is not available
+// Get Vapi.ai API token from environment variables
 const VAPI_AI_TOKEN = process.env.VAPI_AI_TOKEN || '';
-// ElevenLabs API token (separate in case we need both)
+// ElevenLabs API token for voice synthesis
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || '';
+
+// Flag to enable detailed debugging
+const DEBUG_MODE = true;
 
 // Vapi.ai API Base URL
 const VAPI_API_BASE_URL = 'https://api.vapi.ai';
@@ -391,6 +394,10 @@ export async function createVapiAssistant(params: VapiAssistantParams): Promise<
     } else {
       console.log(`Creating Vapi assistant: ${params.name}`);
     }
+    
+    // Log request information for debugging
+    console.log(`Making request to Vapi.ai: ${method} ${url}`);
+    console.log('Request payload:', JSON.stringify(params, null, 2));
     
     // Make API request to Vapi.ai to create or update assistant
     const response = await fetch(url, {
