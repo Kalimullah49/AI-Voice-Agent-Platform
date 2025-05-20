@@ -996,6 +996,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set the userId in metadata to track ownership
       assistantParams.metadata.userId = userId;
       
+      // Remove empty forwardingPhoneNumber if present to avoid Vapi API validation errors
+      if (assistantParams.forwardingPhoneNumber === "") {
+        delete assistantParams.forwardingPhoneNumber;
+      }
+      
       // Ensure some required fields have default values if not provided
       if (!assistantParams.model) {
         assistantParams.model = {
