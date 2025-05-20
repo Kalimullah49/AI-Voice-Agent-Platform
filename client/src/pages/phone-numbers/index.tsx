@@ -245,6 +245,70 @@ export default function PhoneNumbersPage() {
     }
   });
   
+  // Mutation for releasing a phone number
+  const releasePhoneNumberMutation = useMutation({
+    mutationFn: async (phoneNumberId: number) => {
+      const response = await fetch(`/api/phone-numbers/${phoneNumberId}`, {
+        method: 'DELETE'
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to release phone number');
+      }
+      
+      return response.status === 204 ? null : response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/phone-numbers"] });
+      toast({
+        title: "Success",
+        description: "Phone number released successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to release phone number",
+        variant: "destructive"
+      });
+    }
+  });
+  
+  // Mutation for assigning a phone number to an agent
+  const assignPhoneNumberMutation = useMutation({
+    mutationFn: async ({id, agentId}: {id: number, agentId: number | null}) => {
+      const response = await fetch(`/api/phone-numbers/${id}/assign`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ agentId })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to assign phone number');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/phone-numbers"] });
+      toast({
+        title: "Success",
+        description: "Phone number assignment updated",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to assign phone number",
+        variant: "destructive"
+      });
+    }
+  });
+  
   // Function to search for available Twilio numbers
   const searchAvailableTwilioNumbers = async () => {
     if (!selectedTwilioAccountId) {
@@ -777,30 +841,77 @@ export default function PhoneNumbersPage() {
                                   </DialogDescription>
                                 </DialogHeader>
                                 <div className="py-4">
-                                  <Select defaultValue={phoneNumber.agentId?.toString()}>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select an agent" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {agents && Array.isArray(agents) 
-                                        ? agents.map((agent: any) => (
-                                            <SelectItem key={agent.id} value={agent.id.toString()}>
-                                              {agent.name}
-                                            </SelectItem>
-                                          )) 
-                                        : null}
-                                    </SelectContent>
-                                  </Select>
+                                  {/* Using a state variable instead of defaultValue for controlled component */}
+                                  <div className="mb-2">
+                                    <p className="text-sm">
+                                      <strong>Phone Number:</strong> {formatPhoneNumber(phoneNumber.number)}
+                                    </p>
+                                    <p className="text-sm text-gray-500 mt-1">
+                                      {phoneNumber.agentId 
+                                        ? `Currently assigned to: ${assignedAgent?.name || 'Unknown agent'}`
+                                        : 'Not currently assigned to any agent'}
+                                    </p>
+                                  </div>
+                                  
+                                  <div className="mt-4">
+                                    <label className="text-sm font-medium mb-2 block">Select Agent</label>
+                                    <Select 
+                                      value={phoneNumber.agentId?.toString() || ""}
+                                      onValueChange={(value) => {
+                                        // Use the mutation function directly here with the selected value
+                                        assignPhoneNumberMutation.mutate({
+                                          id: phoneNumber.id,
+                                          agentId: value ? parseInt(value) : null
+                                        });
+                                      }}
+                                    >
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select an agent" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="">None (Unassign)</SelectItem>
+                                        {agents && Array.isArray(agents) 
+                                          ? agents.map((agent: any) => (
+                                              <SelectItem key={agent.id} value={agent.id.toString()}>
+                                                {agent.name}
+                                              </SelectItem>
+                                            )) 
+                                          : null}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
                                 </div>
                                 <DialogFooter>
-                                  <Button variant="outline">Cancel</Button>
-                                  <Button>Assign Number</Button>
+                                  <Button 
+                                    disabled={assignPhoneNumberMutation.isPending}
+                                  >
+                                    {assignPhoneNumberMutation.isPending ? 'Updating...' : 'Close'}
+                                  </Button>
                                 </DialogFooter>
                               </DialogContent>
                             </Dialog>
-                            <Button variant="destructive" size="sm" className="h-8 px-2 text-xs">
-                              <Trash2 className="h-3.5 w-3.5 mr-1" />
-                              Release
+                            <Button 
+                              variant="destructive" 
+                              size="sm" 
+                              className="h-8 px-2 text-xs"
+                              onClick={() => {
+                                if (confirm(`Are you sure you want to release this phone number (${formatPhoneNumber(phoneNumber.number)})? This action cannot be undone.`)) {
+                                  releasePhoneNumberMutation.mutate(phoneNumber.id);
+                                }
+                              }}
+                              disabled={releasePhoneNumberMutation.isPending}
+                            >
+                              {releasePhoneNumberMutation.isPending ? (
+                                <>
+                                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-t-transparent mr-1"></div>
+                                  Releasing...
+                                </>
+                              ) : (
+                                <>
+                                  <Trash2 className="h-3.5 w-3.5 mr-1" />
+                                  Release
+                                </>
+                              )}
                             </Button>
                           </div>
                         </td>
