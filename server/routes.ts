@@ -676,23 +676,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`Using Twilio account: ${twilioAccount.accountName || "Unknown name"}`);
           
           try {
-            // Try using node-fetch for direct API access (more reliable than the SDK for this operation)
+            // Use the exact same approach that works in the Python script
             const fetch = require('node-fetch');
             
-            // Properly encode the URL for the Twilio API endpoint
-            const url = `https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(twilioAccount.accountSid)}/IncomingPhoneNumbers/${encodeURIComponent(phoneNumber.twilioSid)}.json`;
-            
-            // Create auth header with Base64 encoded credentials
-            const auth = Buffer.from(`${twilioAccount.accountSid}:${twilioAccount.authToken}`).toString('base64');
+            // Simple, clean URL construction - no encoding to match Python example
+            const url = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccount.accountSid}/IncomingPhoneNumbers/${phoneNumber.twilioSid}.json`;
             
             console.log(`Making Twilio API request to release number: ${phoneNumber.number}`);
+            console.log(`URL: ${url}`);
             
+            // Use HTTP Basic Auth directly like the Python requests library does
             const response = await fetch(url, {
               method: 'DELETE',
               headers: {
-                'Authorization': `Basic ${auth}`,
                 'Content-Type': 'application/x-www-form-urlencoded'
-              }
+              },
+              // Use auth parameter directly like Python's HTTPBasicAuth
+              auth: `${twilioAccount.accountSid}:${twilioAccount.authToken}`
             });
             
             console.log(`Twilio API response status: ${response.status}`);
