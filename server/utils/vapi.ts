@@ -442,11 +442,11 @@ export async function createVapiAssistant(params: VapiAssistantParams): Promise<
  */
 export async function deleteVapiPhoneNumber(phoneNumberId: string): Promise<{ success: boolean; message?: string; }> {
   try {
-    // Check if Vapi API token is available
-    if (!VAPI_AI_TOKEN) {
+    // Check if Vapi public key is available
+    if (!VAPI_PUBLIC_KEY) {
       return {
         success: false,
-        message: "Vapi.ai API token is not defined. Please set VAPI_AI_TOKEN in your environment variables."
+        message: "Vapi.ai public key is not defined. Please set VAPI_PUBLIC_KEY in your environment variables."
       };
     }
     
@@ -455,7 +455,7 @@ export async function deleteVapiPhoneNumber(phoneNumberId: string): Promise<{ su
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${VAPI_AI_TOKEN}`
+        'Authorization': `Bearer ${VAPI_PUBLIC_KEY}`
       }
     });
     
@@ -494,12 +494,12 @@ export async function registerPhoneNumberWithVapi(
   twilioAuthToken: string
 ): Promise<{ success: boolean; message?: string; phoneNumberId?: string; }> {
   try {
-    // Check if Vapi API token is available
-    if (!VAPI_AI_TOKEN) {
-      console.error("VAPI_AI_TOKEN is missing. Please set this environment variable.");
+    // Check if Vapi public key is available
+    if (!VAPI_PUBLIC_KEY) {
+      console.error("VAPI_PUBLIC_KEY is missing. Please set this environment variable.");
       return {
         success: false,
-        message: "Vapi.ai API token is not defined. Please set VAPI_AI_TOKEN in your environment variables."
+        message: "Vapi.ai public key is not defined. Please set VAPI_PUBLIC_KEY in your environment variables."
       };
     }
     
@@ -514,7 +514,7 @@ export async function registerPhoneNumberWithVapi(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${VAPI_AI_TOKEN}`
+        'Authorization': `Bearer ${VAPI_PUBLIC_KEY}`
       },
       body: JSON.stringify({
         number: formattedPhoneNumber,
