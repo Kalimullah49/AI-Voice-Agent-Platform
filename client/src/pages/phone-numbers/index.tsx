@@ -674,96 +674,128 @@ export default function PhoneNumbersPage() {
         </CardHeader>
         
         <CardContent>
-          {isLoading ? (
+          {isLoadingPhoneNumbers ? (
             <TableSkeleton />
-          ) : error ? (
-            <div className="text-center text-red-500 py-4">Failed to load phone numbers</div>
-          ) : phoneNumbers && phoneNumbers.length > 0 ? (
-            <div className="space-y-4">
-              {phoneNumbers.map((phoneNumber: any) => {
-                const assignedAgent = agents?.find((a: any) => a.id === phoneNumber.agentId);
-                
-                return (
-                  <div key={phoneNumber.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex-shrink-0 h-10 w-10 rounded-full bg-primary-50 flex items-center justify-center">
-                        <svg className="h-5 w-5 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="text-lg font-medium text-gray-900">{formatPhoneNumber(phoneNumber.number)}</p>
-                        <p className="text-sm text-gray-500">
-                          {assignedAgent 
-                            ? `Assigned to: ${assignedAgent.name}` 
-                            : 'Unassigned'}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      {phoneNumber.active ? (
-                        <Badge className="bg-green-100 text-green-800">Active</Badge>
-                      ) : (
-                        <Badge variant="outline" className="bg-gray-100 text-gray-800">Inactive</Badge>
-                      )}
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="outline" size="sm">
-                            Assign
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Assign Phone Number</DialogTitle>
-                            <DialogDescription>
-                              Assign this phone number to an agent.
-                            </DialogDescription>
-                          </DialogHeader>
-                          <div className="py-4">
-                            <Select defaultValue={phoneNumber.agentId?.toString()}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select an agent" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {agents?.map((agent: any) => (
-                                  <SelectItem key={agent.id} value={agent.id.toString()}>
-                                    {agent.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+          ) : phoneNumbersError ? (
+            <div className="text-center text-red-500 py-4">
+              {phoneNumbersError instanceof Error ? phoneNumbersError.message : "Failed to load phone numbers"}
+            </div>
+          ) : phoneNumbers && Array.isArray(phoneNumbers) && phoneNumbers.length > 0 ? (
+            <div className="overflow-hidden border rounded-lg">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone Number</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Twilio Account</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned Agent</th>
+                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {phoneNumbers.map((phoneNumber: any) => {
+                    const assignedAgent = agents?.find((a: any) => a.id === phoneNumber.agentId);
+                    const twilioAccount = twilioAccounts?.find((a: any) => a.id === phoneNumber.twilioAccountId);
+                    
+                    return (
+                      <tr key={phoneNumber.id}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{formatPhoneNumber(phoneNumber.number)}</div>
+                          {phoneNumber.friendlyName && (
+                            <div className="text-xs text-gray-500">{phoneNumber.friendlyName}</div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Badge
+                            className={phoneNumber.active 
+                              ? "bg-green-100 text-green-800" 
+                              : "bg-gray-100 text-gray-800"}
+                          >
+                            {phoneNumber.active ? "Active" : "Inactive"}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {twilioAccount ? (
+                            <div className="text-sm text-gray-900">
+                              {twilioAccount.accountName}
+                              {twilioAccount.isDefault && (
+                                <Badge className="ml-2 bg-blue-100 text-blue-800">Default</Badge>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-sm text-gray-500">—</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {assignedAgent ? (
+                            <div className="text-sm text-gray-900">{assignedAgent.name}</div>
+                          ) : (
+                            <span className="text-sm text-gray-500">Not assigned</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <div className="flex justify-end space-x-2">
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" size="sm" className="h-8 px-2 text-xs">
+                                  Assign Agent
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Assign Phone Number</DialogTitle>
+                                  <DialogDescription>
+                                    Assign this phone number to an agent.
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <div className="py-4">
+                                  <Select defaultValue={phoneNumber.agentId?.toString()}>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select an agent" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {agents?.map((agent: any) => (
+                                        <SelectItem key={agent.id} value={agent.id.toString()}>
+                                          {agent.name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <DialogFooter>
+                                  <Button variant="outline">Cancel</Button>
+                                  <Button>Assign Number</Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+                            <Button variant="destructive" size="sm" className="h-8 px-2 text-xs">
+                              <Trash2 className="h-3.5 w-3.5 mr-1" />
+                              Release
+                            </Button>
                           </div>
-                          <DialogFooter>
-                            <Button variant="outline">Cancel</Button>
-                            <Button>Assign Number</Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                      <Button variant="ghost" size="sm" className="text-red-600">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           ) : (
             <div className="text-center py-8">
               <div className="mx-auto h-12 w-12 text-gray-400 mb-4">
-                <svg className="h-12 w-12" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
+                <PhoneCall className="h-12 w-12" />
               </div>
               <h3 className="text-lg font-medium text-gray-900 mb-1">No phone numbers found</h3>
               <p className="text-gray-500 mb-4">
-                Import phone numbers from your Twilio account to assign to your agents.
+                Purchase phone numbers through your Twilio account to assign to your agents.
               </p>
-              <div className="flex gap-2 justify-center">
-                <Button variant="outline" className="flex items-center">
-                  <PlusIcon className="h-4 w-4 mr-2" />
-                  Import phone number
-                </Button>
-              </div>
+              <Button 
+                onClick={() => setShowPurchaseDialog(true)}
+                className="flex items-center"
+              >
+                <PhoneCall className="h-4 w-4 mr-2" />
+                Buy Phone Number
+              </Button>
             </div>
           )}
         </CardContent>
