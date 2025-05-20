@@ -630,8 +630,33 @@ export default function AgentDetailPage() {
         <TabsContent value="general" className="space-y-6">
           <Card>
             <CardContent className="pt-6 space-y-6">
-              {/* AI Response Style */}
+              {/* Agent Type */}
               <div className="space-y-2">
+                <h3 className="text-lg font-medium">Agent Type</h3>
+                <p className="text-sm text-muted-foreground">
+                  Select how this agent will handle calls. Inbound agents answer incoming calls, outbound agents make calls, and both can do either.
+                </p>
+                <div className="pt-2">
+                  <select 
+                    className="w-full p-2 border rounded-md"
+                    name="type"
+                    value={agentData.type}
+                    onChange={(e) => handleChange({
+                      target: {
+                        name: "type",
+                        value: e.target.value
+                      }
+                    } as any)}
+                  >
+                    <option value="inbound">Inbound Only - Answer incoming calls</option>
+                    <option value="outbound">Outbound Only - Make outgoing calls</option>
+                    <option value="both">Both Inbound & Outbound - Handle all call types</option>
+                  </select>
+                </div>
+              </div>
+              
+              {/* AI Response Style */}
+              <div className="space-y-2 mt-4">
                 <h3 className="text-lg font-medium">AI Response Style and Intelligence Level</h3>
                 <p className="text-sm text-muted-foreground">
                   Choose the response style that best matches your needs. Faster answers are great for everyday questions, while a bit more waiting can provide deeper, more thoughtful insights.
