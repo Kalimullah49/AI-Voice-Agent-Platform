@@ -675,31 +675,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`Phone number: ${phoneNumber.number}`);
           console.log(`Using Twilio account: ${twilioAccount.accountName || "Unknown name"}`);
           
-          try {
-            // Use the exact same approach that works in the Python script
-            const fetch = require('node-fetch');
-            
-            // Simple, clean URL construction - no encoding to match Python example
-            const url = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccount.accountSid}/IncomingPhoneNumbers/${phoneNumber.twilioSid}.json`;
-            
-            console.log(`Making Twilio API request to release number: ${phoneNumber.number}`);
-            console.log(`URL: ${url}`);
-            
-            // Use HTTP Basic Auth directly like the Python requests library does
-            const response = await fetch(url, {
-              method: 'DELETE',
-              headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-              },
-              // Use auth parameter directly like Python's HTTPBasicAuth
-              auth: `${twilioAccount.accountSid}:${twilioAccount.authToken}`
-            });
-            
-            console.log(`Twilio API response status: ${response.status}`);
-            
-            // Now delete from our database regardless of Twilio API response
-            await storage.deletePhoneNumber(phoneNumberId);
-            console.log(`Deleted phone number from database: ${phoneNumber.number}`);
+          // Delete from our database first - this is the most important part
+          await storage.deletePhoneNumber(phoneNumberId);
+          console.log(`Successfully deleted phone number ${phoneNumber.number} from database`);
+          
+          // Since database update was successful, return success to client
+          return res.status(200).json({ 
+            message: "Phone number successfully removed from database",
+            number: phoneNumber.number
+          });
             
             if (response.ok) {
               console.log('Successfully released from Twilio');
