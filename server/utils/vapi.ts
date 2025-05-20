@@ -451,7 +451,7 @@ export async function deleteVapiPhoneNumber(phoneNumberId: string): Promise<{ su
     }
     
     // Make API request to Vapi.ai to delete the phone number
-    const response = await fetch(`${VAPI_API_BASE_URL}/phone-number/${phoneNumberId}`, {
+    const response = await fetch(`${VAPI_API_BASE_URL}/phone-numbers/${phoneNumberId}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
