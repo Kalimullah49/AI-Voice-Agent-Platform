@@ -20,8 +20,19 @@ import {
   CreditCard,
   Key,
   Globe,
-  ListFilter
+  ListFilter,
+  Loader2
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Dialog,
   DialogContent,
@@ -56,6 +67,8 @@ export default function PhoneNumbersPage() {
   const [selectedNumber, setSelectedNumber] = useState<string | null>(null);
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false);
   const [showTwilioAccountDialog, setShowTwilioAccountDialog] = useState(false);
+  const [showReleaseConfirmDialog, setShowReleaseConfirmDialog] = useState(false);
+  const [numberToRelease, setNumberToRelease] = useState<{id: number, number: string} | null>(null);
   const [selectedTwilioAccountId, setSelectedTwilioAccountId] = useState<number | null>(null);
   const [assignToAgentId, setAssignToAgentId] = useState("");
   
@@ -895,23 +908,15 @@ export default function PhoneNumbersPage() {
                               size="sm" 
                               className="h-8 px-2 text-xs"
                               onClick={() => {
-                                if (confirm(`Are you sure you want to release this phone number (${formatPhoneNumber(phoneNumber.number)})? This action cannot be undone.`)) {
-                                  releasePhoneNumberMutation.mutate(phoneNumber.id);
-                                }
+                                setNumberToRelease({
+                                  id: phoneNumber.id,
+                                  number: phoneNumber.number
+                                });
+                                setShowReleaseConfirmDialog(true);
                               }}
-                              disabled={releasePhoneNumberMutation.isPending}
                             >
-                              {releasePhoneNumberMutation.isPending ? (
-                                <>
-                                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-t-transparent mr-1"></div>
-                                  Releasing...
-                                </>
-                              ) : (
-                                <>
-                                  <Trash2 className="h-3.5 w-3.5 mr-1" />
-                                  Release
-                                </>
-                              )}
+                              <Trash2 className="h-3.5 w-3.5 mr-1" />
+                              Release
                             </Button>
                           </div>
                         </td>
@@ -941,6 +946,52 @@ export default function PhoneNumbersPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Release Confirmation Dialog */}
+      <AlertDialog open={showReleaseConfirmDialog} onOpenChange={setShowReleaseConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Release Phone Number</AlertDialogTitle>
+            <AlertDialogDescription>
+              <p>
+                Are you sure you want to release the phone number{' '}
+                <span className="font-medium">{numberToRelease && formatPhoneNumber(numberToRelease.number)}</span>?
+              </p>
+              <p className="mt-2">
+                This action will remove the number from your account and return it to Twilio's pool of available numbers. 
+                <span className="text-destructive font-semibold"> This action cannot be undone.</span>
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setNumberToRelease(null);
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (numberToRelease) {
+                  releasePhoneNumberMutation.mutate(numberToRelease.id);
+                }
+              }}
+              className="bg-destructive hover:bg-destructive/90"
+              disabled={releasePhoneNumberMutation.isPending}
+            >
+              {releasePhoneNumberMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Releasing...
+                </>
+              ) : (
+                <>Release Number</>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
