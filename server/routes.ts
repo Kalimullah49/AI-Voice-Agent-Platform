@@ -660,7 +660,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Fetch all existing phone numbers from the Twilio account
       const twilioNumbers = await client.incomingPhoneNumbers.list();
-      console.log(`Found ${twilioNumbers.length} phone numbers in Twilio account ${twilioAccount.accountName || "Unknown"}`);
+      console.log(`Found ${twilioNumbers.length} phone numbers in Twilio account ${twilioAccount.accountName || twilioAccount.accountSid}`);
       
       // Get existing phone numbers in our database for this user to avoid duplicates
       const existingNumbers = await storage.getPhoneNumbersByUserId(userId);
@@ -669,6 +669,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Import new numbers not already in our database
       const importedNumbers = [];
       const skippedNumbers = [];
+      const vapiRegistrationResults = [];
       
       for (const twilioNumber of twilioNumbers) {
         // Skip if the number is already in our database
@@ -691,12 +692,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         
         importedNumbers.push(newPhoneNumber);
+        
+        // Register the number with Vapi.ai
+        try {
+          const vapiResult = await registerPhoneNumberWithVapi(
+            twilioNumber.phoneNumber,
+            twilioAccount.accountSid,
+            twilioAccount.authToken
+          );
+          
+          if (vapiResult.success) {
+            console.log(`Successfully registered ${twilioNumber.phoneNumber} with Vapi.ai (ID: ${vapiResult.phoneNumberId})`);
+            
+            // Update the phone number with Vapi ID if available
+            if (vapiResult.phoneNumberId) {
+              await storage.updatePhoneNumber(newPhoneNumber.id, {
+                vapiPhoneNumberId: vapiResult.phoneNumberId
+              });
+            }
+            
+            vapiRegistrationResults.push({
+              number: twilioNumber.phoneNumber,
+              success: true,
+              vapiPhoneNumberId: vapiResult.phoneNumberId
+            });
+          } else {
+            console.warn(`Failed to register ${twilioNumber.phoneNumber} with Vapi.ai: ${vapiResult.message}`);
+            vapiRegistrationResults.push({
+              number: twilioNumber.phoneNumber,
+              success: false,
+              error: vapiResult.message
+            });
+          }
+        } catch (vapiError) {
+          console.error(`Error registering ${twilioNumber.phoneNumber} with Vapi.ai:`, vapiError);
+          vapiRegistrationResults.push({
+            number: twilioNumber.phoneNumber,
+            success: false,
+            error: vapiError instanceof Error ? vapiError.message : "Unknown error"
+          });
+        }
       }
       
       res.json({
         message: `Successfully imported ${importedNumbers.length} phone numbers`,
         imported: importedNumbers,
-        skipped: skippedNumbers
+        skipped: skippedNumbers,
+        vapiRegistration: vapiRegistrationResults
       });
     } catch (error) {
       console.error("Error importing phone numbers from Twilio:", error);

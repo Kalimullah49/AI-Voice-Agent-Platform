@@ -427,6 +427,68 @@ export async function createVapiAssistant(params: VapiAssistantParams): Promise<
 }
 
 /**
+ * Register a phone number with Vapi.ai
+ * @param phoneNumber The phone number to register (in E.164 format)
+ * @param twilioAccountSid The Twilio account SID
+ * @param twilioAuthToken The Twilio auth token
+ * @returns Success status and message
+ */
+export async function registerPhoneNumberWithVapi(
+  phoneNumber: string, 
+  twilioAccountSid: string, 
+  twilioAuthToken: string
+): Promise<{ success: boolean; message?: string; phoneNumberId?: string; }> {
+  try {
+    // Check if Vapi API token is available
+    if (!VAPI_AI_TOKEN) {
+      return {
+        success: false,
+        message: "Vapi.ai API token is not defined. Please set VAPI_AI_TOKEN in your environment variables."
+      };
+    }
+    
+    // Make API request to Vapi.ai to register the phone number
+    const response = await fetch(`${VAPI_API_BASE_URL}/phone-number`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${VAPI_AI_TOKEN}`
+      },
+      body: JSON.stringify({
+        phoneNumber,
+        provider: "twilio",
+        account: {
+          accountSid: twilioAccountSid,
+          authToken: twilioAuthToken
+        }
+      })
+    });
+    
+    const responseData = await response.json() as any;
+    
+    if (!response.ok) {
+      console.error(`Vapi.ai API error registering phone number: ${response.status} - `, responseData);
+      return {
+        success: false,
+        message: `Error registering phone number with Vapi: ${responseData.message || responseData.error || 'Unknown error'}`
+      };
+    }
+    
+    return {
+      success: true,
+      phoneNumberId: responseData.id,
+      message: "Phone number successfully registered with Vapi.ai"
+    };
+  } catch (error) {
+    console.error('Error registering phone number with Vapi:', error);
+    return {
+      success: false,
+      message: `Error registering phone number with Vapi: ${error instanceof Error ? error.message : 'Unknown error'}`
+    };
+  }
+}
+
+/**
  * Get available voices from ElevenLabs
  * @returns Array of voice information objects
  */

@@ -192,6 +192,7 @@ export const phoneNumbers = pgTable("phone_numbers", {
   userId: varchar("user_id").references(() => users.id), // User who owns this number
   twilioSid: text("twilio_sid"), // Store the Twilio SID for the phone number
   friendlyName: text("friendly_name"),
+  vapiPhoneNumberId: text("vapi_phone_number_id"), // Store the Vapi.ai phone number ID
 });
 
 export const insertPhoneNumberSchema = createInsertSchema(phoneNumbers).pick({
