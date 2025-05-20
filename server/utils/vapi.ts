@@ -5,8 +5,10 @@
 
 import fetch from 'node-fetch';
 
-// Get Vapi.ai API token from environment variables
-const VAPI_AI_TOKEN = process.env.VAPI_AI_TOKEN || '';
+// Get Vapi.ai API keys from environment variables
+const VAPI_PRIVATE_KEY = process.env.VAPI_PRIVATE_KEY || '';
+const VAPI_PUBLIC_KEY = process.env.VAPI_PUBLIC_KEY || '';
+
 // ElevenLabs API token for voice synthesis
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || '';
 
@@ -147,11 +149,11 @@ export async function synthesizeSpeech(options: VoiceSynthesisOptions): Promise<
  */
 export async function deleteVapiAssistant(assistantId: string): Promise<{ success: boolean; message?: string; }> {
   try {
-    // Check if Vapi API token is available
-    if (!VAPI_AI_TOKEN) {
+    // Check if Vapi private key is available
+    if (!VAPI_PRIVATE_KEY) {
       return {
         success: false,
-        message: "Vapi.ai API token is not defined. Please set VAPI_AI_TOKEN in your environment variables."
+        message: "Vapi.ai private key is not defined. Please set VAPI_PRIVATE_KEY in your environment variables."
       };
     }
     
@@ -160,7 +162,7 @@ export async function deleteVapiAssistant(assistantId: string): Promise<{ succes
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${VAPI_AI_TOKEN}`
+        'Authorization': `Bearer ${VAPI_PRIVATE_KEY}`
       }
     });
     
@@ -298,11 +300,11 @@ export interface VapiAssistantParams {
  */
 export async function getVapiAssistants(): Promise<{ success: boolean; assistants?: any[]; message?: string; }> {
   try {
-    // Check if Vapi API token is available
-    if (!VAPI_AI_TOKEN) {
+    // Check if Vapi private key is available
+    if (!VAPI_PRIVATE_KEY) {
       return {
         success: false,
-        message: "Vapi.ai API token is not defined. Please set VAPI_AI_TOKEN in your environment variables."
+        message: "Vapi.ai private key is not defined. Please set VAPI_PRIVATE_KEY in your environment variables."
       };
     }
     
@@ -311,7 +313,7 @@ export async function getVapiAssistants(): Promise<{ success: boolean; assistant
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${VAPI_AI_TOKEN}`
+        'Authorization': `Bearer ${VAPI_PRIVATE_KEY}`
       }
     });
     
@@ -371,11 +373,11 @@ export async function findVapiAssistantByAgentId(agentId: string | number): Prom
  */
 export async function createVapiAssistant(params: VapiAssistantParams): Promise<{ success: boolean; assistant?: any; message?: string; updated?: boolean }> {
   try {
-    // Check if Vapi API token is available
-    if (!VAPI_AI_TOKEN) {
+    // Check if Vapi private key is available
+    if (!VAPI_PRIVATE_KEY) {
       return {
         success: false,
-        message: "Vapi.ai API token is not defined. Please set VAPI_AI_TOKEN in your environment variables."
+        message: "Vapi.ai private key is not defined. Please set VAPI_PRIVATE_KEY in your environment variables."
       };
     }
     
@@ -404,7 +406,7 @@ export async function createVapiAssistant(params: VapiAssistantParams): Promise<
       method,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${VAPI_AI_TOKEN}`
+        'Authorization': `Bearer ${VAPI_PRIVATE_KEY}`
       },
       body: JSON.stringify(params)
     });
