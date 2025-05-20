@@ -242,6 +242,27 @@ export class MemStorage implements IStorage {
     return Array.from(this.phoneNumbers.values());
   }
   
+  async updatePhoneNumber(id: number, phoneNumberUpdate: Partial<InsertPhoneNumber>): Promise<PhoneNumber | undefined> {
+    const phoneNumber = this.phoneNumbers.get(id);
+    if (!phoneNumber) return undefined;
+    
+    const updatedPhoneNumber: PhoneNumber = { ...phoneNumber, ...phoneNumberUpdate };
+    this.phoneNumbers.set(id, updatedPhoneNumber);
+    return updatedPhoneNumber;
+  }
+  
+  async deletePhoneNumber(id: number): Promise<boolean> {
+    return this.phoneNumbers.delete(id);
+  }
+  
+  async getPhoneNumbersByUserId(userId: string): Promise<PhoneNumber[]> {
+    return Array.from(this.phoneNumbers.values()).filter(phoneNumber => phoneNumber.userId === userId);
+  }
+  
+  async getPhoneNumbersByTwilioAccountId(twilioAccountId: number): Promise<PhoneNumber[]> {
+    return Array.from(this.phoneNumbers.values()).filter(phoneNumber => phoneNumber.twilioAccountId === twilioAccountId);
+  }
+  
   // Contact group operations
   async getContactGroup(id: number): Promise<ContactGroup | undefined> {
     return this.contactGroups.get(id);
