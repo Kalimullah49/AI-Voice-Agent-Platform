@@ -314,7 +314,7 @@ export default function PhoneNumbersPage() {
                     <div className="py-4 flex justify-center">
                       <div className="h-6 w-6 animate-spin rounded-full border-2 border-t-transparent"></div>
                     </div>
-                  ) : twilioAccounts && twilioAccounts.length > 0 ? (
+                  ) : twilioAccounts && Array.isArray(twilioAccounts) && twilioAccounts.length > 0 ? (
                     <div className="space-y-4">
                       {twilioAccounts.map((account: any) => (
                         <div key={account.id} className="p-4 border rounded-lg flex justify-between items-center">
@@ -694,8 +694,10 @@ export default function PhoneNumbersPage() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {phoneNumbers.map((phoneNumber: any) => {
-                    const assignedAgent = agents?.find((a: any) => a.id === phoneNumber.agentId);
-                    const twilioAccount = twilioAccounts?.find((a: any) => a.id === phoneNumber.twilioAccountId);
+                    const assignedAgent = agents && Array.isArray(agents) ? 
+                      agents.find((a: any) => a.id === phoneNumber.agentId) : null;
+                    const twilioAccount = twilioAccounts && Array.isArray(twilioAccounts) ? 
+                      twilioAccounts.find((a: any) => a.id === phoneNumber.twilioAccountId) : null;
                     
                     return (
                       <tr key={phoneNumber.id}>
@@ -754,11 +756,13 @@ export default function PhoneNumbersPage() {
                                       <SelectValue placeholder="Select an agent" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {agents?.map((agent: any) => (
-                                        <SelectItem key={agent.id} value={agent.id.toString()}>
-                                          {agent.name}
-                                        </SelectItem>
-                                      ))}
+                                      {agents && Array.isArray(agents) 
+                                        ? agents.map((agent: any) => (
+                                            <SelectItem key={agent.id} value={agent.id.toString()}>
+                                              {agent.name}
+                                            </SelectItem>
+                                          )) 
+                                        : null}
                                     </SelectContent>
                                   </Select>
                                 </div>
