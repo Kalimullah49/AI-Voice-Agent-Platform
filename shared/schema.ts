@@ -162,18 +162,46 @@ export const insertActionSchema = createInsertSchema(actions).pick({
   apiKey: true,
 });
 
+// Twilio account model for users to store their own Twilio credentials
+export const twilioAccounts = pgTable("twilio_accounts", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  accountName: text("account_name").notNull(), // User-friendly name for the account
+  accountSid: text("account_sid").notNull(),
+  authToken: text("auth_token").notNull(),
+  isDefault: boolean("is_default").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertTwilioAccountSchema = createInsertSchema(twilioAccounts).pick({
+  userId: true,
+  accountName: true,
+  accountSid: true,
+  authToken: true,
+  isDefault: true,
+});
+
 // Phone number model
 export const phoneNumbers = pgTable("phone_numbers", {
   id: serial("id").primaryKey(),
   number: text("number").notNull().unique(),
   agentId: integer("agent_id").references(() => agents.id),
   active: boolean("active").default(true),
+  twilioAccountId: integer("twilio_account_id").references(() => twilioAccounts.id),
+  userId: varchar("user_id").references(() => users.id), // User who owns this number
+  twilioSid: text("twilio_sid"), // Store the Twilio SID for the phone number
+  friendlyName: text("friendly_name"),
 });
 
 export const insertPhoneNumberSchema = createInsertSchema(phoneNumbers).pick({
   number: true,
   agentId: true,
   active: true,
+  twilioAccountId: true,
+  userId: true,
+  twilioSid: true,
+  friendlyName: true,
 });
 
 // Contact group model
