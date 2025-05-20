@@ -333,7 +333,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create a Vapi.ai assistant - requires authentication
   app.post("/api/vapi/assistants", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.session.userId;
       const assistantParams = req.body as VapiAssistantParams;
       
       if (!assistantParams || !assistantParams.name) {
@@ -360,7 +360,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Check if this agent belongs to the current user
-        if (agent.userId !== userId) {
+        // Only perform this check if both agent.userId and userId are present
+        if (agent.userId && userId && agent.userId !== userId) {
           return res.status(403).json({
             success: false, 
             message: "You don't have permission to update this agent"
