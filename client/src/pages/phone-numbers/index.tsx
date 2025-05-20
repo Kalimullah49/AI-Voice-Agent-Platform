@@ -562,35 +562,37 @@ export default function PhoneNumbersPage() {
                     {availableNumbers.length > 0 && (
                       <div className="mt-4">
                         <h3 className="text-sm font-medium mb-2">Available Numbers</h3>
-                        <div className="border rounded-md overflow-hidden">
-                          <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                              <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Number</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Action</th>
-                              </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                              {availableNumbers.map((number: any, index: number) => (
-                                <tr key={index} className={selectedNumber === number.phoneNumber ? "bg-blue-50" : ""}>
-                                  <td className="px-4 py-3 whitespace-nowrap text-sm">{formatPhoneNumber(number.phoneNumber)}</td>
-                                  <td className="px-4 py-3 whitespace-nowrap text-sm">{number.locality || number.region || 'N/A'}</td>
-                                  <td className="px-4 py-3 whitespace-nowrap text-sm">{number.capabilities?.voice ? 'Voice' : ''}{number.capabilities?.sms ? (number.capabilities?.voice ? '/SMS' : 'SMS') : ''}</td>
-                                  <td className="px-4 py-3 whitespace-nowrap text-sm text-right">
-                                    <Button 
-                                      size="sm" 
-                                      variant={selectedNumber === number.phoneNumber ? "default" : "outline"}
-                                      onClick={() => setSelectedNumber(number.phoneNumber)}
-                                    >
-                                      Select
-                                    </Button>
-                                  </td>
+                        <div className="border rounded-md">
+                          <div className="max-h-[300px] overflow-y-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                              <thead className="bg-gray-50 sticky top-0 z-10">
+                                <tr>
+                                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Number</th>
+                                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
+                                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Action</th>
                                 </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                              </thead>
+                              <tbody className="bg-white divide-y divide-gray-200">
+                                {availableNumbers.map((number: any, index: number) => (
+                                  <tr key={index} className={selectedNumber === number.phoneNumber ? "bg-blue-50" : ""}>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm">{formatPhoneNumber(number.phoneNumber)}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm">{number.locality || number.region || 'N/A'}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm">{number.capabilities?.voice ? 'Voice' : ''}{number.capabilities?.sms ? (number.capabilities?.voice ? '/SMS' : 'SMS') : ''}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-right">
+                                      <Button 
+                                        size="sm" 
+                                        variant={selectedNumber === number.phoneNumber ? "default" : "outline"}
+                                        onClick={() => setSelectedNumber(number.phoneNumber)}
+                                      >
+                                        {selectedNumber === number.phoneNumber ? "Selected" : "Select"}
+                                      </Button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
                       </div>
                     )}
