@@ -320,14 +320,8 @@ export default function PhoneNumbersPage() {
       return;
     }
     
-    if (!searchAreaCode && countryCode === 'US') {
-      toast({
-        title: "Enter area code",
-        description: "Please enter an area code to search for phone numbers.",
-        variant: "destructive"
-      });
-      return;
-    }
+    // Always allow search with or without area code
+    // Empty area code will fetch any available numbers
     
     setIsSearching(true);
     setAvailableNumbers([]);
@@ -361,7 +355,17 @@ export default function PhoneNumbersPage() {
   // Effect to auto-search for numbers when dialog opens
   useEffect(() => {
     if (showPurchaseDialog && selectedTwilioAccountId) {
-      searchNumbers();
+      // Set empty area code first for US searches to get all available numbers
+      if (countryCode === 'US') {
+        setSearchAreaCode('');
+      }
+      
+      // Use a short timeout to let the dialog fully open
+      const timer = setTimeout(() => {
+        searchNumbers();
+      }, 300);
+      
+      return () => clearTimeout(timer);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showPurchaseDialog, selectedTwilioAccountId]);
