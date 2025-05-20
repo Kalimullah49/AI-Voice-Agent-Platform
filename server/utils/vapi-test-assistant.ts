@@ -1,12 +1,12 @@
 /**
  * Test file for Vapi.ai Assistant API connection
- * This tests if we can create an assistant with the current API key
+ * This tests if we can create an assistant with the private API key
  */
 
 import fetch from 'node-fetch';
 
-// Get the Vapi.ai API token from environment variables
-const VAPI_AI_TOKEN = process.env.VAPI_AI_TOKEN || '';
+// Get the Vapi.ai private key from environment variables
+const VAPI_PRIVATE_KEY = process.env.VAPI_PRIVATE_KEY || '';
 
 // Vapi.ai API Base URL
 const VAPI_API_BASE_URL = 'https://api.vapi.ai';
@@ -15,9 +15,9 @@ const VAPI_API_BASE_URL = 'https://api.vapi.ai';
  * Test creating a Vapi.ai assistant
  */
 export async function testCreateVapiAssistant() {
-  if (!VAPI_AI_TOKEN) {
-    console.error('VAPI_AI_TOKEN is not defined in environment variables');
-    return { success: false, message: 'API token not configured' };
+  if (!VAPI_PRIVATE_KEY) {
+    console.error('VAPI_PRIVATE_KEY is not defined in environment variables');
+    return { success: false, message: 'Private API key not configured' };
   }
 
   try {
@@ -43,7 +43,7 @@ export async function testCreateVapiAssistant() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${VAPI_AI_TOKEN}`
+        'Authorization': `Bearer ${VAPI_PRIVATE_KEY}`
       },
       body: JSON.stringify(assistantData)
     });

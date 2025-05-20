@@ -494,12 +494,12 @@ export async function registerPhoneNumberWithVapi(
   twilioAuthToken: string
 ): Promise<{ success: boolean; message?: string; phoneNumberId?: string; }> {
   try {
-    // Check if Vapi public key is available
-    if (!VAPI_PUBLIC_KEY) {
-      console.error("VAPI_PUBLIC_KEY is missing. Please set this environment variable.");
+    // Check if Vapi private key is available
+    if (!VAPI_PRIVATE_KEY) {
+      console.error("VAPI_PRIVATE_KEY is missing. Please set this environment variable.");
       return {
         success: false,
-        message: "Vapi.ai public key is not defined. Please set VAPI_PUBLIC_KEY in your environment variables."
+        message: "Vapi.ai private key is not defined. Please set VAPI_PRIVATE_KEY in your environment variables."
       };
     }
     
@@ -514,7 +514,7 @@ export async function registerPhoneNumberWithVapi(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${VAPI_PUBLIC_KEY}`
+        'Authorization': `Bearer ${VAPI_PRIVATE_KEY}`
       },
       body: JSON.stringify({
         number: formattedPhoneNumber,
