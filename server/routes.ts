@@ -639,6 +639,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.session.userId;
       const phoneNumberId = parseInt(req.params.id);
       
+      if (isNaN(phoneNumberId)) {
+        return res.status(400).json({ message: "Invalid phone number ID" });
+      }
+      
       // Get the phone number
       const phoneNumber = await storage.getPhoneNumber(phoneNumberId);
       
@@ -648,93 +652,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Verify the user owns this phone number
       if (phoneNumber.userId !== userId) {
-        return res.status(403).json({ message: "You don't have permission to release this phone number" });
+        return res.status(403).json({ message: "You don't have permission to remove this phone number" });
       }
       
-      // Get the Twilio account
-      const twilioAccount = await storage.getTwilioAccount(phoneNumber.twilioAccountId);
+      // Simply delete from our database - no twilio API call for now
+      const success = await storage.deletePhoneNumber(phoneNumberId);
       
-      if (!twilioAccount) {
-        return res.status(404).json({ message: "Twilio account not found" });
-      }
-      
-      // Create Twilio client with user's credentials and enable debug mode
-      const client = twilio(
-        twilioAccount.accountSid, 
-        twilioAccount.authToken,
-        { 
-          logLevel: 'debug',
-          accountSid: twilioAccount.accountSid 
-        }
-      );
-      
-      try {
-        // First, release from Twilio if we have the necessary info
-        if (phoneNumber.twilioSid && twilioAccount.accountSid && twilioAccount.authToken) {
-          console.log(`Attempting to release Twilio number with SID: ${phoneNumber.twilioSid}`);
-          console.log(`Phone number: ${phoneNumber.number}`);
-          console.log(`Using Twilio account: ${twilioAccount.accountName || "Unknown name"}`);
-          
-          // Delete from our database first - this is the most important part
-          await storage.deletePhoneNumber(phoneNumberId);
-          console.log(`Successfully deleted phone number ${phoneNumber.number} from database`);
-          
-          // Since database update was successful, return success to client
-          return res.status(200).json({ 
-            message: "Phone number successfully removed from database",
-            number: phoneNumber.number
-          });
-            
-            if (response.ok) {
-              console.log('Successfully released from Twilio');
-              return res.status(200).json({ 
-                message: "Phone number successfully released from Twilio and removed from database",
-                releaseDate: new Date().toISOString()
-              });
-            } else {
-              const responseText = await response.text();
-              console.error(`Twilio API error: ${response.status} - ${responseText}`);
-              return res.status(207).json({ 
-                message: "Phone number removed from database but release from Twilio may have failed",
-                twilioError: responseText,
-                releaseDate: new Date().toISOString()
-              });
-            }
-          } catch (apiError) {
-            console.error("Error with Twilio API call:", apiError);
-            
-            // Still delete from our database even if Twilio release failed
-            await storage.deletePhoneNumber(phoneNumberId);
-            console.log(`Deleted phone number from database after Twilio API error: ${phoneNumber.number}`);
-            
-            return res.status(207).json({ 
-              message: "Phone number removed from database but release from Twilio failed",
-              error: apiError instanceof Error ? apiError.message : "Unknown error",
-              releaseDate: new Date().toISOString()
-            });
-          }
-        } else {
-          // If no Twilio data, just remove from our database
-          await storage.deletePhoneNumber(phoneNumberId);
-          console.log(`Deleted phone number from database (no Twilio data): ${phoneNumber.number}`);
-          
-          return res.status(200).json({ 
-            message: "Phone number removed from database only (no Twilio release attempted)",
-            releaseDate: new Date().toISOString()
-          });
-        }
-      } catch (error) {
-        console.error("Error processing phone number release:", error);
-        
-        return res.status(500).json({ 
-          message: "Failed to process phone number release request",
-          error: error instanceof Error ? error.message : "Unknown error"
+      if (success) {
+        console.log(`Successfully deleted phone number ${phoneNumber.number} from database`);
+        return res.status(200).json({ 
+          message: "Phone number successfully removed",
+          number: phoneNumber.number
         });
+      } else {
+        return res.status(500).json({ message: "Failed to delete phone number from database" });
       }
     } catch (error) {
-      console.error("Error releasing phone number:", error);
+      console.error("Error removing phone number:", error);
       res.status(500).json({ 
-        message: "Failed to release phone number", 
+        message: "Failed to remove phone number", 
         error: error instanceof Error ? error.message : "Unknown error"
       });
     }
