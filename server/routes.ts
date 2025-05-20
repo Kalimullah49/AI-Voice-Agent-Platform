@@ -661,15 +661,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create Twilio client with user's credentials
       const client = twilio(twilioAccount.accountSid, twilioAccount.authToken);
       
-      // Release the number from Twilio
-      if (phoneNumber.twilioSid) {
-        await client.incomingPhoneNumbers(phoneNumber.twilioSid).remove();
+      try {
+        // Release the number from Twilio
+        if (phoneNumber.twilioSid) {
+          await client.incomingPhoneNumbers(phoneNumber.twilioSid).remove();
+        }
+        
+        // Only delete from our database if Twilio release was successful
+        await storage.deletePhoneNumber(phoneNumberId);
+        
+        res.status(200).json({ 
+          message: "Phone number successfully released",
+          releaseDate: new Date().toISOString()
+        });
+      } catch (twilioError) {
+        console.error("Twilio error when releasing number:", twilioError);
+        // Return a more informative error to the client
+        res.status(500).json({ 
+          message: "Could not release the phone number from Twilio. Please check your Twilio account status.",
+          error: twilioError instanceof Error ? twilioError.message : "Unknown Twilio error"
+        });
       }
-      
-      // Delete the phone number from our database
-      await storage.deletePhoneNumber(phoneNumberId);
-      
-      res.status(204).send();
     } catch (error) {
       console.error("Error releasing phone number:", error);
       res.status(500).json({ 

@@ -270,19 +270,23 @@ export default function PhoneNumbersPage() {
         throw new Error(errorData.message || 'Failed to release phone number');
       }
       
-      return response.status === 204 ? null : response.json();
+      // Handle the new 200 response with message
+      return response.status === 204 ? { message: "Phone number released successfully" } : response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/phone-numbers"] });
       toast({
         title: "Success",
-        description: "Phone number released successfully",
+        description: data.message || "Phone number released successfully",
       });
     },
     onError: (error: Error) => {
+      // Display the specific error message from Twilio if available
+      const errorMessage = error.message || "Failed to release phone number";
+      
       toast({
-        title: "Error",
-        description: error.message || "Failed to release phone number",
+        title: "Error Releasing Number",
+        description: errorMessage,
         variant: "destructive"
       });
     }
@@ -953,14 +957,12 @@ export default function PhoneNumbersPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Release Phone Number</AlertDialogTitle>
             <AlertDialogDescription>
-              <p>
-                Are you sure you want to release the phone number{' '}
-                <span className="font-medium">{numberToRelease && formatPhoneNumber(numberToRelease.number)}</span>?
-              </p>
-              <p className="mt-2">
+              Are you sure you want to release the phone number{' '}
+              <span className="font-medium">{numberToRelease && formatPhoneNumber(numberToRelease.number)}</span>?
+              <div className="mt-2">
                 This action will remove the number from your account and return it to Twilio's pool of available numbers. 
                 <span className="text-destructive font-semibold"> This action cannot be undone.</span>
-              </p>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
