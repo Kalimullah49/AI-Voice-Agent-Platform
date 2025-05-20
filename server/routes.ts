@@ -7,14 +7,7 @@ import {
   insertCampaignSchema, insertTwilioAccountSchema 
 } from "@shared/schema";
 import { z } from "zod";
-import { testApiConnection, synthesizeSpeech, getAvailableVoices, createVapiAssistant, deleteVapiAssistant, VapiAssistantParams, registerPhoneNumberWithVapi } from "./utils/vapi";
-import { db } from "./db";
-import { phoneNumbers } from "@shared/schema";
-import { eq } from "drizzle-orm";
-
-// Vapi.ai API Base URL for direct API calls
-const VAPI_API_BASE_URL = 'https://api.vapi.ai';
-const VAPI_AI_TOKEN = process.env.VAPI_AI_TOKEN || '';
+import { testApiConnection, synthesizeSpeech, getAvailableVoices, createVapiAssistant, deleteVapiAssistant, VapiAssistantParams, registerPhoneNumberWithVapi, deleteVapiPhoneNumber } from "./utils/vapi";
 import twilio from 'twilio';
 // Our custom auth middleware will be imported dynamically
 import { DatabaseStorage } from "./database-storage";
@@ -457,39 +450,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Get all phone numbers associated with this Twilio account
-      const associatedPhoneNumbers = await db
-        .select()
-        .from(phoneNumbers)
-        .where(eq(phoneNumbers.twilioAccountId, accountId));
+      const associatedPhoneNumbers = await storage.getPhoneNumbersByTwilioAccountId(accountId);
       
       console.log(`Found ${associatedPhoneNumbers.length} phone numbers associated with Twilio account ${existingAccount.accountName || existingAccount.accountSid}`);
       
       // Delete each phone number from Vapi.ai and our database
       for (const phoneNumber of associatedPhoneNumbers) {
-        if (phoneNumber.vapiPhoneNumberId) {
-          try {
-            // Delete the phone number from Vapi.ai
-            const response = await fetch(`${VAPI_API_BASE_URL}/phone-number/${phoneNumber.vapiPhoneNumberId}`, {
-              method: 'DELETE',
-              headers: {
-                'Authorization': `Bearer ${VAPI_AI_TOKEN}`,
-                'Content-Type': 'application/json'
-              }
-            });
-            
-            if (response.ok) {
-              console.log(`Successfully deleted phone number ${phoneNumber.number} from Vapi.ai`);
+        try {
+          // Delete from Vapi.ai if registered
+          if (phoneNumber.vapiPhoneNumberId) {
+            const result = await deleteVapiPhoneNumber(phoneNumber.vapiPhoneNumberId);
+            if (result.success) {
+              console.log(`Successfully removed phone number ${phoneNumber.number} from Vapi.ai`);
             } else {
-              console.warn(`Failed to delete phone number ${phoneNumber.number} from Vapi.ai: ${response.status}`);
+              console.warn(`Failed to remove phone number ${phoneNumber.number} from Vapi.ai: ${result.message}`);
             }
-          } catch (vapiError) {
-            console.error(`Error deleting phone number ${phoneNumber.number} from Vapi.ai:`, vapiError);
           }
+          
+          // Delete the phone number from our database
+          await storage.deletePhoneNumber(phoneNumber.id);
+          console.log(`Deleted phone number ${phoneNumber.number} from database`);
+        } catch (error) {
+          console.error(`Error processing phone number ${phoneNumber.number}:`, error);
+          // Continue with other phone numbers even if one fails
         }
-        
-        // Delete the phone number from our database
-        await storage.deletePhoneNumber(phoneNumber.id);
-        console.log(`Deleted phone number ${phoneNumber.number} from database`);
       }
       
       // Now delete the Twilio account

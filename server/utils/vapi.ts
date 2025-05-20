@@ -427,6 +427,52 @@ export async function createVapiAssistant(params: VapiAssistantParams): Promise<
 }
 
 /**
+ * Delete a phone number from Vapi.ai
+ * @param phoneNumberId The Vapi.ai phone number ID
+ * @returns Success status and message
+ */
+export async function deleteVapiPhoneNumber(phoneNumberId: string): Promise<{ success: boolean; message?: string; }> {
+  try {
+    // Check if Vapi API token is available
+    if (!VAPI_AI_TOKEN) {
+      return {
+        success: false,
+        message: "Vapi.ai API token is not defined. Please set VAPI_AI_TOKEN in your environment variables."
+      };
+    }
+    
+    // Make API request to Vapi.ai to delete the phone number
+    const response = await fetch(`${VAPI_API_BASE_URL}/phone-number/${phoneNumberId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${VAPI_AI_TOKEN}`
+      }
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json() as any;
+      console.error(`Vapi.ai API error during phone number deletion: ${response.status} - `, errorData);
+      return {
+        success: false,
+        message: `Error deleting Vapi phone number: ${errorData.message || errorData.error || 'Unknown error'}`
+      };
+    }
+    
+    return {
+      success: true,
+      message: "Vapi phone number deleted successfully"
+    };
+  } catch (error) {
+    console.error('Error deleting Vapi phone number:', error);
+    return {
+      success: false,
+      message: `Error deleting Vapi phone number: ${error instanceof Error ? error.message : 'Unknown error'}`
+    };
+  }
+}
+
+/**
  * Register a phone number with Vapi.ai
  * @param phoneNumber The phone number to register (in E.164 format)
  * @param twilioAccountSid The Twilio account SID

@@ -55,6 +55,7 @@ export interface IStorage {
   deletePhoneNumber(id: number): Promise<boolean>;
   getAllPhoneNumbers(): Promise<PhoneNumber[]>;
   getPhoneNumbersByUserId(userId: string): Promise<PhoneNumber[]>;
+  getPhoneNumbersByTwilioAccountId(twilioAccountId: number): Promise<PhoneNumber[]>;
   
   // Contact group operations
   getContactGroup(id: number): Promise<ContactGroup | undefined>;
