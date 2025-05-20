@@ -51,6 +51,8 @@ export interface IStorage {
   // Phone number operations
   getPhoneNumber(id: number): Promise<PhoneNumber | undefined>;
   createPhoneNumber(phoneNumber: InsertPhoneNumber): Promise<PhoneNumber>;
+  updatePhoneNumber(id: number, phoneNumber: Partial<InsertPhoneNumber>): Promise<PhoneNumber | undefined>;
+  deletePhoneNumber(id: number): Promise<boolean>;
   getAllPhoneNumbers(): Promise<PhoneNumber[]>;
   getPhoneNumbersByUserId(userId: string): Promise<PhoneNumber[]>;
   

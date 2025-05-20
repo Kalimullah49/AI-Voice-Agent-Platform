@@ -257,6 +257,20 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(phoneNumbers);
   }
   
+  async updatePhoneNumber(id: number, data: Partial<InsertPhoneNumber>): Promise<PhoneNumber | undefined> {
+    const [updatedPhoneNumber] = await db
+      .update(phoneNumbers)
+      .set(data)
+      .where(eq(phoneNumbers.id, id))
+      .returning();
+    return updatedPhoneNumber;
+  }
+  
+  async deletePhoneNumber(id: number): Promise<boolean> {
+    const result = await db.delete(phoneNumbers).where(eq(phoneNumbers.id, id));
+    return result !== undefined;
+  }
+  
   async getPhoneNumbersByUserId(userId: string): Promise<PhoneNumber[]> {
     return await db
       .select()
