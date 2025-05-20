@@ -45,8 +45,9 @@ export async function registerPhoneNumberWithVapiNumbers(
     
     console.log('Request payload:', JSON.stringify(payload, null, 2));
     
-    // Make API request to Vapi.ai using the new /numbers endpoint
-    const response = await fetch('https://api.vapi.ai/numbers', {
+    // Make API request to Vapi.ai using the correct endpoint
+    // Using phone-number instead of numbers as the endpoint returned 404
+    const response = await fetch('https://api.vapi.ai/phone-number', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
