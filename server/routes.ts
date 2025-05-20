@@ -633,7 +633,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Release phone number back to Twilio
+  // Release phone number from Twilio and then delete from database
   app.delete("/api/phone-numbers/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.session.userId;
@@ -652,26 +652,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Verify the user owns this phone number
       if (phoneNumber.userId !== userId) {
-        return res.status(403).json({ message: "You don't have permission to remove this phone number" });
+        return res.status(403).json({ message: "You don't have permission to release this phone number" });
       }
       
-      // Simply delete from our database - no twilio API call for now
-      const success = await storage.deletePhoneNumber(phoneNumberId);
+      // Get the associated Twilio account
+      const twilioAccountId = phoneNumber.twilioAccountId;
       
-      if (success) {
-        console.log(`Successfully deleted phone number ${phoneNumber.number} from database`);
-        return res.status(200).json({ 
-          message: "Phone number successfully removed",
-          number: phoneNumber.number
-        });
+      if (!twilioAccountId) {
+        return res.status(400).json({ message: "Phone number does not have an associated Twilio account" });
+      }
+      
+      const twilioAccount = await storage.getTwilioAccount(twilioAccountId);
+      
+      if (!twilioAccount) {
+        return res.status(404).json({ message: "Twilio account not found" });
+      }
+      
+      // Only attempt to release from Twilio if we have all the necessary info
+      if (phoneNumber.twilioSid && twilioAccount.accountSid && twilioAccount.authToken) {
+        try {
+          // Create Twilio client
+          const client = twilio(
+            twilioAccount.accountSid, 
+            twilioAccount.authToken,
+            { 
+              logLevel: 'debug',
+              accountSid: twilioAccount.accountSid 
+            }
+          );
+          
+          // Request to release the number from Twilio
+          console.log(`Attempting to release Twilio number with SID: ${phoneNumber.twilioSid}`);
+          await client.incomingPhoneNumbers(phoneNumber.twilioSid).remove();
+          console.log('Successfully released number from Twilio');
+          
+          // Now delete from our database ONLY after successfully releasing from Twilio
+          const success = await storage.deletePhoneNumber(phoneNumberId);
+          
+          if (success) {
+            console.log(`Successfully deleted phone number ${phoneNumber.number} from database`);
+            return res.status(200).json({ 
+              message: "Phone number successfully released from Twilio and removed from database",
+              number: phoneNumber.number
+            });
+          } else {
+            return res.status(500).json({ 
+              message: "Phone number was released from Twilio but failed to delete from database" 
+            });
+          }
+        } catch (twilioError) {
+          console.error("Error releasing phone number from Twilio:", twilioError);
+          return res.status(400).json({ 
+            message: "Failed to release phone number from Twilio", 
+            error: twilioError instanceof Error ? twilioError.message : "Unknown error" 
+          });
+        }
       } else {
-        return res.status(500).json({ message: "Failed to delete phone number from database" });
+        return res.status(400).json({ 
+          message: "Missing required Twilio information to release this number", 
+          details: "The phone number needs to have a Twilio SID and associated Twilio account credentials" 
+        });
       }
     } catch (error) {
-      console.error("Error removing phone number:", error);
+      console.error("Error releasing phone number:", error);
       res.status(500).json({ 
-        message: "Failed to remove phone number", 
-        error: error instanceof Error ? error.message : "Unknown error"
+        message: "Failed to release phone number", 
+        error: error instanceof Error ? error.message : "Unknown error" 
       });
     }
   });
