@@ -633,6 +633,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Release phone number back to Twilio
+  app.delete("/api/phone-numbers/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId;
+      const phoneNumberId = parseInt(req.params.id);
+      
+      // Get the phone number
+      const phoneNumber = await storage.getPhoneNumber(phoneNumberId);
+      
+      if (!phoneNumber) {
+        return res.status(404).json({ message: "Phone number not found" });
+      }
+      
+      // Verify the user owns this phone number
+      if (phoneNumber.userId !== userId) {
+        return res.status(403).json({ message: "You don't have permission to release this phone number" });
+      }
+      
+      // Get the Twilio account
+      const twilioAccount = await storage.getTwilioAccount(phoneNumber.twilioAccountId);
+      
+      if (!twilioAccount) {
+        return res.status(404).json({ message: "Twilio account not found" });
+      }
+      
+      // Create Twilio client with user's credentials
+      const client = twilio(twilioAccount.accountSid, twilioAccount.authToken);
+      
+      // Release the number from Twilio
+      if (phoneNumber.twilioSid) {
+        await client.incomingPhoneNumbers(phoneNumber.twilioSid).remove();
+      }
+      
+      // Delete the phone number from our database
+      await storage.deletePhoneNumber(phoneNumberId);
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error releasing phone number:", error);
+      res.status(500).json({ 
+        message: "Failed to release phone number", 
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+  
+  // Assign phone number to an agent
+  app.patch("/api/phone-numbers/:id/assign", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId;
+      const phoneNumberId = parseInt(req.params.id);
+      const { agentId } = req.body;
+      
+      // Get the phone number
+      const phoneNumber = await storage.getPhoneNumber(phoneNumberId);
+      
+      if (!phoneNumber) {
+        return res.status(404).json({ message: "Phone number not found" });
+      }
+      
+      // Verify the user owns this phone number
+      if (phoneNumber.userId !== userId) {
+        return res.status(403).json({ message: "You don't have permission to modify this phone number" });
+      }
+      
+      // If assigning to an agent, verify the agent belongs to the user
+      if (agentId) {
+        const agent = await storage.getAgent(agentId);
+        if (!agent) {
+          return res.status(404).json({ message: "Agent not found" });
+        }
+        if (agent.userId !== userId) {
+          return res.status(403).json({ message: "You don't have permission to use this agent" });
+        }
+      }
+      
+      // Update the phone number
+      const updatedPhoneNumber = await storage.updatePhoneNumber(phoneNumberId, { agentId });
+      
+      res.json(updatedPhoneNumber);
+    } catch (error) {
+      console.error("Error assigning phone number:", error);
+      res.status(500).json({ message: "Failed to assign phone number" });
+    }
+  });
+  
   // Vapi.ai API Routes
   app.get("/api/vapi/test-connection", async (req, res) => {
     try {
