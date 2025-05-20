@@ -37,6 +37,11 @@ export const users = pgTable("users", {
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   role: varchar("role").default("user").notNull(), // admin, manager, user
+  isEmailVerified: boolean("is_email_verified").default(false),
+  verificationToken: varchar("verification_token"),
+  verificationTokenExpiry: timestamp("verification_token_expiry"),
+  passwordResetToken: varchar("password_reset_token"),
+  passwordResetTokenExpiry: timestamp("password_reset_token_expiry"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -70,8 +75,21 @@ export const loginUserSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
-export const verifyCodeSchema = z.object({
-  code: z.string().length(6, "Verification code must be 6 characters"),
+export const emailVerificationSchema = z.object({
+  token: z.string().min(32, "Invalid verification token"),
+});
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(32, "Invalid reset token"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string().min(6, "Password must be at least 6 characters"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
 });
 
 // Agent model
