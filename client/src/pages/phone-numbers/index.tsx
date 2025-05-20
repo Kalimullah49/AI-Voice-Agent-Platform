@@ -957,13 +957,19 @@ export default function PhoneNumbersPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Release Phone Number</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to release the phone number{' '}
-              <span className="font-medium">{numberToRelease && formatPhoneNumber(numberToRelease.number)}</span>?
-              <div className="mt-2">
-                This action will remove the number from your account and return it to Twilio's pool of available numbers. 
-                <span className="text-destructive font-semibold"> This action cannot be undone.</span>
-              </div>
+              Are you sure you want to release this phone number?
             </AlertDialogDescription>
+            <div className="mt-4 mb-2 text-sm">
+              <p className="font-medium text-base">
+                {numberToRelease && formatPhoneNumber(numberToRelease.number)}
+              </p>
+              <p className="mt-2">
+                This action will remove the number from your account and return it to Twilio's pool of available numbers.
+              </p>
+              <p className="mt-2 text-destructive font-semibold">
+                This action cannot be undone.
+              </p>
+            </div>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel
