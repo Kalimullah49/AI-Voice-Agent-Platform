@@ -203,6 +203,7 @@ export const insertPhoneNumberSchema = createInsertSchema(phoneNumbers).pick({
   userId: true,
   twilioSid: true,
   friendlyName: true,
+  vapiPhoneNumberId: true,
 });
 
 // Contact group model

@@ -7,7 +7,7 @@ import {
   insertCampaignSchema, insertTwilioAccountSchema 
 } from "@shared/schema";
 import { z } from "zod";
-import { testApiConnection, synthesizeSpeech, getAvailableVoices, createVapiAssistant, deleteVapiAssistant, VapiAssistantParams } from "./utils/vapi";
+import { testApiConnection, synthesizeSpeech, getAvailableVoices, createVapiAssistant, deleteVapiAssistant, VapiAssistantParams, registerPhoneNumberWithVapi } from "./utils/vapi";
 import twilio from 'twilio';
 // Our custom auth middleware will be imported dynamically
 import { DatabaseStorage } from "./database-storage";
