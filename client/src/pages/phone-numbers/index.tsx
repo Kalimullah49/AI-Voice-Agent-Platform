@@ -10,19 +10,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { TableSkeleton } from "@/components/ui/skeleton";
 import { 
-  PlusIcon, 
   Trash2, 
-  ExternalLink, 
   PhoneCall, 
   Search, 
   Settings, 
   CheckCircle2,
-  CreditCard,
   Key,
-  Globe,
-  ListFilter,
   Loader2,
-  Download
+  Download,
+  PhoneMissed
 } from "lucide-react";
 import {
   AlertDialog,
@@ -59,6 +55,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { ImportPhoneNumbersDialog } from "@/components/phone-numbers/ImportPhoneNumbersDialog";
 
 export default function PhoneNumbersPage() {
   const [searchAreaCode, setSearchAreaCode] = useState("");
@@ -73,12 +70,10 @@ export default function PhoneNumbersPage() {
   const [selectedTwilioAccountId, setSelectedTwilioAccountId] = useState<number | null>(null);
   const [assignToAgentId, setAssignToAgentId] = useState("");
   const [showImportDialog, setShowImportDialog] = useState(false);
-  const [importAccountId, setImportAccountId] = useState<number | null>(null);
-  const [isImporting, setIsImporting] = useState(false);
   
   const queryClient = useQueryClient();
   
-  const { data: phoneNumbers, isLoading: isLoadingPhoneNumbers, error: phoneNumbersError } = useQuery({
+  const { data: phoneNumbers, isLoading: isLoadingPhoneNumbers } = useQuery({
     queryKey: ["/api/phone-numbers"],
   });
   
@@ -105,22 +100,15 @@ export default function PhoneNumbersPage() {
       accountName: "",
       accountSid: "",
       authToken: "",
-      isDefault: false,
-    },
+      isDefault: false
+    }
   });
   
-  // Automatically search for available numbers when the dialog opens and a Twilio account is selected
-  useEffect(() => {
-    if (showPurchaseDialog && selectedTwilioAccountId && !isSearching && availableNumbers.length === 0) {
-      // Short delay to let the dialog open fully
-      const timer = setTimeout(() => {
-        searchAvailableTwilioNumbers();
-      }, 300);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [showPurchaseDialog, selectedTwilioAccountId]);
-
+  // Handle form submission for Twilio account
+  const onTwilioAccountSubmit = (data: z.infer<typeof twilioAccountFormSchema>) => {
+    createTwilioAccountMutation.mutate(data);
+  };
+  
   // Mutation for creating a Twilio account
   const createTwilioAccountMutation = useMutation({
     mutationFn: async (data: z.infer<typeof twilioAccountFormSchema>) => {
@@ -137,61 +125,56 @@ export default function PhoneNumbersPage() {
         throw new Error(errorData.message || 'Failed to create Twilio account');
       }
       
-      return response.json();
+      return await response.json();
     },
     onSuccess: () => {
-      // Invalidate Twilio accounts query to refresh the list
-      queryClient.invalidateQueries({ queryKey: ["/api/twilio-accounts"] });
-      toast({
-        title: "Success",
-        description: "Twilio account added successfully",
-      });
+      queryClient.invalidateQueries({ queryKey: ['/api/twilio-accounts'] });
       setShowTwilioAccountDialog(false);
       twilioAccountForm.reset();
+      toast({
+        title: "Account added",
+        description: "Twilio account has been successfully added.",
+      });
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to add Twilio account",
+        title: "Failed to add account",
+        description: error.message || "An error occurred while adding Twilio account.",
         variant: "destructive"
       });
     }
   });
-
-  // Mutation for setting an account as default
+  
+  // Mutation for setting a Twilio account as default
   const setDefaultAccountMutation = useMutation({
     mutationFn: async (accountId: number) => {
       const response = await fetch(`/api/twilio-accounts/${accountId}/set-default`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        method: 'POST'
       });
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to set account as default');
+        throw new Error(errorData.message || 'Failed to set as default');
       }
       
-      return response.json();
+      return true;
     },
     onSuccess: () => {
-      // Invalidate Twilio accounts query to refresh the list
-      queryClient.invalidateQueries({ queryKey: ["/api/twilio-accounts"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/twilio-accounts'] });
       toast({
-        title: "Success",
-        description: "Default account updated successfully",
+        title: "Default account updated",
+        description: "This account will now be used by default for phone number operations.",
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to update default account",
+        title: "Failed to update default account",
+        description: error.message || "An error occurred while updating default account.",
         variant: "destructive"
       });
     }
   });
-
+  
   // Mutation for deleting a Twilio account
   const deleteTwilioAccountMutation = useMutation({
     mutationFn: async (accountId: number) => {
@@ -201,22 +184,21 @@ export default function PhoneNumbersPage() {
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to delete Twilio account');
+        throw new Error(errorData.message || 'Failed to delete account');
       }
       
-      return response.status === 204 ? null : response.json();
+      return true;
     },
     onSuccess: () => {
-      // Invalidate Twilio accounts query to refresh the list
-      queryClient.invalidateQueries({ queryKey: ["/api/twilio-accounts"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/twilio-accounts'] });
       toast({
-        title: "Success",
-        description: "Twilio account deleted successfully",
+        title: "Account deleted",
+        description: "Twilio account has been successfully deleted.",
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
+        title: "Failed to delete account",
         description: error.message || "Failed to delete Twilio account",
         variant: "destructive"
       });
@@ -239,74 +221,23 @@ export default function PhoneNumbersPage() {
         throw new Error(errorData.message || 'Failed to purchase number');
       }
       
-      return response.json();
+      return await response.json();
     },
     onSuccess: () => {
-      // Invalidate phone numbers query to refresh the list
-      queryClient.invalidateQueries({ queryKey: ["/api/phone-numbers"] });
-      toast({
-        title: "Success",
-        description: "Phone number purchased successfully",
-      });
+      queryClient.invalidateQueries({ queryKey: ['/api/phone-numbers'] });
       setShowPurchaseDialog(false);
+      setSelectedNumber(null);
       setAvailableNumbers([]);
       setSearchAreaCode("");
-      setSelectedNumber(null);
+      toast({
+        title: "Phone number purchased",
+        description: "The phone number has been successfully purchased and added to your account.",
+      });
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to purchase number",
-        variant: "destructive"
-      });
-    }
-  });
-  
-  // Mutation for releasing a phone number
-  const releasePhoneNumberMutation = useMutation({
-    mutationFn: async (phoneNumberId: number) => {
-      try {
-        const response = await fetch(`/api/phone-numbers/${phoneNumberId}`, {
-          method: 'DELETE'
-        });
-        
-        // Always try to parse the response as JSON
-        const result = await response.json().catch(() => ({ 
-          message: response.status === 204 ? 'Phone number released successfully' : 'Unknown error'
-        }));
-        
-        if (!response.ok) {
-          throw new Error(result.message || 'Failed to release phone number');
-        }
-        
-        return result;
-      } catch (error) {
-        console.error("Error releasing phone number:", error);
-        throw error;
-      }
-    },
-    onSuccess: (data) => {
-      // Close the dialog first
-      setShowReleaseConfirmDialog(false);
-      setNumberToRelease(null);
-      
-      // Then invalidate the query and show the toast
-      queryClient.invalidateQueries({ queryKey: ["/api/phone-numbers"] });
-      toast({
-        title: "Success",
-        description: data.message || "Phone number released successfully",
-      });
-    },
-    onError: (error: any) => {
-      // Close the dialog
-      setShowReleaseConfirmDialog(false);
-      
-      // Display the specific error message
-      const errorMessage = error?.message || "Failed to release phone number";
-      
-      toast({
-        title: "Error Releasing Number",
-        description: errorMessage,
+        title: "Failed to purchase phone number",
+        description: error.message || "An error occurred while purchasing the phone number.",
         variant: "destructive"
       });
     }
@@ -314,8 +245,8 @@ export default function PhoneNumbersPage() {
   
   // Mutation for assigning a phone number to an agent
   const assignPhoneNumberMutation = useMutation({
-    mutationFn: async ({id, agentId}: {id: number, agentId: number | null}) => {
-      const response = await fetch(`/api/phone-numbers/${id}/assign`, {
+    mutationFn: async ({ phoneNumberId, agentId }: { phoneNumberId: number, agentId: number | null }) => {
+      const response = await fetch(`/api/phone-numbers/${phoneNumberId}/assign`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'
@@ -328,75 +259,161 @@ export default function PhoneNumbersPage() {
         throw new Error(errorData.message || 'Failed to assign phone number');
       }
       
-      return response.json();
+      return await response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/phone-numbers"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/phone-numbers'] });
       toast({
-        title: "Success",
-        description: "Phone number assignment updated",
+        title: "Phone number assigned",
+        description: "The phone number has been successfully assigned to the selected agent.",
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to assign phone number",
+        title: "Failed to assign phone number",
+        description: error.message || "An error occurred while assigning the phone number.",
         variant: "destructive"
       });
     }
   });
   
-  // Function to search for available Twilio numbers
-  const searchAvailableTwilioNumbers = async () => {
+  // Mutation for releasing a Twilio number
+  const releasePhoneNumberMutation = useMutation({
+    mutationFn: async (phoneNumberId: number) => {
+      const response = await fetch(`/api/phone-numbers/${phoneNumberId}`, {
+        method: 'DELETE'
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to release phone number');
+      }
+      
+      return true;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/phone-numbers'] });
+      setShowReleaseConfirmDialog(false);
+      setNumberToRelease(null);
+      toast({
+        title: "Phone number released",
+        description: "The phone number has been successfully released from your Twilio account.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to release phone number",
+        description: error.message || "An error occurred while releasing the phone number.",
+        variant: "destructive"
+      });
+    }
+  });
+  
+  // Search for available Twilio numbers
+  const searchNumbers = async () => {
     if (!selectedTwilioAccountId) {
       toast({
-        title: "Error",
-        description: "Please select a Twilio account",
+        title: "Select an account",
+        description: "Please select a Twilio account first.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!searchAreaCode && countryCode === 'US') {
+      toast({
+        title: "Enter area code",
+        description: "Please enter an area code to search for phone numbers.",
         variant: "destructive"
       });
       return;
     }
     
     setIsSearching(true);
+    setAvailableNumbers([]);
     
     try {
-      // Build the URL with required parameters
-      let url = `/api/available-twilio-phone-numbers?accountId=${selectedTwilioAccountId}&countryCode=${countryCode}`;
+      const params = new URLSearchParams();
+      params.append('accountId', selectedTwilioAccountId.toString());
+      params.append('countryCode', countryCode);
+      if (searchAreaCode) params.append('areaCode', searchAreaCode);
       
-      // Add area code if provided
-      if (searchAreaCode) {
-        url += `&areaCode=${searchAreaCode}`;
-      }
-      
-      const response = await fetch(url);
+      const response = await fetch(`/api/available-twilio-phone-numbers?${params.toString()}`);
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to search for numbers');
+        throw new Error(errorData.message || 'Failed to fetch available numbers');
       }
       
       const data = await response.json();
-      setAvailableNumbers(data || []);
-    } catch (error) {
+      setAvailableNumbers(data);
+    } catch (error: any) {
       toast({
-        title: "Search Error",
-        description: error instanceof Error ? error.message : "Failed to search for numbers",
+        title: "Search failed",
+        description: error.message || "Failed to search for available numbers",
         variant: "destructive"
       });
-      setAvailableNumbers([]);
     } finally {
       setIsSearching(false);
     }
   };
-
-  // Handle Twilio account form submission
-  const onTwilioAccountSubmit = (data: z.infer<typeof twilioAccountFormSchema>) => {
-    createTwilioAccountMutation.mutate(data);
+  
+  // Effect to auto-search for numbers when dialog opens
+  useEffect(() => {
+    if (showPurchaseDialog && selectedTwilioAccountId) {
+      searchNumbers();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showPurchaseDialog, selectedTwilioAccountId]);
+  
+  // Effect to set default account when dialog opens
+  useEffect(() => {
+    if (showPurchaseDialog && twilioAccounts && Array.isArray(twilioAccounts) && twilioAccounts.length > 0) {
+      const defaultAccount = twilioAccounts.find((account: any) => account.isDefault);
+      if (defaultAccount) {
+        setSelectedTwilioAccountId(defaultAccount.id);
+      } else if (twilioAccounts.length > 0) {
+        setSelectedTwilioAccountId(twilioAccounts[0].id);
+      }
+    }
+  }, [showPurchaseDialog, twilioAccounts]);
+  
+  // Handle number purchase
+  const handlePurchaseNumber = () => {
+    if (!selectedTwilioAccountId || !selectedNumber) {
+      toast({
+        title: "Missing information",
+        description: "Please select an account and a phone number.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const agentId = assignToAgentId ? parseInt(assignToAgentId) : null;
+    
+    purchaseTwilioNumberMutation.mutate({
+      accountId: selectedTwilioAccountId,
+      phoneNumber: selectedNumber,
+      friendlyName: `AimAI Number ${new Date().toISOString()}`,
+      agentId
+    });
   };
-
+  
+  // Handle agent assignment
+  const handleAssignToAgent = (phoneNumberId: number, e: React.ChangeEvent<HTMLSelectElement>) => {
+    const agentId = e.target.value ? parseInt(e.target.value) : null;
+    assignPhoneNumberMutation.mutate({ phoneNumberId, agentId });
+  };
+  
+  // Handle number release confirmation dialog
+  const confirmReleaseNumber = (id: number, number: string) => {
+    setNumberToRelease({ id, number });
+    setShowReleaseConfirmDialog(true);
+  };
+  
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Phone Numbers</h1>
         <div className="flex gap-2">          
           {/* Manage Twilio Accounts button */}
@@ -590,37 +607,7 @@ export default function PhoneNumbersPage() {
               </DialogHeader>
               
               <div className="grid gap-6 py-4">
-                {twilioAccounts && twilioAccounts.length > 0 ? (
-                  <>
-                    <div className="grid gap-2">
-                      <label htmlFor="twilio-account" className="text-sm font-medium">Select Twilio Account</label>
-                      <Select 
-                        value={selectedTwilioAccountId?.toString() || ""} 
-                        onValueChange={(value) => setSelectedTwilioAccountId(parseInt(value))}
-                      >
-                        <SelectTrigger id="twilio-account">
-                          <SelectValue placeholder="Select a Twilio account" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {twilioAccounts.map((account) => (
-                            <SelectItem key={account.id} value={account.id.toString()}>
-                              {account.accountName} {account.isDefault ? "(Default)" : ""}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Search & Purchase Twilio Numbers</DialogTitle>
-                <DialogDescription>
-                  Search for available numbers by area code to purchase through your Twilio account.
-                </DialogDescription>
-              </DialogHeader>
-              
-              <div className="grid gap-6 py-4">
-                {twilioAccounts && twilioAccounts.length > 0 ? (
+                {twilioAccounts && Array.isArray(twilioAccounts) && twilioAccounts.length > 0 ? (
                   <>
                     <div className="grid gap-2">
                       <label htmlFor="twilio-account" className="text-sm font-medium">Select Twilio Account</label>
@@ -649,7 +636,7 @@ export default function PhoneNumbersPage() {
                           onValueChange={setCountryCode}
                         >
                           <SelectTrigger id="country-code">
-                            <SelectValue placeholder="Select country" />
+                            <SelectValue placeholder="Select a country" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="US">United States</SelectItem>
@@ -659,84 +646,86 @@ export default function PhoneNumbersPage() {
                           </SelectContent>
                         </Select>
                       </div>
+                      
                       <div className="grid gap-2">
-                        <label htmlFor="areaCode" className="text-sm font-medium">Area Code</label>
-                        <Input 
-                          id="areaCode" 
-                          placeholder="e.g. 415" 
-                          value={searchAreaCode}
-                          onChange={(e) => setSearchAreaCode(e.target.value)}
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="flex justify-center">
-                      <Button 
-                        onClick={searchAvailableTwilioNumbers} 
-                        disabled={isSearching || !selectedTwilioAccountId}
-                        className="w-full md:w-auto"
-                      >
-                        {isSearching ? (
-                          <>
-                            <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-t-transparent"></div>
-                            Searching...
-                          </>
-                        ) : (
-                          <>
-                            <Search className="h-4 w-4 mr-2" />
-                            Search Available Numbers
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                    
-                    {availableNumbers.length > 0 && (
-                      <div className="mt-4">
-                        <h3 className="text-sm font-medium mb-2">Available Numbers</h3>
-                        <div className="border rounded-md">
-                          <div className="max-h-[300px] overflow-y-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                              <thead className="bg-gray-50 sticky top-0 z-10">
-                                <tr>
-                                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Number</th>
-                                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
-                                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Action</th>
-                                </tr>
-                              </thead>
-                              <tbody className="bg-white divide-y divide-gray-200">
-                                {availableNumbers.map((number: any, index: number) => (
-                                  <tr key={index} className={selectedNumber === number.phoneNumber ? "bg-blue-50" : ""}>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm">{formatPhoneNumber(number.phoneNumber)}</td>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm">{number.locality || number.region || 'N/A'}</td>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm">{number.capabilities?.voice ? 'Voice' : ''}{number.capabilities?.sms ? (number.capabilities?.voice ? '/SMS' : 'SMS') : ''}</td>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-right">
-                                      <Button 
-                                        size="sm" 
-                                        variant={selectedNumber === number.phoneNumber ? "default" : "outline"}
-                                        onClick={() => setSelectedNumber(number.phoneNumber)}
-                                      >
-                                        {selectedNumber === number.phoneNumber ? "Selected" : "Select"}
-                                      </Button>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
+                        <label htmlFor="area-code" className="text-sm font-medium">Area Code</label>
+                        <div className="flex gap-2">
+                          <Input 
+                            id="area-code" 
+                            value={searchAreaCode} 
+                            onChange={(e) => setSearchAreaCode(e.target.value)} 
+                            placeholder="e.g. 415"
+                            className="flex-grow"
+                          />
+                          <Button 
+                            type="button" 
+                            onClick={searchNumbers}
+                            disabled={isSearching}
+                            className="shrink-0"
+                          >
+                            {isSearching ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Search className="h-4 w-4" />
+                            )}
+                          </Button>
                         </div>
                       </div>
-                    )}
+                    </div>
+                    
+                    {/* Available numbers list */}
+                    <div className="border rounded-md p-2 max-h-60 overflow-y-auto">
+                      <div className="sticky top-0 bg-white p-2 border-b mb-2 z-10">
+                        <h3 className="font-medium">Available Phone Numbers</h3>
+                      </div>
+                      
+                      {isSearching ? (
+                        <div className="py-8 flex justify-center">
+                          <div className="h-6 w-6 animate-spin rounded-full border-2 border-t-transparent"></div>
+                        </div>
+                      ) : availableNumbers.length > 0 ? (
+                        <div className="space-y-2">
+                          {availableNumbers.map((number) => (
+                            <div 
+                              key={number.phoneNumber} 
+                              className={`p-2 border rounded-md flex justify-between items-center cursor-pointer
+                                ${selectedNumber === number.phoneNumber ? 'bg-blue-50 border-blue-300' : 'hover:bg-gray-50'}`}
+                              onClick={() => setSelectedNumber(number.phoneNumber)}
+                            >
+                              <div>
+                                <div className="font-medium">{formatPhoneNumber(number.phoneNumber)}</div>
+                                <div className="text-xs text-gray-500">Location: {number.locality || 'Unknown'}</div>
+                              </div>
+                              {selectedNumber === number.phoneNumber && (
+                                <CheckCircle2 className="h-5 w-5 text-blue-500" />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="py-8 text-center text-gray-500">
+                          {searchAreaCode ? (
+                            'No phone numbers found with this area code. Try another area code.'
+                          ) : (
+                            'Enter an area code and search to see available numbers.'
+                          )}
+                        </div>
+                      )}
+                    </div>
                     
                     {selectedNumber && (
-                      <div className="mt-4 border-t pt-4">
-                        <h3 className="text-sm font-medium mb-2">Assign to Agent (Optional)</h3>
-                        <Select value={assignToAgentId} onValueChange={setAssignToAgentId}>
-                          <SelectTrigger id="agent">
+                      <div className="grid gap-2">
+                        <label htmlFor="assign-agent" className="text-sm font-medium">Assign to Agent (Optional)</label>
+                        <Select 
+                          value={assignToAgentId} 
+                          onValueChange={setAssignToAgentId}
+                        >
+                          <SelectTrigger id="assign-agent">
                             <SelectValue placeholder="Select an agent" />
                           </SelectTrigger>
                           <SelectContent>
-                            {agents?.map((agent: any) => (
+                            <SelectItem value="">None</SelectItem>
+                            {agents && Array.isArray(agents) && agents.map((agent: any) => (
                               <SelectItem key={agent.id} value={agent.id.toString()}>
                                 {agent.name}
                               </SelectItem>
@@ -745,53 +734,18 @@ export default function PhoneNumbersPage() {
                         </Select>
                       </div>
                     )}
-                    
-                    <DialogFooter>
-                      <Button 
-                        variant="outline" 
-                        onClick={() => {
-                          setShowPurchaseDialog(false);
-                          setAvailableNumbers([]);
-                          setSearchAreaCode("");
-                          setSelectedNumber(null);
-                          setAssignToAgentId("");
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                      <Button 
-                        disabled={!selectedNumber || !selectedTwilioAccountId || purchaseTwilioNumberMutation.isPending} 
-                        onClick={() => {
-                          if (selectedNumber && selectedTwilioAccountId) {
-                            purchaseTwilioNumberMutation.mutate({
-                              accountId: selectedTwilioAccountId,
-                              phoneNumber: selectedNumber,
-                              agentId: assignToAgentId ? parseInt(assignToAgentId) : null
-                            });
-                          }
-                        }}
-                      >
-                        {purchaseTwilioNumberMutation.isPending ? (
-                          <>
-                            <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-t-transparent"></div>
-                            Purchasing...
-                          </>
-                        ) : (
-                          'Purchase Number'
-                        )}
-                      </Button>
-                    </DialogFooter>
                   </>
                 ) : (
                   <div className="text-center py-8">
                     <div className="mx-auto h-12 w-12 text-gray-400 mb-4">
-                      <CreditCard className="h-12 w-12" />
+                      <Key className="h-12 w-12" />
                     </div>
                     <h3 className="text-lg font-medium text-gray-900 mb-1">No Twilio accounts found</h3>
                     <p className="text-gray-500 mb-4">
-                      Add a Twilio account to purchase phone numbers
+                      Add a Twilio account first to purchase phone numbers
                     </p>
                     <Button 
+                      variant="outline"
                       onClick={() => {
                         setShowPurchaseDialog(false);
                         setShowTwilioAccountDialog(true);
@@ -802,247 +756,64 @@ export default function PhoneNumbersPage() {
                   </div>
                 )}
               </div>
+              
+              <DialogFooter>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowPurchaseDialog(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handlePurchaseNumber}
+                  disabled={!selectedNumber || !selectedTwilioAccountId || purchaseTwilioNumberMutation.isPending}
+                >
+                  {purchaseTwilioNumberMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Purchasing...
+                    </>
+                  ) : (
+                    'Purchase Number'
+                  )}
+                </Button>
+              </DialogFooter>
             </DialogContent>
           </Dialog>
           
-
+          {/* Import Existing Numbers button */}
+          <Button 
+            variant="outline" 
+            className="border-blue-500 text-blue-600 hover:bg-blue-50"
+            onClick={() => setShowImportDialog(true)}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Import Existing Numbers
+          </Button>
         </div>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Your Phone Numbers</CardTitle>
-          <CardDescription>
-            Manage phone numbers for your agents and campaigns
-          </CardDescription>
-        </CardHeader>
-        
-        <CardContent>
-          {isLoadingPhoneNumbers ? (
-            <TableSkeleton />
-          ) : phoneNumbersError ? (
-            <div className="text-center py-8">
-              <div className="mx-auto h-12 w-12 text-gray-400 mb-4">
-                <PhoneCall className="h-12 w-12" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-1">No Phone Numbers Available</h3>
-              <p className="text-gray-500 mb-4">
-                Add a Twilio account to get started with phone numbers.
-              </p>
-              <Button 
-                onClick={() => setShowTwilioAccountDialog(true)}
-                className="flex items-center"
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Add Twilio Account
-              </Button>
-            </div>
-          ) : phoneNumbers && Array.isArray(phoneNumbers) && phoneNumbers.length > 0 ? (
-            <div className="overflow-hidden border rounded-lg">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone Number</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Twilio Account</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned Agent</th>
-                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {phoneNumbers.map((phoneNumber: any) => {
-                    const assignedAgent = agents && Array.isArray(agents) ? 
-                      agents.find((a: any) => a.id === phoneNumber.agentId) : null;
-                    const twilioAccount = twilioAccounts && Array.isArray(twilioAccounts) ? 
-                      twilioAccounts.find((a: any) => a.id === phoneNumber.twilioAccountId) : null;
-                    
-                    return (
-                      <tr key={phoneNumber.id}>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{formatPhoneNumber(phoneNumber.number)}</div>
-                          {phoneNumber.friendlyName && (
-                            <div className="text-xs text-gray-500">{phoneNumber.friendlyName}</div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <Badge
-                            className={phoneNumber.active 
-                              ? "bg-green-100 text-green-800" 
-                              : "bg-gray-100 text-gray-800"}
-                          >
-                            {phoneNumber.active ? "Active" : "Inactive"}
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {twilioAccount ? (
-                            <div className="text-sm text-gray-900">
-                              {twilioAccount.accountName}
-                              {twilioAccount.isDefault && (
-                                <Badge className="ml-2 bg-blue-100 text-blue-800">Default</Badge>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-sm text-gray-500">—</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {assignedAgent ? (
-                            <div className="text-sm text-gray-900">{assignedAgent.name}</div>
-                          ) : (
-                            <span className="text-sm text-gray-500">Not assigned</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <div className="flex justify-end space-x-2">
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button variant="outline" size="sm" className="h-8 px-2 text-xs">
-                                  Assign Agent
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>Assign Phone Number</DialogTitle>
-                                  <DialogDescription>
-                                    Assign this phone number to an agent.
-                                  </DialogDescription>
-                                </DialogHeader>
-                                <div className="py-4">
-                                  {/* Using a state variable instead of defaultValue for controlled component */}
-                                  <div className="mb-2">
-                                    <p className="text-sm">
-                                      <strong>Phone Number:</strong> {formatPhoneNumber(phoneNumber.number)}
-                                    </p>
-                                    <p className="text-sm text-gray-500 mt-1">
-                                      {phoneNumber.agentId 
-                                        ? `Currently assigned to: ${assignedAgent?.name || 'Unknown agent'}`
-                                        : 'Not currently assigned to any agent'}
-                                    </p>
-                                  </div>
-                                  
-                                  <div className="mt-4">
-                                    <label className="text-sm font-medium mb-2 block">Select Agent</label>
-                                    <Select 
-                                      value={phoneNumber.agentId?.toString() || ""}
-                                      onValueChange={(value) => {
-                                        // Use the mutation function directly here with the selected value
-                                        assignPhoneNumberMutation.mutate({
-                                          id: phoneNumber.id,
-                                          agentId: value ? parseInt(value) : null
-                                        });
-                                      }}
-                                    >
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Select an agent" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="">None (Unassign)</SelectItem>
-                                        {agents && Array.isArray(agents) 
-                                          ? agents.map((agent: any) => (
-                                              <SelectItem key={agent.id} value={agent.id.toString()}>
-                                                {agent.name}
-                                              </SelectItem>
-                                            )) 
-                                          : null}
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-                                </div>
-                                <DialogFooter>
-                                  <Button 
-                                    disabled={assignPhoneNumberMutation.isPending}
-                                  >
-                                    {assignPhoneNumberMutation.isPending ? 'Updating...' : 'Close'}
-                                  </Button>
-                                </DialogFooter>
-                              </DialogContent>
-                            </Dialog>
-                            <Button 
-                              variant="destructive" 
-                              size="sm" 
-                              className="h-8 px-2 text-xs"
-                              onClick={() => {
-                                // Call the mutation directly without confirmation
-                                releasePhoneNumberMutation.mutate(phoneNumber.id);
-                              }}
-                              disabled={releasePhoneNumberMutation.isPending}
-                            >
-                              {releasePhoneNumberMutation.isPending ? (
-                                <>
-                                  <div className="mr-1 h-3 w-3 animate-spin rounded-full border-2 border-t-transparent"></div>
-                                  Releasing...
-                                </>
-                              ) : (
-                                <>
-                                  <Trash2 className="h-3.5 w-3.5 mr-1" />
-                                  Release
-                                </>
-                              )}
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <div className="mx-auto h-12 w-12 text-gray-400 mb-4">
-                <PhoneCall className="h-12 w-12" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-1">No phone numbers found</h3>
-              <p className="text-gray-500 mb-4">
-                Purchase phone numbers through your Twilio account to assign to your agents.
-              </p>
-              <Button 
-                onClick={() => setShowPurchaseDialog(true)}
-                className="flex items-center"
-              >
-                <PhoneCall className="h-4 w-4 mr-2" />
-                Buy Phone Number
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Release Confirmation Dialog */}
+      
+      {/* Confirmation dialog for releasing a phone number */}
       <AlertDialog open={showReleaseConfirmDialog} onOpenChange={setShowReleaseConfirmDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Release Phone Number</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to release this phone number?
+              Are you sure you want to release the phone number <span className="font-semibold">{numberToRelease?.number ? formatPhoneNumber(numberToRelease.number) : ''}</span>?
+              <br /><br />
+              This will remove the number from your Twilio account and you will no longer be charged for it.
+              This action cannot be undone.
             </AlertDialogDescription>
-            <div className="mt-4 mb-2 text-sm">
-              <p className="font-medium text-base">
-                {numberToRelease && formatPhoneNumber(numberToRelease.number)}
-              </p>
-              <p className="mt-2">
-                This action will remove the number from your account and return it to Twilio's pool of available numbers.
-              </p>
-              <p className="mt-2 text-destructive font-semibold">
-                This action cannot be undone.
-              </p>
-            </div>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel
-              onClick={() => {
-                setNumberToRelease(null);
-              }}
-            >
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-red-600 hover:bg-red-700"
               onClick={() => {
                 if (numberToRelease) {
                   releasePhoneNumberMutation.mutate(numberToRelease.id);
                 }
               }}
-              className="bg-destructive hover:bg-destructive/90"
               disabled={releasePhoneNumberMutation.isPending}
             >
               {releasePhoneNumberMutation.isPending ? (
@@ -1051,12 +822,116 @@ export default function PhoneNumbersPage() {
                   Releasing...
                 </>
               ) : (
-                <>Release Number</>
+                'Release Number'
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      {/* Main content */}
+      {isLoadingPhoneNumbers ? (
+        <TableSkeleton columns={4} rows={3} className="mt-6" />
+      ) : phoneNumbers && Array.isArray(phoneNumbers) && phoneNumbers.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {phoneNumbers.map((phoneNumber: any) => (
+            <Card key={phoneNumber.id} className="overflow-hidden">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex justify-between items-center">
+                  <span className="text-lg">{formatPhoneNumber(phoneNumber.number)}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-600 hover:text-red-800 hover:bg-red-50 ml-2 h-8 w-8 p-0"
+                    onClick={() => confirmReleaseNumber(phoneNumber.id, phoneNumber.number)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span className="sr-only">Delete</span>
+                  </Button>
+                </CardTitle>
+                <CardDescription>
+                  {phoneNumber.friendlyName || 'No friendly name'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-col space-y-2">
+                  <div className="text-sm text-gray-500">
+                    <span className="font-medium">Twilio SID:</span>{' '}
+                    {phoneNumber.twilioSid ? (
+                      <span className="font-mono text-xs">
+                        {phoneNumber.twilioSid.substring(0, 8)}...
+                      </span>
+                    ) : 'N/A'}
+                  </div>
+                  
+                  <div className="text-sm text-gray-500">
+                    <span className="font-medium">Status:</span>{' '}
+                    <Badge variant={phoneNumber.active ? "success" : "secondary"}>
+                      {phoneNumber.active ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </div>
+                </div>
+                
+                <div className="pt-4 border-t">
+                  <label htmlFor={`assign-agent-${phoneNumber.id}`} className="block text-sm font-medium mb-2">
+                    Assigned Agent
+                  </label>
+                  <Select 
+                    value={phoneNumber.agentId?.toString() || ""} 
+                    onValueChange={(value) => handleAssignToAgent(phoneNumber.id, { target: { value } } as any)}
+                  >
+                    <SelectTrigger id={`assign-agent-${phoneNumber.id}`}>
+                      <SelectValue placeholder="Select an agent" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">None</SelectItem>
+                      {agents && Array.isArray(agents) && agents.map((agent: any) => (
+                        <SelectItem key={agent.id} value={agent.id.toString()}>
+                          {agent.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-16 border rounded-md mt-6">
+          <div className="mx-auto h-12 w-12 text-gray-400 mb-4">
+            <PhoneMissed className="h-12 w-12" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-1">No phone numbers found</h3>
+          <p className="text-gray-500 mb-4">
+            You don't have any phone numbers yet. Purchase a number or import existing numbers.
+          </p>
+          <div className="flex justify-center gap-4">
+            <Button 
+              onClick={() => setShowPurchaseDialog(true)}
+              disabled={!twilioAccounts || !Array.isArray(twilioAccounts) || twilioAccounts.length === 0}
+            >
+              <PhoneCall className="h-4 w-4 mr-2" />
+              Buy Phone Number
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => setShowImportDialog(true)}
+              disabled={!twilioAccounts || !Array.isArray(twilioAccounts) || twilioAccounts.length === 0}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Import Existing Numbers
+            </Button>
+          </div>
+        </div>
+      )}
+      
+      {/* Import Numbers Dialog */}
+      <ImportPhoneNumbersDialog 
+        open={showImportDialog} 
+        onOpenChange={setShowImportDialog} 
+        twilioAccounts={twilioAccounts || []}
+      />
     </div>
   );
 }

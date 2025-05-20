@@ -44,7 +44,7 @@ export function ImportPhoneNumbersDialog({ open, onOpenChange, twilioAccounts }:
       queryClient.invalidateQueries({ queryKey: ['/api/phone-numbers'] });
       toast({
         title: "Phone numbers imported",
-        description: `Successfully imported ${data.imported.length} phone numbers.${data.skipped.length > 0 ? ` (${data.skipped.length} already exist)` : ''}`,
+        description: `Successfully imported ${data.imported.length} phone numbers${data.skipped.length > 0 ? ` (${data.skipped.length} already exist)` : ''}`,
       });
       onOpenChange(false);
       setSelectedAccountId("");
@@ -83,7 +83,7 @@ export function ImportPhoneNumbersDialog({ open, onOpenChange, twilioAccounts }:
         </DialogHeader>
         
         <div className="grid gap-4 py-4">
-          {twilioAccounts && twilioAccounts.length > 0 ? (
+          {twilioAccounts && Array.isArray(twilioAccounts) && twilioAccounts.length > 0 ? (
             <div className="grid gap-2">
               <label htmlFor="twilio-account" className="text-sm font-medium">
                 Select Twilio Account
