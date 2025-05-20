@@ -493,47 +493,43 @@ export default function AgentDetailPage() {
                 model: {
                   provider: "openai",
                   model: getOpenAIModel(agentData.responseIntelligenceLevel),
-                  messages: [
-                    {
-                      role: "system",
-                      content: (() => {
-                        // Build system prompt using only provided fields
-                        let prompt = '';
-                        
-                        // Only add sections that have content
-                        if (agentData.persona) {
-                          prompt += `## Persona ##\n${agentData.persona}\n\n`;
-                        }
-                        
-                        if (agentData.companyBackground) {
-                          prompt += `## Company Background ##\n${agentData.companyBackground}\n\n`;
-                        }
-                        
-                        if (agentData.agentRules) {
-                          prompt += `## Agent Rules ##\n${agentData.agentRules}\n\n`;
-                        }
-                        
-                        if (agentData.script) {
-                          prompt += `## Agent Script ##\n${agentData.script}\n\n`;
-                        }
-                        
-                        if (agentData.edgeCases) {
-                          prompt += `## Edge Cases ##\n${agentData.edgeCases}\n\n`;
-                        }
-                        
-                        if (agentData.faqs) {
-                          prompt += `## FAQs ##\n${agentData.faqs}\n\n`;
-                        }
-                        
-                        // If no content was provided at all, add minimal instruction
-                        if (prompt.trim() === '') {
-                          prompt = 'You are a helpful AI assistant that answers questions clearly and honestly.';
-                        }
-                        
-                        return prompt.trim();
-                      })()
+                  temperature: 0.7,
+                  systemPrompt: (() => {
+                    // Build system prompt using only provided fields
+                    let prompt = '';
+                    
+                    // Only add sections that have content
+                    if (agentData.persona) {
+                      prompt += `## Persona ##\n${agentData.persona}\n\n`;
                     }
-                  ]
+                    
+                    if (agentData.companyBackground) {
+                      prompt += `## Company Background ##\n${agentData.companyBackground}\n\n`;
+                    }
+                    
+                    if (agentData.agentRules) {
+                      prompt += `## Agent Rules ##\n${agentData.agentRules}\n\n`;
+                    }
+                    
+                    if (agentData.script) {
+                      prompt += `## Agent Script ##\n${agentData.script}\n\n`;
+                    }
+                    
+                    if (agentData.edgeCases) {
+                      prompt += `## Edge Cases ##\n${agentData.edgeCases}\n\n`;
+                    }
+                    
+                    if (agentData.faqs) {
+                      prompt += `## FAQs ##\n${agentData.faqs}\n\n`;
+                    }
+                    
+                    // If no content was provided at all, add minimal instruction
+                    if (prompt.trim() === '') {
+                      prompt = 'You are a helpful AI assistant that answers questions clearly and honestly.';
+                    }
+                    
+                    return prompt.trim();
+                  })()
                 },
                 voice: {
                   provider: "vapi",
