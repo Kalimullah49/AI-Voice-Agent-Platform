@@ -72,6 +72,9 @@ export default function PhoneNumbersPage() {
   const [numberToRelease, setNumberToRelease] = useState<{id: number, number: string} | null>(null);
   const [selectedTwilioAccountId, setSelectedTwilioAccountId] = useState<number | null>(null);
   const [assignToAgentId, setAssignToAgentId] = useState("");
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [importAccountId, setImportAccountId] = useState<number | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
   
   const queryClient = useQueryClient();
   
