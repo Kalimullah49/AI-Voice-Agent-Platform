@@ -280,6 +280,9 @@ export type InsertCall = z.infer<typeof insertCallSchema>;
 export type Action = typeof actions.$inferSelect;
 export type InsertAction = z.infer<typeof insertActionSchema>;
 
+export type TwilioAccount = typeof twilioAccounts.$inferSelect;
+export type InsertTwilioAccount = z.infer<typeof insertTwilioAccountSchema>;
+
 export type PhoneNumber = typeof phoneNumbers.$inferSelect;
 export type InsertPhoneNumber = z.infer<typeof insertPhoneNumberSchema>;
 

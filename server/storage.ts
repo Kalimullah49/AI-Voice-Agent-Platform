@@ -4,6 +4,7 @@ import {
   calls, type Call, type InsertCall,
   actions, type Action, type InsertAction,
   phoneNumbers, type PhoneNumber, type InsertPhoneNumber,
+  twilioAccounts, type TwilioAccount, type InsertTwilioAccount,
   contactGroups, type ContactGroup, type InsertContactGroup,
   contacts, type Contact, type InsertContact,
   campaigns, type Campaign, type InsertCampaign
@@ -37,10 +38,21 @@ export interface IStorage {
   createAction(action: InsertAction): Promise<Action>;
   getAllActions(): Promise<Action[]>;
   
+  // Twilio account operations
+  getTwilioAccount(id: number): Promise<TwilioAccount | undefined>;
+  createTwilioAccount(account: InsertTwilioAccount): Promise<TwilioAccount>;
+  updateTwilioAccount(id: number, account: Partial<InsertTwilioAccount>): Promise<TwilioAccount | undefined>;
+  deleteTwilioAccount(id: number): Promise<boolean>;
+  getAllTwilioAccounts(): Promise<TwilioAccount[]>;
+  getTwilioAccountsByUserId(userId: string): Promise<TwilioAccount[]>;
+  getDefaultTwilioAccount(userId: string): Promise<TwilioAccount | undefined>;
+  setDefaultTwilioAccount(id: number, userId: string): Promise<boolean>;
+  
   // Phone number operations
   getPhoneNumber(id: number): Promise<PhoneNumber | undefined>;
   createPhoneNumber(phoneNumber: InsertPhoneNumber): Promise<PhoneNumber>;
   getAllPhoneNumbers(): Promise<PhoneNumber[]>;
+  getPhoneNumbersByUserId(userId: string): Promise<PhoneNumber[]>;
   
   // Contact group operations
   getContactGroup(id: number): Promise<ContactGroup | undefined>;
