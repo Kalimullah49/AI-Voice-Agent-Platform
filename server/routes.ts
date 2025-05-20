@@ -1,9 +1,14 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertAgentSchema, insertCallSchema, insertActionSchema, insertPhoneNumberSchema, insertContactGroupSchema, insertContactSchema, insertCampaignSchema } from "@shared/schema";
+import { 
+  insertUserSchema, insertAgentSchema, insertCallSchema, insertActionSchema, 
+  insertPhoneNumberSchema, insertContactGroupSchema, insertContactSchema, 
+  insertCampaignSchema, insertTwilioAccountSchema 
+} from "@shared/schema";
 import { z } from "zod";
 import { testApiConnection, synthesizeSpeech, getAvailableVoices, createVapiAssistant, deleteVapiAssistant, VapiAssistantParams } from "./utils/vapi";
+import twilio from 'twilio';
 // Our custom auth middleware will be imported dynamically
 import { DatabaseStorage } from "./database-storage";
 
@@ -306,12 +311,324 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Phone number routes
-  app.get("/api/phone-numbers", async (req, res) => {
+  // Twilio account management
+  app.get("/api/twilio-accounts", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const phoneNumbers = await storage.getAllPhoneNumbers();
+      const userId = req.session.userId;
+      const accounts = await storage.getTwilioAccountsByUserId(userId);
+      res.json(accounts);
+    } catch (error) {
+      console.error("Error fetching Twilio accounts:", error);
+      res.status(500).json({ message: "Failed to fetch Twilio accounts" });
+    }
+  });
+
+  app.get("/api/twilio-accounts/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId;
+      const accountId = parseInt(req.params.id);
+      
+      if (isNaN(accountId)) {
+        return res.status(400).json({ message: "Invalid account ID" });
+      }
+      
+      const account = await storage.getTwilioAccount(accountId);
+      
+      if (!account) {
+        return res.status(404).json({ message: "Twilio account not found" });
+      }
+      
+      // Check if this account belongs to the current user
+      if (account.userId !== userId) {
+        return res.status(403).json({ message: "You don't have permission to access this account" });
+      }
+      
+      res.json(account);
+    } catch (error) {
+      console.error("Error fetching Twilio account:", error);
+      res.status(500).json({ message: "Failed to fetch Twilio account" });
+    }
+  });
+
+  app.post("/api/twilio-accounts", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId;
+      
+      // Add the user ID to the account data
+      const accountData = insertTwilioAccountSchema.parse({
+        ...req.body,
+        userId
+      });
+      
+      // Verify the Twilio credentials before saving
+      try {
+        const client = twilio(accountData.accountSid, accountData.authToken);
+        // Try to fetch account details to verify credentials
+        await client.api.accounts(accountData.accountSid).fetch();
+      } catch (twilioError) {
+        return res.status(400).json({ 
+          message: "Invalid Twilio credentials", 
+          error: twilioError.message 
+        });
+      }
+      
+      const account = await storage.createTwilioAccount(accountData);
+      res.status(201).json(account);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid account data", errors: error.errors });
+      } else {
+        console.error("Error creating Twilio account:", error);
+        res.status(500).json({ message: "Failed to create Twilio account" });
+      }
+    }
+  });
+
+  app.patch("/api/twilio-accounts/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId;
+      const accountId = parseInt(req.params.id);
+      
+      if (isNaN(accountId)) {
+        return res.status(400).json({ message: "Invalid account ID" });
+      }
+      
+      const existingAccount = await storage.getTwilioAccount(accountId);
+      
+      if (!existingAccount) {
+        return res.status(404).json({ message: "Twilio account not found" });
+      }
+      
+      // Check if this account belongs to the current user
+      if (existingAccount.userId !== userId) {
+        return res.status(403).json({ message: "You don't have permission to modify this account" });
+      }
+      
+      // If updating credentials, verify they work
+      if (req.body.accountSid || req.body.authToken) {
+        try {
+          const accountSid = req.body.accountSid || existingAccount.accountSid;
+          const authToken = req.body.authToken || existingAccount.authToken;
+          
+          const client = twilio(accountSid, authToken);
+          // Try to fetch account details to verify credentials
+          await client.api.accounts(accountSid).fetch();
+        } catch (twilioError) {
+          return res.status(400).json({ 
+            message: "Invalid Twilio credentials", 
+            error: twilioError.message 
+          });
+        }
+      }
+      
+      const updatedAccount = await storage.updateTwilioAccount(accountId, req.body);
+      res.json(updatedAccount);
+    } catch (error) {
+      console.error("Error updating Twilio account:", error);
+      res.status(500).json({ message: "Failed to update Twilio account" });
+    }
+  });
+
+  app.delete("/api/twilio-accounts/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId;
+      const accountId = parseInt(req.params.id);
+      
+      if (isNaN(accountId)) {
+        return res.status(400).json({ message: "Invalid account ID" });
+      }
+      
+      const existingAccount = await storage.getTwilioAccount(accountId);
+      
+      if (!existingAccount) {
+        return res.status(404).json({ message: "Twilio account not found" });
+      }
+      
+      // Check if this account belongs to the current user
+      if (existingAccount.userId !== userId) {
+        return res.status(403).json({ message: "You don't have permission to delete this account" });
+      }
+      
+      await storage.deleteTwilioAccount(accountId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting Twilio account:", error);
+      res.status(500).json({ message: "Failed to delete Twilio account" });
+    }
+  });
+
+  app.post("/api/twilio-accounts/:id/set-default", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId;
+      const accountId = parseInt(req.params.id);
+      
+      if (isNaN(accountId)) {
+        return res.status(400).json({ message: "Invalid account ID" });
+      }
+      
+      const result = await storage.setDefaultTwilioAccount(accountId, userId);
+      
+      if (!result) {
+        return res.status(404).json({ message: "Failed to set account as default" });
+      }
+      
+      res.json({ message: "Default account updated successfully" });
+    } catch (error) {
+      console.error("Error setting default Twilio account:", error);
+      res.status(500).json({ message: "Failed to set default Twilio account" });
+    }
+  });
+
+  // Twilio phone number management
+  app.get("/api/twilio-phone-numbers", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId;
+      const accountId = parseInt(req.query.accountId as string);
+      
+      if (isNaN(accountId)) {
+        return res.status(400).json({ message: "Invalid account ID" });
+      }
+      
+      const account = await storage.getTwilioAccount(accountId);
+      
+      if (!account) {
+        return res.status(404).json({ message: "Twilio account not found" });
+      }
+      
+      // Check if this account belongs to the current user
+      if (account.userId !== userId) {
+        return res.status(403).json({ message: "You don't have permission to access this account" });
+      }
+      
+      // Create Twilio client with user's credentials
+      const client = twilio(account.accountSid, account.authToken);
+      
+      // Fetch available phone numbers from Twilio
+      const incomingNumbers = await client.incomingPhoneNumbers.list();
+      
+      res.json(incomingNumbers.map(number => ({
+        sid: number.sid,
+        phoneNumber: number.phoneNumber,
+        friendlyName: number.friendlyName,
+        capabilities: number.capabilities,
+        dateCreated: number.dateCreated,
+        accountSid: number.accountSid
+      })));
+    } catch (error) {
+      console.error("Error fetching Twilio phone numbers:", error);
+      res.status(500).json({ message: "Failed to fetch Twilio phone numbers" });
+    }
+  });
+
+  app.get("/api/available-twilio-phone-numbers", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId;
+      const accountId = parseInt(req.query.accountId as string);
+      const countryCode = (req.query.countryCode as string) || 'US';
+      const areaCode = req.query.areaCode as string;
+      
+      if (isNaN(accountId)) {
+        return res.status(400).json({ message: "Invalid account ID" });
+      }
+      
+      const account = await storage.getTwilioAccount(accountId);
+      
+      if (!account) {
+        return res.status(404).json({ message: "Twilio account not found" });
+      }
+      
+      // Check if this account belongs to the current user
+      if (account.userId !== userId) {
+        return res.status(403).json({ message: "You don't have permission to access this account" });
+      }
+      
+      // Create Twilio client with user's credentials
+      const client = twilio(account.accountSid, account.authToken);
+      
+      // Search parameters
+      const searchParams: any = {};
+      if (areaCode) {
+        searchParams.areaCode = areaCode;
+      }
+      
+      // Fetch available phone numbers from Twilio
+      const availableNumbers = await client.availablePhoneNumbers(countryCode)
+                                          .local
+                                          .list(searchParams);
+      
+      res.json(availableNumbers.map(number => ({
+        phoneNumber: number.phoneNumber,
+        friendlyName: number.friendlyName,
+        locality: number.locality,
+        region: number.region,
+        isoCountry: number.isoCountry,
+        capabilities: number.capabilities
+      })));
+    } catch (error) {
+      console.error("Error fetching available Twilio phone numbers:", error);
+      res.status(500).json({ message: "Failed to fetch available Twilio phone numbers" });
+    }
+  });
+
+  app.post("/api/purchase-twilio-phone-number", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId;
+      const { accountId, phoneNumber, friendlyName } = req.body;
+      
+      if (!accountId || !phoneNumber) {
+        return res.status(400).json({ message: "Account ID and phone number are required" });
+      }
+      
+      const account = await storage.getTwilioAccount(accountId);
+      
+      if (!account) {
+        return res.status(404).json({ message: "Twilio account not found" });
+      }
+      
+      // Check if this account belongs to the current user
+      if (account.userId !== userId) {
+        return res.status(403).json({ message: "You don't have permission to use this account" });
+      }
+      
+      // Create Twilio client with user's credentials
+      const client = twilio(account.accountSid, account.authToken);
+      
+      // Purchase phone number from Twilio
+      const purchasedNumber = await client.incomingPhoneNumbers.create({
+        phoneNumber,
+        friendlyName: friendlyName || `AimAI Number ${new Date().toISOString()}`
+      });
+      
+      // Store the phone number in our database
+      const phoneNumberData = {
+        number: purchasedNumber.phoneNumber,
+        userId,
+        twilioAccountId: accountId,
+        twilioSid: purchasedNumber.sid,
+        friendlyName: purchasedNumber.friendlyName,
+        active: true
+      };
+      
+      const savedNumber = await storage.createPhoneNumber(phoneNumberData);
+      
+      res.status(201).json(savedNumber);
+    } catch (error) {
+      console.error("Error purchasing Twilio phone number:", error);
+      res.status(500).json({ 
+        message: "Failed to purchase Twilio phone number", 
+        error: error.message 
+      });
+    }
+  });
+
+  // Phone number routes
+  app.get("/api/phone-numbers", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId;
+      const phoneNumbers = await storage.getPhoneNumbersByUserId(userId);
       res.json(phoneNumbers);
     } catch (error) {
+      console.error("Error fetching phone numbers:", error);
       res.status(500).json({ message: "Failed to fetch phone numbers" });
     }
   });
