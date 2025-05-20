@@ -658,13 +658,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Twilio account not found" });
       }
       
-      // Create Twilio client with user's credentials
-      const client = twilio(twilioAccount.accountSid, twilioAccount.authToken);
+      // Create Twilio client with user's credentials and enable debug mode
+      const client = twilio(
+        twilioAccount.accountSid, 
+        twilioAccount.authToken,
+        { 
+          logLevel: 'debug',
+          accountSid: twilioAccount.accountSid 
+        }
+      );
       
       try {
         // Release the number from Twilio
         if (phoneNumber.twilioSid) {
-          await client.incomingPhoneNumbers(phoneNumber.twilioSid).remove();
+          console.log(`Attempting to release Twilio number with SID: ${phoneNumber.twilioSid}`);
+          console.log(`Using Twilio account: ${twilioAccount.accountName} (${twilioAccount.accountSid.substring(0, 5)}...)`);
+          
+          try {
+            // First try to get the phone number details to confirm it exists
+            const incomingPhoneNumber = await client.incomingPhoneNumbers(phoneNumber.twilioSid).fetch();
+            console.log(`Found Twilio number: ${incomingPhoneNumber.phoneNumber}`);
+            
+            // Release the number using the correct API call
+            await client.incomingPhoneNumbers(phoneNumber.twilioSid).remove();
+            console.log(`Successfully released Twilio number: ${phoneNumber.number}`);
+          } catch (twilioFetchError) {
+            console.error("Error fetching or releasing Twilio number:", twilioFetchError);
+            
+            // Try an alternative approach - look up the number by phone number value
+            try {
+              console.log(`Trying to find number by value: ${phoneNumber.number}`);
+              const numbers = await client.incomingPhoneNumbers.list({
+                phoneNumber: phoneNumber.number
+              });
+              
+              if (numbers && numbers.length > 0) {
+                console.log(`Found ${numbers.length} matching number(s) by phone number value`);
+                // Release each matching number
+                for (const num of numbers) {
+                  console.log(`Releasing number with SID: ${num.sid}`);
+                  await client.incomingPhoneNumbers(num.sid).remove();
+                }
+              } else {
+                console.log(`No matching numbers found for: ${phoneNumber.number}`);
+                throw new Error(`Number ${phoneNumber.number} not found in your Twilio account`);
+              }
+            } catch (alternativeError) {
+              console.error("Alternative Twilio release approach failed:", alternativeError);
+              throw new Error(`Could not release number: ${alternativeError.message}`);
+            }
+          }
+        } else {
+          console.log(`No Twilio SID found for phone number: ${phoneNumber.number}`);
+          // We'll still delete from our database even if we couldn't release from Twilio
+          console.log("Phone number has no Twilio SID, will only remove from database");
         }
         
         // Only delete from our database if Twilio release was successful
