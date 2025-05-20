@@ -497,50 +497,68 @@ export async function registerPhoneNumberWithVapi(
     // Format phone number to ensure E.164 format (if not already)
     const formattedPhoneNumber = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber.replace(/\D/g, '')}`;
     
-    // Prepare request data
-    const requestData = {
-      phoneNumber: formattedPhoneNumber,
-      provider: "twilio",
-      account: {
-        accountSid: twilioAccountSid,
-        authToken: twilioAuthToken
-      }
-    };
+    console.log(`Attempting to register phone number with Vapi.ai: ${formattedPhoneNumber}`);
     
-    console.log(`Registering phone number with Vapi.ai: ${formattedPhoneNumber}`);
-    
-    // Make API request to Vapi.ai to register the phone number
+    // Direct API call to Vapi.ai with complete payload
     const response = await fetch(`${VAPI_API_BASE_URL}/phone-number`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${VAPI_AI_TOKEN}`
       },
-      body: JSON.stringify(requestData)
+      body: JSON.stringify({
+        phoneNumber: formattedPhoneNumber,
+        provider: "twilio",
+        account: {
+          accountSid: twilioAccountSid,
+          authToken: twilioAuthToken
+        }
+      })
     });
     
-    const responseData = await response.json() as any;
-    
-    // Log the complete response for debugging
-    console.log('Vapi.ai registration response:', JSON.stringify(responseData, null, 2));
+    // Parse response data
+    let responseData: any;
+    try {
+      responseData = await response.json();
+      console.log(`Vapi.ai registration response status: ${response.status}, data:`, JSON.stringify(responseData, null, 2));
+    } catch (parseError) {
+      console.error("Error parsing Vapi.ai response:", parseError);
+      return {
+        success: false,
+        message: `Error parsing Vapi.ai response: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`
+      };
+    }
     
     if (!response.ok) {
       console.error(`Vapi.ai API error registering phone number: ${response.status} - `, responseData);
       return {
         success: false,
-        message: `Error registering phone number with Vapi: ${responseData.message || responseData.error || 'Unknown error'}`
+        message: `Error registering number with Vapi.ai: ${responseData?.message || responseData?.error || response.statusText}`
       };
     }
     
-    // Check if the response contains the expected phone number ID
-    if (!responseData.id) {
+    if (!responseData || !responseData.id) {
       console.warn('Vapi.ai registration succeeded but no phone number ID was returned:', responseData);
+      
+      // Try to find the ID in the response in case the response format has changed
+      const id = responseData?.id || responseData?.phoneNumberId || responseData?.phone_number_id;
+      
+      if (id) {
+        console.log(`Found phone number ID "${id}" in an alternative field of the response`);
+        return {
+          success: true,
+          phoneNumberId: id,
+          message: "Phone number successfully registered with Vapi.ai"
+        };
+      }
+      
       return {
         success: true,
-        phoneNumberId: null,
-        message: "Phone number registered with Vapi.ai but no ID was returned"
+        message: "Phone number may have been registered with Vapi.ai but no ID was returned"
       };
     }
+    
+    console.log(`Successfully registered phone number ${formattedPhoneNumber} with Vapi.ai, ID: ${responseData.id}`);
     
     return {
       success: true,
@@ -551,9 +569,10 @@ export async function registerPhoneNumberWithVapi(
     console.error('Error registering phone number with Vapi:', error);
     return {
       success: false,
-      message: `Error registering phone number with Vapi: ${error instanceof Error ? error.message : 'Unknown error'}`
+      message: `Error registering phone number with Vapi: ${error instanceof Error ? error.message : String(error)}`
     };
   }
+}
 }
 
 /**
