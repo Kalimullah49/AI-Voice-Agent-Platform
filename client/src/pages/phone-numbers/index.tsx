@@ -619,9 +619,9 @@ export default function PhoneNumbersPage() {
                           <SelectValue placeholder="Select a Twilio account" />
                         </SelectTrigger>
                         <SelectContent>
-                          {twilioAccounts.map((account: any) => (
+                          {twilioAccounts.filter(account => account && account.id).map((account: any) => (
                             <SelectItem key={account.id} value={account.id.toString()}>
-                              {account.accountName} {account.isDefault && "(Default)"}
+                              {account.accountName || "Unnamed Account"} {account.isDefault ? "(Default)" : ""}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -724,10 +724,10 @@ export default function PhoneNumbersPage() {
                             <SelectValue placeholder="Select an agent" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">None</SelectItem>
-                            {agents && Array.isArray(agents) && agents.map((agent: any) => (
+                            <SelectItem value="none">None</SelectItem>
+                            {agents && Array.isArray(agents) && agents.filter(agent => agent && agent.id).map((agent: any) => (
                               <SelectItem key={agent.id} value={agent.id.toString()}>
-                                {agent.name}
+                                {agent.name || "Unnamed Agent"}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -884,7 +884,7 @@ export default function PhoneNumbersPage() {
                       <SelectValue placeholder="Select an agent" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       {agents && Array.isArray(agents) && agents.map((agent: any) => (
                         <SelectItem key={agent.id} value={agent.id.toString()}>
                           {agent.name}
