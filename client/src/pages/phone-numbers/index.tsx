@@ -261,28 +261,44 @@ export default function PhoneNumbersPage() {
   // Mutation for releasing a phone number
   const releasePhoneNumberMutation = useMutation({
     mutationFn: async (phoneNumberId: number) => {
-      const response = await fetch(`/api/phone-numbers/${phoneNumberId}`, {
-        method: 'DELETE'
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to release phone number');
+      try {
+        const response = await fetch(`/api/phone-numbers/${phoneNumberId}`, {
+          method: 'DELETE'
+        });
+        
+        // Always try to parse the response as JSON
+        const result = await response.json().catch(() => ({ 
+          message: response.status === 204 ? 'Phone number released successfully' : 'Unknown error'
+        }));
+        
+        if (!response.ok) {
+          throw new Error(result.message || 'Failed to release phone number');
+        }
+        
+        return result;
+      } catch (error) {
+        console.error("Error releasing phone number:", error);
+        throw error;
       }
-      
-      // Handle the new 200 response with message
-      return response.status === 204 ? { message: "Phone number released successfully" } : response.json();
     },
     onSuccess: (data) => {
+      // Close the dialog first
+      setShowReleaseConfirmDialog(false);
+      setNumberToRelease(null);
+      
+      // Then invalidate the query and show the toast
       queryClient.invalidateQueries({ queryKey: ["/api/phone-numbers"] });
       toast({
         title: "Success",
         description: data.message || "Phone number released successfully",
       });
     },
-    onError: (error: Error) => {
-      // Display the specific error message from Twilio if available
-      const errorMessage = error.message || "Failed to release phone number";
+    onError: (error: any) => {
+      // Close the dialog
+      setShowReleaseConfirmDialog(false);
+      
+      // Display the specific error message
+      const errorMessage = error?.message || "Failed to release phone number";
       
       toast({
         title: "Error Releasing Number",
