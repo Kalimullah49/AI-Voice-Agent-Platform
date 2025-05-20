@@ -602,7 +602,7 @@ export default function PhoneNumbersPage() {
                 Buy Phone Number
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Search & Purchase Twilio Numbers</DialogTitle>
                 <DialogDescription>
@@ -678,14 +678,20 @@ export default function PhoneNumbersPage() {
                     </div>
                     
                     {/* Available numbers list */}
-                    <div className="border rounded-md p-2 max-h-60 overflow-y-auto">
-                      <div className="sticky top-0 bg-white p-2 border-b mb-2 z-10">
+                    <div className="border rounded-md p-2 max-h-[40vh] md:max-h-[50vh] overflow-y-auto">
+                      <div className="sticky top-0 bg-white p-2 border-b mb-2 z-10 flex justify-between items-center">
                         <h3 className="font-medium">Available Phone Numbers</h3>
+                        {availableNumbers.length > 0 && (
+                          <span className="text-xs text-gray-500">
+                            {availableNumbers.length} number{availableNumbers.length !== 1 ? 's' : ''} found
+                          </span>
+                        )}
                       </div>
                       
                       {isSearching ? (
-                        <div className="py-8 flex justify-center">
-                          <div className="h-6 w-6 animate-spin rounded-full border-2 border-t-transparent"></div>
+                        <div className="py-8 flex flex-col justify-center items-center">
+                          <div className="h-6 w-6 animate-spin rounded-full border-2 border-t-transparent mb-2"></div>
+                          <span className="text-sm text-gray-500">Searching for available numbers...</span>
                         </div>
                       ) : availableNumbers.length > 0 ? (
                         <div className="space-y-2">
@@ -709,9 +715,9 @@ export default function PhoneNumbersPage() {
                       ) : (
                         <div className="py-8 text-center text-gray-500">
                           {searchAreaCode ? (
-                            'No phone numbers found with this area code. Try another area code.'
+                            'No phone numbers found with this area code. Try another area code or clear the area code to see all available numbers.'
                           ) : (
-                            'Enter an area code and search to see available numbers.'
+                            'Searching for available numbers...'
                           )}
                         </div>
                       )}
