@@ -681,10 +681,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           );
           
-          // Request to release the number from Twilio
+          // Request to release the number from Twilio using HTTP DELETE request
+          // This follows the official Twilio API documentation for releasing phone numbers
           console.log(`Attempting to release Twilio number with SID: ${phoneNumber.twilioSid}`);
-          await client.incomingPhoneNumbers(phoneNumber.twilioSid).remove();
-          console.log('Successfully released number from Twilio');
+          
+          // Create authorization string for Basic Auth
+          const auth = Buffer.from(`${twilioAccount.accountSid}:${twilioAccount.authToken}`).toString('base64');
+          
+          // Make direct HTTP request to Twilio API
+          const twilioDeletionUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccount.accountSid}/IncomingPhoneNumbers/${phoneNumber.twilioSid}.json`;
+          console.log(`Making Twilio API request to: ${twilioDeletionUrl}`);
+          
+          const response = await fetch(twilioDeletionUrl, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Basic ${auth}`,
+              'Content-Type': 'application/x-www-form-urlencoded'
+            }
+          });
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Twilio API error: ${response.status} - ${errorText}`);
+          }
+          
+          console.log(`Successfully released number ${phoneNumber.number} from Twilio account ${twilioAccount.accountName || twilioAccount.accountSid}`);
           
           // Now delete from our database ONLY after successfully releasing from Twilio
           const success = await storage.deletePhoneNumber(phoneNumberId);
