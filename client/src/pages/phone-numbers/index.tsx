@@ -21,7 +21,8 @@ import {
   Key,
   Globe,
   ListFilter,
-  Loader2
+  Loader2,
+  Download
 } from "lucide-react";
 import {
   AlertDialog,
@@ -576,6 +577,36 @@ export default function PhoneNumbersPage() {
                 <PhoneCall className="h-4 w-4 mr-2" />
                 Buy Phone Number
               </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Search & Purchase Twilio Numbers</DialogTitle>
+                <DialogDescription>
+                  Search for available numbers by area code to purchase through your Twilio account.
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="grid gap-6 py-4">
+                {twilioAccounts && twilioAccounts.length > 0 ? (
+                  <>
+                    <div className="grid gap-2">
+                      <label htmlFor="twilio-account" className="text-sm font-medium">Select Twilio Account</label>
+                      <Select 
+                        value={selectedTwilioAccountId?.toString() || ""} 
+                        onValueChange={(value) => setSelectedTwilioAccountId(parseInt(value))}
+                      >
+                        <SelectTrigger id="twilio-account">
+                          <SelectValue placeholder="Select a Twilio account" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {twilioAccounts.map((account) => (
+                            <SelectItem key={account.id} value={account.id.toString()}>
+                              {account.accountName} {account.isDefault ? "(Default)" : ""}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>

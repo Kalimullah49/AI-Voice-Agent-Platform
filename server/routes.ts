@@ -633,6 +633,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Import existing phone numbers from a connected Twilio account
+  app.post("/api/import-twilio-numbers", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId;
+      const { accountId } = req.body;
+      
+      if (!accountId) {
+        return res.status(400).json({ message: "Twilio account ID is required" });
+      }
+      
+      // Get the Twilio account
+      const twilioAccount = await storage.getTwilioAccount(accountId);
+      
+      if (!twilioAccount) {
+        return res.status(404).json({ message: "Twilio account not found" });
+      }
+      
+      // Verify the account belongs to the current user
+      if (twilioAccount.userId !== userId) {
+        return res.status(403).json({ message: "You don't have permission to access this Twilio account" });
+      }
+      
+      // Create Twilio client
+      const client = twilio(twilioAccount.accountSid, twilioAccount.authToken);
+      
+      // Fetch all existing phone numbers from the Twilio account
+      const twilioNumbers = await client.incomingPhoneNumbers.list();
+      console.log(`Found ${twilioNumbers.length} phone numbers in Twilio account ${twilioAccount.accountName || "Unknown"}`);
+      
+      // Get existing phone numbers in our database for this user to avoid duplicates
+      const existingNumbers = await storage.getPhoneNumbersByUserId(userId);
+      const existingNumberValues = existingNumbers.map(num => num.number);
+      
+      // Import new numbers not already in our database
+      const importedNumbers = [];
+      const skippedNumbers = [];
+      
+      for (const twilioNumber of twilioNumbers) {
+        // Skip if the number is already in our database
+        if (existingNumberValues.includes(twilioNumber.phoneNumber)) {
+          skippedNumbers.push({
+            number: twilioNumber.phoneNumber,
+            reason: "Already exists in database"
+          });
+          continue;
+        }
+        
+        // Add to our database
+        const newPhoneNumber = await storage.createPhoneNumber({
+          number: twilioNumber.phoneNumber,
+          userId,
+          twilioAccountId: accountId,
+          twilioSid: twilioNumber.sid,
+          friendlyName: twilioNumber.friendlyName || `Imported ${twilioNumber.phoneNumber}`,
+          active: true
+        });
+        
+        importedNumbers.push(newPhoneNumber);
+      }
+      
+      res.json({
+        message: `Successfully imported ${importedNumbers.length} phone numbers`,
+        imported: importedNumbers,
+        skipped: skippedNumbers
+      });
+    } catch (error) {
+      console.error("Error importing phone numbers from Twilio:", error);
+      res.status(500).json({ 
+        message: "Failed to import phone numbers from Twilio", 
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+  });
+  
   // Release phone number from Twilio and then delete from database
   app.delete("/api/phone-numbers/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
