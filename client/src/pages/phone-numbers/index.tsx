@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Card, 
   CardContent, 
@@ -91,6 +91,18 @@ export default function PhoneNumbersPage() {
       isDefault: false,
     },
   });
+  
+  // Automatically search for available numbers when the dialog opens and a Twilio account is selected
+  useEffect(() => {
+    if (showPurchaseDialog && selectedTwilioAccountId && !isSearching && availableNumbers.length === 0) {
+      // Short delay to let the dialog open fully
+      const timer = setTimeout(() => {
+        searchAvailableTwilioNumbers();
+      }, 300);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [showPurchaseDialog, selectedTwilioAccountId]);
 
   // Mutation for creating a Twilio account
   const createTwilioAccountMutation = useMutation({
@@ -244,19 +256,18 @@ export default function PhoneNumbersPage() {
       return;
     }
     
-    if (!searchAreaCode) {
-      toast({
-        title: "Search Error",
-        description: "Please enter an area code",
-        variant: "destructive"
-      });
-      return;
-    }
-    
     setIsSearching(true);
     
     try {
-      const response = await fetch(`/api/available-twilio-phone-numbers?accountId=${selectedTwilioAccountId}&countryCode=${countryCode}&areaCode=${searchAreaCode}`);
+      // Build the URL with required parameters
+      let url = `/api/available-twilio-phone-numbers?accountId=${selectedTwilioAccountId}&countryCode=${countryCode}`;
+      
+      // Add area code if provided
+      if (searchAreaCode) {
+        url += `&areaCode=${searchAreaCode}`;
+      }
+      
+      const response = await fetch(url);
       
       if (!response.ok) {
         const errorData = await response.json();
