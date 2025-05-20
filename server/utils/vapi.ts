@@ -442,11 +442,11 @@ export async function createVapiAssistant(params: VapiAssistantParams): Promise<
  */
 export async function deleteVapiPhoneNumber(phoneNumberId: string): Promise<{ success: boolean; message?: string; }> {
   try {
-    // Check if Vapi public key is available
-    if (!VAPI_PUBLIC_KEY) {
+    // Check if Vapi private key is available
+    if (!VAPI_PRIVATE_KEY) {
       return {
         success: false,
-        message: "Vapi.ai public key is not defined. Please set VAPI_PUBLIC_KEY in your environment variables."
+        message: "Vapi.ai private key is not defined. Please set VAPI_PRIVATE_KEY in your environment variables."
       };
     }
     
@@ -455,7 +455,7 @@ export async function deleteVapiPhoneNumber(phoneNumberId: string): Promise<{ su
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${VAPI_PUBLIC_KEY}`
+        'Authorization': `Bearer ${VAPI_PRIVATE_KEY}`
       }
     });
     
