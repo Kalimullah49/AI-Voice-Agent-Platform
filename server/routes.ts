@@ -8,6 +8,7 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import { testApiConnection, synthesizeSpeech, getAvailableVoices, createVapiAssistant, deleteVapiAssistant, VapiAssistantParams, registerPhoneNumberWithVapi, deleteVapiPhoneNumber } from "./utils/vapi";
+import { assignPhoneToAgent } from './utils/vapiIntegration';
 import twilio from 'twilio';
 // Our custom auth middleware will be imported dynamically
 import { DatabaseStorage } from "./database-storage";
@@ -889,6 +890,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Using Vapi integration functions for phone assignment
+  
   // Assign phone number to an agent
   app.patch("/api/phone-numbers/:id/assign", isAuthenticated, async (req: Request, res: Response) => {
     try {
@@ -917,12 +920,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (agent.userId !== userId) {
           return res.status(403).json({ message: "You don't have permission to use this agent" });
         }
+        
+        // Use the assign phone number to agent function to handle Vapi integration
+        const result = await assignPhoneToAgent(phoneNumberId, agentId);
+        
+        if (!result.success) {
+          return res.status(500).json({ message: result.message });
+        }
+        
+        return res.json(result.phoneNumber);
+      } else {
+        // Just remove the agent assignment
+        const updatedPhoneNumber = await storage.updatePhoneNumber(phoneNumberId, { agentId: null });
+        res.json(updatedPhoneNumber);
       }
-      
-      // Update the phone number
-      const updatedPhoneNumber = await storage.updatePhoneNumber(phoneNumberId, { agentId });
-      
-      res.json(updatedPhoneNumber);
     } catch (error) {
       console.error("Error assigning phone number:", error);
       res.status(500).json({ message: "Failed to assign phone number" });
