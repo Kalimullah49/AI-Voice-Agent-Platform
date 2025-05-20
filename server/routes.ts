@@ -670,48 +670,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       try {
         // Release the number from Twilio
-        if (phoneNumber.twilioSid) {
+        if (phoneNumber.twilioSid && twilioAccount.accountSid && twilioAccount.authToken) {
           console.log(`Attempting to release Twilio number with SID: ${phoneNumber.twilioSid}`);
           console.log(`Using Twilio account: ${twilioAccount.accountName} (${twilioAccount.accountSid.substring(0, 5)}...)`);
           
           try {
-            // First try to get the phone number details to confirm it exists
-            const incomingPhoneNumber = await client.incomingPhoneNumbers(phoneNumber.twilioSid).fetch();
-            console.log(`Found Twilio number: ${incomingPhoneNumber.phoneNumber}`);
+            // Direct API call using node-fetch
+            const fetch = require('node-fetch');
             
-            // Release the number using the correct API call
-            await client.incomingPhoneNumbers(phoneNumber.twilioSid).remove();
-            console.log(`Successfully released Twilio number: ${phoneNumber.number}`);
-          } catch (twilioFetchError) {
-            console.error("Error fetching or releasing Twilio number:", twilioFetchError);
+            // Use the official Twilio REST API format
+            const url = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccount.accountSid}/IncomingPhoneNumbers/${phoneNumber.twilioSid}.json`;
+            const auth = Buffer.from(`${twilioAccount.accountSid}:${twilioAccount.authToken}`).toString('base64');
             
-            // Try an alternative approach - look up the number by phone number value
-            try {
-              console.log(`Trying to find number by value: ${phoneNumber.number}`);
-              const numbers = await client.incomingPhoneNumbers.list({
-                phoneNumber: phoneNumber.number
-              });
-              
-              if (numbers && numbers.length > 0) {
-                console.log(`Found ${numbers.length} matching number(s) by phone number value`);
-                // Release each matching number
-                for (const num of numbers) {
-                  console.log(`Releasing number with SID: ${num.sid}`);
-                  await client.incomingPhoneNumbers(num.sid).remove();
-                }
-              } else {
-                console.log(`No matching numbers found for: ${phoneNumber.number}`);
-                throw new Error(`Number ${phoneNumber.number} not found in your Twilio account`);
+            console.log(`Making Twilio API request to: ${url.replace(/\/[^/]+:[^/]+@/, '/***:***@')}`);
+            
+            const response = await fetch(url, {
+              method: 'DELETE',
+              headers: {
+                'Authorization': `Basic ${auth}`,
+                'Content-Type': 'application/x-www-form-urlencoded'
               }
-            } catch (alternativeError) {
-              console.error("Alternative Twilio release approach failed:", alternativeError);
-              throw new Error(`Could not release number: ${alternativeError.message}`);
+            });
+            
+            const responseText = await response.text();
+            console.log(`Twilio API response status: ${response.status}`);
+            console.log(`Twilio API response: ${responseText}`);
+            
+            if (!response.ok) {
+              throw new Error(`Twilio API error: ${response.status} - ${responseText}`);
             }
+            
+            console.log(`Successfully released Twilio number: ${phoneNumber.number}`);
+          } catch (directApiError) {
+            console.error("Error with direct Twilio API call:", directApiError);
+            throw new Error(`Failed to release Twilio number: ${directApiError.message}`);
           }
         } else {
-          console.log(`No Twilio SID found for phone number: ${phoneNumber.number}`);
+          console.log(`Missing required data to release number from Twilio: ${
+            !phoneNumber.twilioSid ? "No Twilio SID" : 
+            !twilioAccount.accountSid ? "No Twilio Account SID" : 
+            "No Twilio Auth Token"
+          }`);
+          
           // We'll still delete from our database even if we couldn't release from Twilio
-          console.log("Phone number has no Twilio SID, will only remove from database");
+          console.log("Will only remove from database due to missing Twilio data");
         }
         
         // Only delete from our database if Twilio release was successful
