@@ -486,6 +486,8 @@ export default function AgentDetailPage() {
                 recordingEnabled: true,
                 voicemailDetectionEnabled: true,
                 endCallFunctionEnabled: true,
+                // Removing any default forwarding phone numbers
+                forwardingPhoneNumber: "",
                 metadata: {
                   agentId: id,
                   createdFrom: "AimAI Platform",
