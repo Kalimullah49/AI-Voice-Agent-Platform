@@ -155,6 +155,35 @@ export async function assignPhoneToAgent(
           
           // Update our local copy
           phoneNumber.vapiPhoneNumberId = vapiResult.phoneNumberId;
+          
+          // Now that the phone number is registered with Vapi, associate it with the agent's Vapi assistant
+          if (agent.vapiAssistantId) {
+            try {
+              console.log(`Associating phone number ${phoneNumber.number} with Vapi assistant ${agent.vapiAssistantId}`);
+              
+              // Make API request to associate the number with the assistant
+              const response = await fetch(`https://api.vapi.ai/phone-numbers/${encodeURIComponent(phoneNumber.number)}/assistant`, {
+                method: 'PUT',
+                headers: {
+                  'Authorization': `Bearer ${VAPI_PRIVATE_KEY}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  assistantId: agent.vapiAssistantId
+                })
+              });
+              
+              if (!response.ok) {
+                const errorData = await response.json();
+                console.error(`Vapi.ai API error associating phone number with assistant: ${response.status} - `, errorData);
+              } else {
+                console.log(`Successfully associated phone number ${phoneNumber.number} with Vapi assistant ${agent.vapiAssistantId}`);
+              }
+            } catch (associationError) {
+              console.error('Error associating phone number with Vapi assistant:', associationError);
+              // We'll continue since the phone number was registered successfully
+            }
+          }
         } else {
           console.warn(`Failed to register phone number with Vapi.ai: ${vapiResult.message}`);
         }
