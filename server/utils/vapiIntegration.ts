@@ -46,8 +46,8 @@ export async function registerPhoneNumberWithVapiNumbers(
     console.log('Request payload:', JSON.stringify(payload, null, 2));
     
     // Make API request to Vapi.ai using the correct endpoint
-    // Using phone-numbers as the proper endpoint
-    const response = await fetch('https://api.vapi.ai/phone-numbers', {
+    // Using api.vapi.ai/phone-number as the endpoint (singular, not plural)
+    const response = await fetch('https://api.vapi.ai/phone-number', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -162,7 +162,7 @@ export async function assignPhoneToAgent(
               console.log(`Associating phone number ${phoneNumber.number} with Vapi assistant ${agent.vapiAssistantId}`);
               
               // Make API request to associate the number with the assistant
-              const response = await fetch(`https://api.vapi.ai/phone-numbers/${encodeURIComponent(phoneNumber.number)}/assistant`, {
+              const response = await fetch(`https://api.vapi.ai/phone-number/${encodeURIComponent(phoneNumber.number)}/assistant`, {
                 method: 'PUT',
                 headers: {
                   'Authorization': `Bearer ${VAPI_PRIVATE_KEY}`,
