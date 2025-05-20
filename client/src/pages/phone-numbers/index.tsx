@@ -677,8 +677,21 @@ export default function PhoneNumbersPage() {
           {isLoadingPhoneNumbers ? (
             <TableSkeleton />
           ) : phoneNumbersError ? (
-            <div className="text-center text-red-500 py-4">
-              {phoneNumbersError instanceof Error ? phoneNumbersError.message : "Failed to load phone numbers"}
+            <div className="text-center py-8">
+              <div className="mx-auto h-12 w-12 text-gray-400 mb-4">
+                <PhoneCall className="h-12 w-12" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-1">No Phone Numbers Available</h3>
+              <p className="text-gray-500 mb-4">
+                Add a Twilio account to get started with phone numbers.
+              </p>
+              <Button 
+                onClick={() => setShowTwilioAccountDialog(true)}
+                className="flex items-center"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Add Twilio Account
+              </Button>
             </div>
           ) : phoneNumbers && Array.isArray(phoneNumbers) && phoneNumbers.length > 0 ? (
             <div className="overflow-hidden border rounded-lg">
