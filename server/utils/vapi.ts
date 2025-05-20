@@ -487,11 +487,27 @@ export async function registerPhoneNumberWithVapi(
   try {
     // Check if Vapi API token is available
     if (!VAPI_AI_TOKEN) {
+      console.error("VAPI_AI_TOKEN is missing. Please set this environment variable.");
       return {
         success: false,
         message: "Vapi.ai API token is not defined. Please set VAPI_AI_TOKEN in your environment variables."
       };
     }
+    
+    // Format phone number to ensure E.164 format (if not already)
+    const formattedPhoneNumber = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber.replace(/\D/g, '')}`;
+    
+    // Prepare request data
+    const requestData = {
+      phoneNumber: formattedPhoneNumber,
+      provider: "twilio",
+      account: {
+        accountSid: twilioAccountSid,
+        authToken: twilioAuthToken
+      }
+    };
+    
+    console.log(`Registering phone number with Vapi.ai: ${formattedPhoneNumber}`);
     
     // Make API request to Vapi.ai to register the phone number
     const response = await fetch(`${VAPI_API_BASE_URL}/phone-number`, {
@@ -500,23 +516,29 @@ export async function registerPhoneNumberWithVapi(
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${VAPI_AI_TOKEN}`
       },
-      body: JSON.stringify({
-        phoneNumber,
-        provider: "twilio",
-        account: {
-          accountSid: twilioAccountSid,
-          authToken: twilioAuthToken
-        }
-      })
+      body: JSON.stringify(requestData)
     });
     
     const responseData = await response.json() as any;
+    
+    // Log the complete response for debugging
+    console.log('Vapi.ai registration response:', JSON.stringify(responseData, null, 2));
     
     if (!response.ok) {
       console.error(`Vapi.ai API error registering phone number: ${response.status} - `, responseData);
       return {
         success: false,
         message: `Error registering phone number with Vapi: ${responseData.message || responseData.error || 'Unknown error'}`
+      };
+    }
+    
+    // Check if the response contains the expected phone number ID
+    if (!responseData.id) {
+      console.warn('Vapi.ai registration succeeded but no phone number ID was returned:', responseData);
+      return {
+        success: true,
+        phoneNumberId: null,
+        message: "Phone number registered with Vapi.ai but no ID was returned"
       };
     }
     
