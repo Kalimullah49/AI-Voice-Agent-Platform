@@ -928,15 +928,22 @@ export default function PhoneNumbersPage() {
                               size="sm" 
                               className="h-8 px-2 text-xs"
                               onClick={() => {
-                                setNumberToRelease({
-                                  id: phoneNumber.id,
-                                  number: phoneNumber.number
-                                });
-                                setShowReleaseConfirmDialog(true);
+                                // Call the mutation directly without confirmation
+                                releasePhoneNumberMutation.mutate(phoneNumber.id);
                               }}
+                              disabled={releasePhoneNumberMutation.isPending}
                             >
-                              <Trash2 className="h-3.5 w-3.5 mr-1" />
-                              Release
+                              {releasePhoneNumberMutation.isPending ? (
+                                <>
+                                  <div className="mr-1 h-3 w-3 animate-spin rounded-full border-2 border-t-transparent"></div>
+                                  Releasing...
+                                </>
+                              ) : (
+                                <>
+                                  <Trash2 className="h-3.5 w-3.5 mr-1" />
+                                  Release
+                                </>
+                              )}
                             </Button>
                           </div>
                         </td>
