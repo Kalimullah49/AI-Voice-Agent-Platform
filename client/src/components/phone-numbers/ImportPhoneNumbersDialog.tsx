@@ -97,7 +97,7 @@ export function ImportPhoneNumbersDialog({ open, onOpenChange, twilioAccounts }:
                 </SelectTrigger>
                 <SelectContent>
                   {twilioAccounts.map((account) => (
-                    <SelectItem key={account.id} value={account.id.toString()}>
+                    <SelectItem key={account.id} value={account.id ? account.id.toString() : `account-${account.accountName}`}>
                       {account.accountName} {account.isDefault ? "(Default)" : ""}
                     </SelectItem>
                   ))}
