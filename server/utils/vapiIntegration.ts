@@ -35,12 +35,12 @@ export async function registerPhoneNumberWithVapiNumbers(
     
     console.log(`Registering phone number with Vapi.ai: ${formattedPhoneNumber} (${friendlyName})`);
     
-    // Create the payload for Vapi.ai
+    // Create the payload for Vapi.ai with correct field names
     const payload = {
       provider: "twilio",
       number: formattedPhoneNumber,
-      sid: twilioSid,
-      friendlyName
+      twilioAccountSid: twilioSid, // Using the correct field name that Vapi.ai expects
+      // removing friendlyName as it's not expected by the API
     };
     
     console.log('Request payload:', JSON.stringify(payload, null, 2));
