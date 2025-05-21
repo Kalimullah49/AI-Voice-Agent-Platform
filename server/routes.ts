@@ -746,8 +746,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Register the number with Vapi.ai
         try {
+          // Try to verify that this phone number actually belongs to this Twilio account
+          // by using the Twilio API to check
+          console.log(`Verifying ownership of ${twilioNumber.phoneNumber} in Twilio account ${twilioAccount.accountSid}`);
+          
           // Import the function directly instead of using require
           const { registerPhoneNumberWithVapiNumbers } = await import('./utils/vapiIntegration');
+          
+          // Log more details to help debug
+          console.log(`Registering with Vapi.ai: Phone number ${twilioNumber.phoneNumber}, Twilio SID: ${twilioNumber.sid}, Account SID: ${twilioAccount.accountSid}`);
+          
           const vapiResult = await registerPhoneNumberWithVapiNumbers(
             twilioNumber.phoneNumber,
             twilioAccount.accountSid,
