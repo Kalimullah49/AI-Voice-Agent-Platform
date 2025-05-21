@@ -212,13 +212,19 @@ export async function handleVapiWebhook(req: Request, res: Response) {
     let error = "";
     
     try {
-      // Try to determine the type of webhook
+      // Try to determine the type of webhook with improved detection
       if (data.event === "end-of-call-report") {
         webhookType = "end-of-call-report";
       } else if (data.type) {
         webhookType = data.type;
       } else if (data.event) {
         webhookType = data.event;
+      } else if (data.call && data.call.status) {
+        webhookType = `call-status-${data.call.status}`;
+      } else if (data.assistant && data.assistant.id) {
+        webhookType = "assistant-event";
+      } else if (data.function) {
+        webhookType = `function-${data.function.name || "unknown"}`;
       }
       
       // Create webhook log entry
