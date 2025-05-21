@@ -895,11 +895,24 @@ export default function PhoneNumbersPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">None</SelectItem>
-                      {agents && Array.isArray(agents) && agents.map((agent: any) => (
-                        <SelectItem key={agent.id} value={agent.id.toString()}>
-                          {agent.name}
-                        </SelectItem>
-                      ))}
+                      {agents && Array.isArray(agents) && agents
+                        .filter(agent => {
+                          // Include this agent if it's already assigned to this phone number
+                          if (phoneNumber.agentId === agent.id) return true;
+                          
+                          // Check if this agent already has a phone number assigned to it
+                          // If so, don't include it in the dropdown to prevent multiple phone numbers assigned to the same agent
+                          const hasPhoneNumber = phoneNumbers.some(pn => 
+                            pn.agentId === agent.id && pn.id !== phoneNumber.id
+                          );
+                          return !hasPhoneNumber;
+                        })
+                        .map((agent: any) => (
+                          <SelectItem key={agent.id} value={agent.id.toString()}>
+                            {agent.name}
+                          </SelectItem>
+                        ))
+                      }
                     </SelectContent>
                   </Select>
                 </div>
