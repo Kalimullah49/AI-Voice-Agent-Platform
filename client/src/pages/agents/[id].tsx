@@ -23,6 +23,14 @@ import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription
+} from "@/components/ui/dialog";
 import { apiRequest } from "@/lib/queryClient";
 import { 
   PhoneCall, 
@@ -155,6 +163,63 @@ export default function AgentDetailPage() {
       });
   };
   
+  // Function to make an outbound call
+  const makeOutboundCall = async () => {
+    if (!callToNumber) {
+      toast({
+        title: "Phone Number Required",
+        description: "Please enter a phone number to call.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsCallingLoading(true);
+      
+      const phoneNumber = assignedPhoneNumbers?.[0]?.number;
+      
+      if (!phoneNumber) {
+        toast({
+          title: "No Phone Number Assigned",
+          description: "This agent doesn't have a phone number assigned. Please assign a phone number first.",
+          variant: "destructive",
+        });
+        setIsCallingLoading(false);
+        return;
+      }
+      
+      // Make API call to start an outbound call
+      const response = await apiRequest("POST", `/api/vapi/call`, {
+        agentId: id,
+        fromNumber: phoneNumber,
+        toNumber: callToNumber
+      });
+      
+      if (response.ok) {
+        toast({
+          title: "Call Initiated",
+          description: `A call to ${callToNumber} has been started.`,
+        });
+        
+        // Close the dialog and reset state
+        setCallNumberDialogOpen(false);
+        setCallToNumber("");
+      } else {
+        const data = await response.json();
+        throw new Error(data.message || "Failed to initiate call");
+      }
+    } catch (error) {
+      toast({
+        title: "Call Failed",
+        description: error.message || "Failed to initiate call. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCallingLoading(false);
+    }
+  };
+
   // Update local state when agent data is loaded
   useEffect(() => {
     if (agent) {
