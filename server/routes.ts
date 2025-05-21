@@ -1393,32 +1393,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Dashboard metrics
-  app.get("/api/metrics/dashboard", async (req, res) => {
+  app.get("/api/metrics/dashboard", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const calls = await storage.getAllCalls();
+      const userId = req.session.userId;
       
-      // Calculate metrics
-      const totalCalls = calls.length;
-      const totalDuration = calls.reduce((sum, call) => sum + call.duration, 0);
-      const totalCost = calls.reduce((sum, call) => sum + call.cost, 0);
+      // First get all user's agents
+      const agents = await storage.getAllAgentsByUserId(userId);
+      const agentIds = agents.map(agent => agent.id);
       
+      // Get all calls for these agents
+      const allCalls = await storage.getAllCalls();
+      const calls = allCalls.filter(call => 
+        call.agentId && agentIds.includes(call.agentId)
+      );
+      
+      // Initialize nullsafe variables
+      const totalDuration = calls.reduce((sum, call) => sum + (call.duration || 0), 0);
+      const totalCost = calls.reduce((sum, call) => {
+        const callCost = call.cost === null ? 0 : (call.cost || 0);
+        return sum + callCost;
+      }, 0);
+      
+      // Filter by direction
       const inboundCalls = calls.filter(call => call.direction === "inbound");
       const outboundCalls = calls.filter(call => call.direction === "outbound");
       
+      // Count metrics
+      const totalCalls = calls.length;
       const inboundCount = inboundCalls.length;
       const outboundCount = outboundCalls.length;
       
+      // Calculate averages with null safeguards
       const avgDuration = totalCalls > 0 ? Math.round(totalDuration / totalCalls) : 0;
       const avgCost = totalCalls > 0 ? parseFloat((totalCost / totalCalls).toFixed(2)) : 0;
       
-      const inboundAvgDuration = inboundCount > 0 ? Math.round(inboundCalls.reduce((sum, call) => sum + call.duration, 0) / inboundCount) : 0;
-      const outboundAvgDuration = outboundCount > 0 ? Math.round(outboundCalls.reduce((sum, call) => sum + call.duration, 0) / outboundCount) : 0;
+      const inboundAvgDuration = inboundCount > 0 ? 
+        Math.round(inboundCalls.reduce((sum, call) => sum + (call.duration || 0), 0) / inboundCount) : 0;
       
+      const outboundAvgDuration = outboundCount > 0 ? 
+        Math.round(outboundCalls.reduce((sum, call) => sum + (call.duration || 0), 0) / outboundCount) : 0;
+      
+      // Calculate conversion rates
       const transferredCalls = calls.filter(call => call.outcome === "transferred").length;
-      const inboundConversionRate = inboundCount > 0 ? parseFloat(((transferredCalls / inboundCount) * 100).toFixed(2)) : 0;
-      const outboundConversionRate = outboundCount > 0 ? parseFloat(((outboundCalls.filter(call => call.outcome === "transferred").length / outboundCount) * 100).toFixed(2)) : 0;
+      const inboundConversionRate = inboundCount > 0 ? 
+        parseFloat(((transferredCalls / inboundCount) * 100).toFixed(0)) : 0;
       
-      // Calculate hours saved (estimation)
+      const outboundConversionRate = outboundCount > 0 ? 
+        parseFloat(((outboundCalls.filter(call => call.outcome === "transferred").length / outboundCount) * 100).toFixed(0)) : 0;
+      
+      // Calculate hours saved (estimation based on automation)
       const hoursPerCall = 0.05; // 3 minutes per call that would be handled manually
       const totalHoursSaved = parseFloat((totalCalls * hoursPerCall).toFixed(2));
       
@@ -1427,11 +1450,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const agentEndedCalls = calls.filter(call => call.endedReason === "Agent Ended Call").length;
       const transferredCallsCount = transferredCalls;
       
-      // Get today's calls
+      // Get today's calls - use createdAt instead of startedAt which doesn't exist
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const todayInboundCalls = inboundCalls.filter(call => new Date(call.startedAt) >= today).length;
-      const todayOutboundCalls = outboundCalls.filter(call => new Date(call.startedAt) >= today).length;
+      const todayInboundCalls = inboundCalls.filter(call => 
+        call.createdAt && new Date(call.createdAt) >= today
+      ).length;
+      
+      const todayOutboundCalls = outboundCalls.filter(call => 
+        call.createdAt && new Date(call.createdAt) >= today
+      ).length;
       
       // Format duration for display (MM:SS)
       const formatDuration = (seconds: number) => {
@@ -1447,10 +1475,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return `${hrs}h ${mins}m`;
       };
       
+      // Get day of week distribution for calls
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const inboundByDay = Array(7).fill(0);
+      const outboundByDay = Array(7).fill(0);
+      
+      // Count calls by day of week
+      for (const call of inboundCalls) {
+        if (call.createdAt) {
+          const day = new Date(call.createdAt).getDay(); // 0-6
+          inboundByDay[day]++;
+        }
+      }
+      
+      for (const call of outboundCalls) {
+        if (call.createdAt) {
+          const day = new Date(call.createdAt).getDay(); // 0-6
+          outboundByDay[day]++;
+        }
+      }
+      
       res.json({
         summary: {
           totalCost: parseFloat(totalCost.toFixed(2)),
-          totalHoursSaved: formatHoursSaved(totalHoursSaved),
+          totalHours: formatHoursSaved(totalHoursSaved),
           avgCostPerCall: avgCost,
           avgCallDuration: formatDuration(avgDuration)
         },
@@ -1474,18 +1522,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Daily call distribution for charts
         callsDaily: {
           inbound: { 
-            labels: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], 
-            values: [0, 0, 0, 0, 0, 0, 0] 
+            labels: days, 
+            values: inboundByDay
           },
           outbound: { 
-            labels: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], 
-            values: [0, 0, 0, 0, 0, 0, 0] 
+            labels: days, 
+            values: outboundByDay
           }
         },
         durationVsCost: { 
-          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-          duration: [0, 0, 0, 0, 0, 0, 0],
-          cost: [0, 0, 0, 0, 0, 0, 0]
+          labels: days,
+          duration: Array(7).fill(0),
+          cost: Array(7).fill(0)
         }
       });
     } catch (error) {
