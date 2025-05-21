@@ -1,0 +1,392 @@
+5:37:04 PM [express] POST /api/webhook/vapi 200 in 194ms :: {"success":true}
+Received Vapi webhook: {
+  "message": {
+    "timestamp": 1747849026232,
+    "type": "end-of-call-report",
+    "analysis": {
+      "summary": "The call consisted of a person named Hamad greeting the caller, followed by the caller reciting a series of numbers (possibly a phone number or account information). The caller then mentioned being on another call and asked Hamad not to hang up. The call eventually ended due to silence timeout.",
+      "successEvaluation": "true"
+    },
+    "artifact": {
+      "messages": [
+        {
+          "role": "system",
+          "message": "You are a helpful AI assistant that answers questions clearly and honestly.",
+          "time": 1747848965249,
+          "secondsFromStart": 0
+        },
+        {
+          "role": "bot",
+          "message": "This is Hamad speaking again. Happy to have you again.",
+          "time": 1747848966619,
+          "endTime": 1747848969599,
+          "secondsFromStart": 1.12,
+          "duration": 2980,
+          "source": ""
+        },
+        {
+          "role": "user",
+          "message": "7 9 2 3 4 2. 1. 0. 7 7 0 0. 7. And you dialed is on a call. Please don't hang up and hold on a moment.",
+          "time": 1747848970278.9998,
+          "endTime": 1747848986108.999,
+          "secondsFromStart": 4.7799997,
+          "duration": 10065
+        },
+        {
+          "role": "bot",
+          "message": "It seems you're providing a sequence of numbers or possibly a phone number. Could you clarify what you need assistance with?",
+          "time": 1747848986899,
+          "endTime": 1747848992689,
+          "secondsFromStart": 21.4,
+          "duration": 5550,
+          "source": ""
+        }
+      ],
+      "messagesOpenAIFormatted": [
+        {
+          "role": "system",
+          "content": "You are a helpful AI assistant that answers questions clearly and honestly."
+        },
+        {
+          "role": "assistant",
+          "content": "This is Hamad speaking again. Happy to have you again."
+        },
+        {
+          "role": "user",
+          "content": "7 9 2 3 4 2. 1. 0. 7 7 0 0. 7. And you dialed is on a call. Please don't hang up and hold on a moment."
+        },
+        {
+          "role": "assistant",
+          "content": "It seems you're providing a sequence of numbers or possibly a phone number. Could you clarify what you need assistance with?"
+        }
+      ],
+      "transcript": "AI: This is Hamad speaking again. Happy to have you again.\nUser: 7 9 2 3 4 2. 1. 0. 7 7 0 0. 7. And you dialed is on a call. Please don't hang up and hold on a moment.\nAI: It seems you're providing a sequence of numbers or possibly a phone number. Could you clarify what you need assistance with?\n",
+      "recordingUrl": "https://storage.vapi.ai/d8da891e-c233-47e4-9c4e-7f5058a69b0b-1747849024133-787a0c69-c7f9-4fa8-8062-948fe1221526-mono.wav",
+      "stereoRecordingUrl": "https://storage.vapi.ai/d8da891e-c233-47e4-9c4e-7f5058a69b0b-1747849024133-28284d9c-8876-4d89-b306-dc393cc1ae27-stereo.wav",
+      "recording": {
+        "stereoUrl": "https://storage.vapi.ai/d8da891e-c233-47e4-9c4e-7f5058a69b0b-1747849024133-28284d9c-8876-4d89-b306-dc393cc1ae27-stereo.wav",
+        "mono": {
+          "combinedUrl": "https://storage.vapi.ai/d8da891e-c233-47e4-9c4e-7f5058a69b0b-1747849024133-787a0c69-c7f9-4fa8-8062-948fe1221526-mono.wav",
+          "assistantUrl": "https://storage.vapi.ai/d8da891e-c233-47e4-9c4e-7f5058a69b0b-1747849024133-3aacd6d8-d7f3-4400-9880-8c267c793cde-mono.wav",
+          "customerUrl": "https://storage.vapi.ai/d8da891e-c233-47e4-9c4e-7f5058a69b0b-1747849024133-13a91c94-7dcf-4c65-98e4-445aeeda3907-mono.wav"
+        }
+      }
+    },
+    "startedAt": "2025-05-21T17:36:05.385Z",
+    "endedAt": "2025-05-21T17:37:01.625Z",
+    "endedReason": "silence-timed-out",
+    "cost": 0.0772,
+    "costBreakdown": {
+      "stt": 0.0099,
+      "llm": 0.0015,
+      "tts": 0.0168,
+      "vapi": 0.0469,
+      "total": 0.0772,
+      "llmPromptTokens": 310,
+      "llmCompletionTokens": 69,
+      "ttsCharacters": 335,
+      "voicemailDetectionCost": 0,
+      "knowledgeBaseCost": 0,
+      "analysisCostBreakdown": {
+        "summary": 0.0015,
+        "summaryPromptTokens": 169,
+        "summaryCompletionTokens": 63,
+        "structuredData": 0,
+        "structuredDataPromptTokens": 0,
+        "structuredDataCompletionTokens": 0,
+        "successEvaluation": 0.0008,
+        "successEvaluationPromptTokens": 242,
+        "successEvaluationCompletionTokens": 4
+      }
+    },
+    "costs": [
+      {
+        "type": "transcriber",
+        "transcriber": {
+          "provider": "deepgram",
+          "model": "nova-2-general"
+        },
+        "minutes": 1.0110999999999999,
+        "cost": 0.00989016
+      },
+      {
+        "type": "model",
+        "model": {
+          "provider": "openai",
+          "model": "gpt-4o"
+        },
+        "promptTokens": 310,
+        "completionTokens": 69,
+        "cost": 0.001465
+      },
+      {
+        "type": "voice",
+        "voice": {
+          "provider": "vapi",
+          "voiceId": "SOMi3x0jOeeIAXZ0GkxQ",
+          "model": "eleven_turbo_v2_5"
+        },
+        "characters": 335,
+        "cost": 0.01675
+      },
+      {
+        "type": "vapi",
+        "subType": "normal",
+        "minutes": 0.9373,
+        "cost": 0.046865
+      },
+      {
+        "type": "analysis",
+        "analysisType": "summary",
+        "model": {
+          "provider": "anthropic",
+          "model": "claude-3-7-sonnet-20250219"
+        },
+        "promptTokens": 169,
+        "completionTokens": 63,
+        "cost": 0.001452
+      },
+      {
+        "type": "analysis",
+        "analysisType": "successEvaluation",
+        "model": {
+          "provider": "anthropic",
+          "model": "claude-3-7-sonnet-20250219"
+        },
+        "promptTokens": 242,
+        "completionTokens": 4,
+        "cost": 0.000786
+      },
+      {
+        "type": "knowledge-base",
+        "model": {
+          "provider": "google",
+          "model": "gemini-1.5-flash"
+        },
+        "promptTokens": 0,
+        "completionTokens": 0,
+        "cost": 0
+      }
+    ],
+    "durationMs": 56240,
+    "durationSeconds": 56.24,
+    "durationMinutes": 0.9373,
+    "summary": "The call consisted of a person named Hamad greeting the caller, followed by the caller reciting a series of numbers (possibly a phone number or account information). The caller then mentioned being on another call and asked Hamad not to hang up. The call eventually ended due to silence timeout.",
+    "transcript": "AI: This is Hamad speaking again. Happy to have you again.\nUser: 7 9 2 3 4 2. 1. 0. 7 7 0 0. 7. And you dialed is on a call. Please don't hang up and hold on a moment.\nAI: It seems you're providing a sequence of numbers or possibly a phone number. Could you clarify what you need assistance with?\n",
+    "messages": [
+      {
+        "role": "system",
+        "message": "You are a helpful AI assistant that answers questions clearly and honestly.",
+        "time": 1747848965249,
+        "secondsFromStart": 0
+      },
+      {
+        "role": "bot",
+        "message": "This is Hamad speaking again. Happy to have you again.",
+        "time": 1747848966619,
+        "endTime": 1747848969599,
+        "secondsFromStart": 1.12,
+        "duration": 2980,
+        "source": ""
+      },
+      {
+        "role": "user",
+        "message": "7 9 2 3 4 2. 1. 0. 7 7 0 0. 7. And you dialed is on a call. Please don't hang up and hold on a moment.",
+        "time": 1747848970278.9998,
+        "endTime": 1747848986108.999,
+        "secondsFromStart": 4.7799997,
+        "duration": 10065
+      },
+      {
+        "role": "bot",
+        "message": "It seems you're providing a sequence of numbers or possibly a phone number. Could you clarify what you need assistance with?",
+        "time": 1747848986899,
+        "endTime": 1747848992689,
+        "secondsFromStart": 21.4,
+        "duration": 5550,
+        "source": ""
+      }
+    ],
+    "recordingUrl": "https://storage.vapi.ai/d8da891e-c233-47e4-9c4e-7f5058a69b0b-1747849024133-787a0c69-c7f9-4fa8-8062-948fe1221526-mono.wav",
+    "stereoRecordingUrl": "https://storage.vapi.ai/d8da891e-c233-47e4-9c4e-7f5058a69b0b-1747849024133-28284d9c-8876-4d89-b306-dc393cc1ae27-stereo.wav",
+    "call": {
+      "id": "d8da891e-c233-47e4-9c4e-7f5058a69b0b",
+      "orgId": "a6883c94-1521-4471-a736-9f04de7429aa",
+      "createdAt": "2025-05-21T17:36:01.910Z",
+      "updatedAt": "2025-05-21T17:36:01.910Z",
+      "type": "outboundPhoneCall",
+      "monitor": {
+        "listenUrl": "wss://phone-call-websocket.aws-us-west-2-backend-production1.vapi.ai/d8da891e-c233-47e4-9c4e-7f5058a69b0b/listen",
+        "controlUrl": "https://phone-call-websocket.aws-us-west-2-backend-production1.vapi.ai/d8da891e-c233-47e4-9c4e-7f5058a69b0b/control"
+      },
+      "transport": {
+        "provider": "twilio",
+        "callSid": "CA5a8fa1c12867dafc734230e28dac4c06",
+        "accountSid": "AC6c6a3440ca612a19538907cb1b4868da"
+      },
+      "phoneCallProvider": "twilio",
+      "phoneCallProviderId": "CA5a8fa1c12867dafc734230e28dac4c06",
+      "phoneCallTransport": "pstn",
+      "status": "queued",
+      "assistantId": "3317dd5b-16c2-41d6-8791-799d9258720a",
+      "phoneNumberId": "d9263743-c5f3-4584-a9b7-7b2d649931b0",
+      "customer": {
+        "number": "+923421077007"
+      }
+    },
+    "phoneNumber": {
+      "id": "d9263743-c5f3-4584-a9b7-7b2d649931b0",
+      "orgId": "a6883c94-1521-4471-a736-9f04de7429aa",
+      "number": "+18142000696",
+      "createdAt": "2025-05-21T12:20:06.095Z",
+      "updatedAt": "2025-05-21T13:30:30.756Z",
+      "twilioAccountSid": "AC6c6a3440ca612a19538907cb1b4868da",
+      "name": "Unlabeled",
+      "provider": "twilio",
+      "fallbackDestination": {
+        "type": "number",
+        "number": "+923319508707"
+      },
+      "status": "active",
+      "smsEnabled": true
+    },
+    "customer": {
+      "number": "+923421077007"
+    },
+    "assistant": {
+      "id": "3317dd5b-16c2-41d6-8791-799d9258720a",
+      "orgId": "a6883c94-1521-4471-a736-9f04de7429aa",
+      "name": "Bangash",
+      "voice": {
+        "voiceId": "Savannah",
+        "provider": "vapi"
+      },
+      "createdAt": "2025-05-21T15:04:14.360Z",
+      "updatedAt": "2025-05-21T16:44:44.567Z",
+      "model": {
+        "model": "gpt-4o",
+        "provider": "openai",
+        "temperature": 0.7,
+        "systemPrompt": "You are a helpful AI assistant that answers questions clearly and honestly."
+      },
+      "recordingEnabled": true,
+      "firstMessage": "This is hammad speaking again. Happy to have you again.",
+      "endCallFunctionEnabled": true,
+      "endCallMessage": "Thank you for calling. Goodbye!",
+      "transcriber": {
+        "model": "nova-2-general",
+        "language": "en",
+        "provider": "deepgram"
+      },
+      "metadata": {
+        "userId": "d686086c-9f49-40ca-a255-345765444deb",
+        "agentId": "13",
+        "createdFrom": "AimAI Platform"
+      },
+      "voicemailDetectionEnabled": true,
+      "server": {
+        "url": "https://173e1ada-855e-4b53-9e50-236ecc4df680-00-3ov1hfeow6pec.spock.replit.dev/api/webhook/vapi"
+      }
+    }
+  }
+}
+Unknown webhook format: {
+  message: {
+    timestamp: 1747849026232,
+    type: 'end-of-call-report',
+    analysis: {
+      summary: 'The call consisted of a person named Hamad greeting the caller, followed by the caller reciting a series of numbers (possibly a phone number or account information). The caller then mentioned being on another call and asked Hamad not to hang up. The call eventually ended due to silence timeout.',
+      successEvaluation: 'true'
+    },
+    artifact: {
+      messages: [Array],
+      messagesOpenAIFormatted: [Array],
+      transcript: 'AI: This is Hamad speaking again. Happy to have you again.\n' +
+        "User: 7 9 2 3 4 2. 1. 0. 7 7 0 0. 7. And you dialed is on a call. Please don't hang up and hold on a moment.\n" +
+        "AI: It seems you're providing a sequence of numbers or possibly a phone number. Could you clarify what you need assistance with?\n",
+      recordingUrl: 'https://storage.vapi.ai/d8da891e-c233-47e4-9c4e-7f5058a69b0b-1747849024133-787a0c69-c7f9-4fa8-8062-948fe1221526-mono.wav',
+      stereoRecordingUrl: 'https://storage.vapi.ai/d8da891e-c233-47e4-9c4e-7f5058a69b0b-1747849024133-28284d9c-8876-4d89-b306-dc393cc1ae27-stereo.wav',
+      recording: [Object]
+    },
+    startedAt: '2025-05-21T17:36:05.385Z',
+    endedAt: '2025-05-21T17:37:01.625Z',
+    endedReason: 'silence-timed-out',
+    cost: 0.0772,
+    costBreakdown: {
+      stt: 0.0099,
+      llm: 0.0015,
+      tts: 0.0168,
+      vapi: 0.0469,
+      total: 0.0772,
+      llmPromptTokens: 310,
+      llmCompletionTokens: 69,
+      ttsCharacters: 335,
+      voicemailDetectionCost: 0,
+      knowledgeBaseCost: 0,
+      analysisCostBreakdown: [Object]
+    },
+    costs: [
+      [Object], [Object],
+      [Object], [Object],
+      [Object], [Object],
+      [Object]
+    ],
+    durationMs: 56240,
+    durationSeconds: 56.24,
+    durationMinutes: 0.9373,
+    summary: 'The call consisted of a person named Hamad greeting the caller, followed by the caller reciting a series of numbers (possibly a phone number or account information). The caller then mentioned being on another call and asked Hamad not to hang up. The call eventually ended due to silence timeout.',
+    transcript: 'AI: This is Hamad speaking again. Happy to have you again.\n' +
+      "User: 7 9 2 3 4 2. 1. 0. 7 7 0 0. 7. And you dialed is on a call. Please don't hang up and hold on a moment.\n" +
+      "AI: It seems you're providing a sequence of numbers or possibly a phone number. Could you clarify what you need assistance with?\n",
+    messages: [ [Object], [Object], [Object], [Object] ],
+    recordingUrl: 'https://storage.vapi.ai/d8da891e-c233-47e4-9c4e-7f5058a69b0b-1747849024133-787a0c69-c7f9-4fa8-8062-948fe1221526-mono.wav',
+    stereoRecordingUrl: 'https://storage.vapi.ai/d8da891e-c233-47e4-9c4e-7f5058a69b0b-1747849024133-28284d9c-8876-4d89-b306-dc393cc1ae27-stereo.wav',
+    call: {
+      id: 'd8da891e-c233-47e4-9c4e-7f5058a69b0b',
+      orgId: 'a6883c94-1521-4471-a736-9f04de7429aa',
+      createdAt: '2025-05-21T17:36:01.910Z',
+      updatedAt: '2025-05-21T17:36:01.910Z',
+      type: 'outboundPhoneCall',
+      monitor: [Object],
+      transport: [Object],
+      phoneCallProvider: 'twilio',
+      phoneCallProviderId: 'CA5a8fa1c12867dafc734230e28dac4c06',
+      phoneCallTransport: 'pstn',
+      status: 'queued',
+      assistantId: '3317dd5b-16c2-41d6-8791-799d9258720a',
+      phoneNumberId: 'd9263743-c5f3-4584-a9b7-7b2d649931b0',
+      customer: [Object]
+    },
+    phoneNumber: {
+      id: 'd9263743-c5f3-4584-a9b7-7b2d649931b0',
+      orgId: 'a6883c94-1521-4471-a736-9f04de7429aa',
+      number: '+18142000696',
+      createdAt: '2025-05-21T12:20:06.095Z',
+      updatedAt: '2025-05-21T13:30:30.756Z',
+      twilioAccountSid: 'AC6c6a3440ca612a19538907cb1b4868da',
+      name: 'Unlabeled',
+      provider: 'twilio',
+      fallbackDestination: [Object],
+      status: 'active',
+      smsEnabled: true
+    },
+    customer: { number: '+923421077007' },
+    assistant: {
+      id: '3317dd5b-16c2-41d6-8791-799d9258720a',
+      orgId: 'a6883c94-1521-4471-a736-9f04de7429aa',
+      name: 'Bangash',
+      voice: [Object],
+      createdAt: '2025-05-21T15:04:14.360Z',
+      updatedAt: '2025-05-21T16:44:44.567Z',
+      model: [Object],
+      recordingEnabled: true,
+      firstMessage: 'This is hammad speaking again. Happy to have you again.',
+      endCallFunctionEnabled: true,
+      endCallMessage: 'Thank you for calling. Goodbye!',
+      transcriber: [Object],
+      metadata: [Object],
+      voicemailDetectionEnabled: true,
+      server: [Object]
+    }
+  }
+}

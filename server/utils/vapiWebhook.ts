@@ -151,10 +151,27 @@ async function processEndOfCallReport(data: any) {
         };
         
         // Add more context to the webhook log
+        // Convert payload to plain object if needed, then add agent info
+        let currentPayload = {};
+        if (logs[0].payload) {
+          try {
+            if (typeof logs[0].payload === 'string') {
+              currentPayload = JSON.parse(logs[0].payload);
+            } else {
+              currentPayload = logs[0].payload;
+            }
+          } catch (e) {
+            console.error("Error parsing payload:", e);
+          }
+        }
+        
         await storage.updateWebhookLog(logs[0].id, {
           processed: true,
           error: "",
-          payload: { ...logs[0].payload, agentInfo }
+          payload: {
+            ...currentPayload,
+            agentInfo
+          }
         });
       }
     } catch (logError) {
@@ -249,9 +266,12 @@ export async function handleVapiWebhook(req: Request, res: Response) {
     let error = "";
     
     try {
-      // Try to determine the type of webhook with improved detection
+      // Try to determine the type of webhook with improved detection for all Vapi formats
       if (data.event === "end-of-call-report") {
         webhookType = "end-of-call-report";
+      } else if (data.message && data.message.type) {
+        // New Vapi format where type is nested within message object
+        webhookType = data.message.type;
       } else if (data.type) {
         webhookType = data.type;
       } else if (data.event) {
@@ -275,13 +295,17 @@ export async function handleVapiWebhook(req: Request, res: Response) {
       console.error("Error logging webhook:", logError);
     }
     
-    // Determine webhook type from the new Vapi webhook format
+    // Determine webhook type from the Vapi webhook format - handle all variations
     if (data.event === "end-of-call-report") {
-      // Handle end-of-call report in the new format
+      // Handle end-of-call report in the direct format
       await processEndOfCallReport(data.data || data);
       processed = true;
+    } else if (data.message && data.message.type === "end-of-call-report") {
+      // Handle end-of-call report in the newer nested message format
+      await processEndOfCallReport(data.message);
+      processed = true;
     } else if (data.type) {
-      // Handle webhook based on the old format
+      // Handle webhook based on the older format
       switch (data.type) {
         case 'end-of-call-report':
           await processEndOfCallReport(data);
@@ -302,6 +326,10 @@ export async function handleVapiWebhook(req: Request, res: Response) {
           console.log(`Unhandled webhook type: ${data.type}`);
           error = `Unhandled webhook type: ${data.type}`;
       }
+    } else if (data.call && data.call.status) {
+      // Handle call status updates
+      await processStatusUpdate(data);
+      processed = true;
     } else {
       console.error('Unknown webhook format:', data);
       error = 'Unknown webhook format';
