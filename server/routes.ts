@@ -631,7 +631,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Store the phone number in our database
-      const phoneNumberData = {
+      const phoneNumberData: any = {
         number: purchasedNumber.phoneNumber,
         userId,
         twilioAccountId: accountId,
@@ -746,10 +746,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Register the number with Vapi.ai
         try {
-          const vapiResult = await registerPhoneNumberWithVapi(
+          const { registerPhoneNumberWithVapiNumbers } = require('./utils/vapiIntegration');
+          const vapiResult = await registerPhoneNumberWithVapiNumbers(
             twilioNumber.phoneNumber,
             twilioAccount.accountSid,
-            twilioAccount.authToken
+            twilioNumber.friendlyName || `Imported ${twilioNumber.phoneNumber}`
           );
           
           if (vapiResult.success) {
