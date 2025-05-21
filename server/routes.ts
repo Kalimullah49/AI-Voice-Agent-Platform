@@ -1435,10 +1435,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         // Daily call distribution for charts
         callsDaily: {
-          inbound: getDailyCallsDistribution(inboundCalls),
-          outbound: getDailyCallsDistribution(outboundCalls)
+          inbound: { 
+            labels: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], 
+            values: [0, 0, 0, 0, 0, 0, 0] 
+          },
+          outbound: { 
+            labels: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], 
+            values: [0, 0, 0, 0, 0, 0, 0] 
+          }
         },
-        durationVsCost: getDailyDurationAndCost(calls)
+        durationVsCost: { 
+          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          duration: [0, 0, 0, 0, 0, 0, 0],
+          cost: [0, 0, 0, 0, 0, 0, 0]
+        }
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch dashboard metrics" });
