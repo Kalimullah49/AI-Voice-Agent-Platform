@@ -203,6 +203,18 @@ export async function assignPhoneToAgent(
       }
     }
     
+    // Check if this phone number is already assigned to another agent
+    const existingPhoneNumbers = await storage.getPhoneNumbersByAgentId(agentId);
+    if (existingPhoneNumbers.length > 0) {
+      console.log(`Agent ${agentId} already has ${existingPhoneNumbers.length} phone numbers assigned`);
+      // This is OK, one agent can have multiple phone numbers
+    }
+    
+    // Check if any agent is using this phone number
+    if (phoneNumber.agentId && phoneNumber.agentId !== agentId) {
+      console.log(`Phone number ${phoneNumber.number} is already assigned to agent ${phoneNumber.agentId}, will reassign to ${agentId}`);
+    }
+    
     // Update the phone number-agent mapping
     const updatedPhoneNumber = await storage.updatePhoneNumber(phoneNumberId, { agentId });
     
