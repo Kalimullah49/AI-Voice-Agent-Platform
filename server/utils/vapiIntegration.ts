@@ -45,6 +45,27 @@ export async function registerPhoneNumberWithVapiNumbers(
     
     console.log('Request payload:', JSON.stringify(payload, null, 2));
     
+    // Check if the phone number is already in use at Vapi.ai
+    // First, try to get the phone number details from Vapi.ai
+    const checkResponse = await fetch(`https://api.vapi.ai/phone-number/${encodeURIComponent(formattedPhoneNumber)}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${VAPI_PRIVATE_KEY}`
+      }
+    });
+    
+    // If the phone number already exists in Vapi, we can skip registration
+    if (checkResponse.ok) {
+      const existingData = await checkResponse.json();
+      console.log(`Phone number ${formattedPhoneNumber} already exists in Vapi.ai with ID: ${existingData.id}`);
+      return {
+        success: true,
+        message: "Phone number already registered with Vapi.ai",
+        phoneNumberId: existingData.id
+      };
+    }
+    
+    // If the number doesn't exist yet, register it
     // Make API request to Vapi.ai using the correct endpoint
     // Using api.vapi.ai/phone-number as the endpoint (singular, not plural)
     const response = await fetch('https://api.vapi.ai/phone-number', {
@@ -145,37 +166,44 @@ export async function assignPhoneToAgent(
     }
     
     // If the phone number doesn't have a Vapi ID yet but has a Twilio SID and account ID
-    // Register it with Vapi.ai
-    if (!phoneNumber.vapiPhoneNumberId && phoneNumber.twilioSid && phoneNumber.twilioAccountId) {
+    // Register it with Vapi.ai - but allow continuation even if this fails
+    if (agentId && !phoneNumber.vapiPhoneNumberId && phoneNumber.twilioAccountId) {
       try {
         // Get the Twilio account details to use the correct account SID
         const twilioAccount = await storage.getTwilioAccount(phoneNumber.twilioAccountId);
         if (!twilioAccount) {
           console.error(`Twilio account ${phoneNumber.twilioAccountId} not found for phone number ${phoneNumber.number}`);
-          return {
-            success: false,
-            message: "Twilio account not found for this phone number"
-          };
-        }
-        
-        const friendlyName = `Agent Number - ${agent.name || agent.id}`;
-        
-        const vapiResult = await registerPhoneNumberWithVapiNumbers(
-          phoneNumber.number,
-          twilioAccount.accountSid, // Use the actual Twilio account SID, not the phone number SID
-          friendlyName
-        );
-        
-        if (vapiResult.success && vapiResult.phoneNumberId) {
-          console.log(`Successfully registered ${phoneNumber.number} with Vapi.ai (ID: ${vapiResult.phoneNumberId})`);
+          // Continue with the assignment even without Vapi registration
+          console.log(`Proceeding with assignment without Vapi.ai registration due to missing Twilio account`);
+        } else {
+          const friendlyName = `Agent Number - ${agent.name || agent.id}`;
           
-          // Update the phone number with the Vapi ID
-          await storage.updatePhoneNumber(phoneNumberId, {
-            vapiPhoneNumberId: vapiResult.phoneNumberId
-          });
-          
-          // Update our local copy
-          phoneNumber.vapiPhoneNumberId = vapiResult.phoneNumberId;
+          // Try to register with Vapi.ai, but don't fail if it doesn't work
+          try {
+            const vapiResult = await registerPhoneNumberWithVapiNumbers(
+              phoneNumber.number,
+              twilioAccount.accountSid,
+              friendlyName
+            );
+            
+            if (vapiResult.success && vapiResult.phoneNumberId) {
+              console.log(`Successfully registered ${phoneNumber.number} with Vapi.ai (ID: ${vapiResult.phoneNumberId})`);
+              
+              // Update the phone number with the Vapi ID
+              await storage.updatePhoneNumber(phoneNumberId, {
+                vapiPhoneNumberId: vapiResult.phoneNumberId
+              });
+              
+              // Update our local copy
+              phoneNumber.vapiPhoneNumberId = vapiResult.phoneNumberId;
+            } else {
+              // Log the error but continue with assignment
+              console.log(`Failed Vapi.ai registration for ${phoneNumber.number}: ${vapiResult.message}`);
+            }
+          } catch (vapiError) {
+            console.error(`Error registering phone number with Vapi.ai: ${vapiError}`);
+            // Continue despite the error
+          }
           
           // Now that the phone number is registered with Vapi, associate it with the agent's Vapi assistant
           if (agent.vapiAssistantId) {
@@ -206,7 +234,7 @@ export async function assignPhoneToAgent(
             }
           }
         } else {
-          console.warn(`Failed to register phone number with Vapi.ai: ${vapiResult.message}`);
+          console.warn(`No Vapi.ai assistant ID for agent, skipping phone number association`);
         }
       } catch (vapiError) {
         console.error('Error registering with Vapi:', vapiError);
