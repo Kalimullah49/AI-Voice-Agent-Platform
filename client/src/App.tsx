@@ -16,6 +16,7 @@ import CampaignsPage from "@/pages/campaigns";
 import PhoneNumbersPage from "@/pages/phone-numbers";
 import BillingPage from "@/pages/billing";
 import SettingsPage from "@/pages/settings";
+import WebhookLogsPage from "@/pages/webhook-logs";
 
 function Router() {
   const ProtectedAppRoute = ({ children }: { children: React.ReactNode }) => (
@@ -82,6 +83,11 @@ function Router() {
       <Route path="/settings">
         <ProtectedAppRoute>
           <SettingsPage />
+        </ProtectedAppRoute>
+      </Route>
+      <Route path="/webhook-logs">
+        <ProtectedAppRoute>
+          <WebhookLogsPage />
         </ProtectedAppRoute>
       </Route>
       <Route>

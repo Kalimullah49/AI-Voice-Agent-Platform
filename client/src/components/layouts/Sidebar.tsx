@@ -10,7 +10,8 @@ import {
   Phone, 
   CreditCard, 
   Settings, 
-  User
+  User,
+  Activity
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -52,6 +53,11 @@ export default function Sidebar() {
       path: "/phone-numbers", 
       label: "Phone Numbers", 
       icon: <Phone className="mr-3 h-5 w-5" /> 
+    },
+    { 
+      path: "/webhook-logs", 
+      label: "Webhook Logs", 
+      icon: <Activity className="mr-3 h-5 w-5" /> 
     },
     { 
       path: "/billing", 
