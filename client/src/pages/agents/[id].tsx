@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useLocation, useRoute } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { VapiWebCallButton } from "../../components/agents/VapiWebCallButton";
+import { WebCallScript } from "../../components/agents/WebCallScript";
 import { 
   Tabs, 
   TabsContent, 
@@ -352,70 +352,10 @@ export default function AgentDetailPage() {
           {/* Test call button for Vapi integration */}
           {agentData.vapiAssistantId && (
             <Button 
-              variant="outline"
+              variant={isWebCallActive ? "destructive" : "outline"}
               size="sm" 
               className="mr-2" 
-              onClick={async () => {
-                try {
-                  // Remove any existing Vapi scripts first
-                  document.querySelectorAll('script[src*="vapi"]').forEach(el => {
-                    if (el.parentNode) el.parentNode.removeChild(el);
-                  });
-                  
-                  // Fetch the API token
-                  const response = await fetch('/api/vapi/token');
-                  const data = await response.json();
-                  
-                  if (!data.success || !data.token) {
-                    throw new Error(data.message || "Failed to get Vapi token");
-                  }
-                  
-                  // Create the direct Vapi script with the token
-                  const script = document.createElement('script');
-                  script.textContent = `
-                    var vapiInstance = null;
-                    const assistant = "${agentData.vapiAssistantId}";
-                    const apiKey = "${data.token}";
-                    
-                    (function (d, t) {
-                      var g = document.createElement(t),
-                        s = d.getElementsByTagName(t)[0];
-                      g.src = "https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js";
-                      g.defer = true;
-                      g.async = true;
-                      s.parentNode.insertBefore(g, s);
-                      
-                      g.onload = function () {
-                        vapiInstance = window.vapiSDK.run({
-                          apiKey: apiKey,
-                          assistant: assistant,
-                          config: {
-                            position: 'right',
-                            size: 'large',
-                            customText: 'Test Call'
-                          }
-                        });
-                      };
-                    })(document, "script");
-                  `;
-                  
-                  document.body.appendChild(script);
-                  
-                  toast({
-                    title: "Test Call Ready",
-                    description: "Look for the call button in the bottom right of the screen",
-                  });
-                } catch (error) {
-                  console.error("Error setting up web call:", error);
-                  toast({
-                    title: "Error",
-                    description: error instanceof Error ? error.message : "Failed to set up web call",
-                    variant: "destructive"
-                  });
-                }
-                
-                // The old function started here
-                //if (isWebCallActive) {
+              onClick={() => {
                 if (isWebCallActive) {
                   // Cleaner approach to removing the widget
                   try {
@@ -580,29 +520,15 @@ export default function AgentDetailPage() {
                     initScript.innerHTML = `
                       try {
                         const assistant = "${agentData.vapiAssistantId}";
+                        const apiKey = "317c2afe-8d25-4a7f-8ec8-613a6265dd14";
                         
-                        // First fetch the API token from our backend
-                        fetch('/api/vapi/token')
-                          .then(response => response.json())
-                          .then(data => {
-                            if (data.success && data.token) {
-                              // Run the Vapi SDK with the proper configuration
-                              if (window.vapiSDK) {
-                                window.vapiSDK.run({
-                                  apiKey: data.token,
-                                  assistant: assistant,
-                                });
-                              }
-                            } else {
-                              console.error("Failed to fetch Vapi token:", data.message);
-                            }
-                          })
-                          .catch(error => {
-                            console.error("Error fetching Vapi token:", error);
+                        // Run the Vapi SDK with the proper configuration
+                        if (window.vapiSDK) {
+                          window.vapiSDK.run({
+                            apiKey: apiKey,
+                            assistant: assistant,
                           });
-                        
-                        // Check if SDK is available
-                        if (!window.vapiSDK) {
+                        } else {
                           console.error("Vapi SDK not available");
                         }
                       } catch (err) {
