@@ -9,13 +9,6 @@ import { storage } from '../storage';
 const VAPI_PRIVATE_KEY = process.env.VAPI_PRIVATE_KEY || '';
 
 /**
- * Register a phone number with Vapi.ai
- * @param phoneNumber The phone number in E.164 format
- * @param twilioSid The Twilio SID for the phone number
- * @param friendlyName A friendly name for the phone number
- * @returns Success status, message, and Vapi phone number ID
- */
-/**
  * Register a phone number with Vapi.ai Numbers API
  * @param phoneNumber The phone number to register
  * @param twilioAccountSid The Twilio Account SID (NOT the phone number SID)
@@ -121,7 +114,7 @@ export async function registerPhoneNumberWithVapiNumbers(
       
       // If the error is about verifying with Twilio, provide a more helpful message
       if (errorMessage.includes("Number Not Found on Twilio") || errorMessage.toLowerCase().includes("twilio")) {
-        errorMessage = `This phone number couldn't be verified with your Twilio account. Please ensure the number exists in your Twilio account and the account SID "${twilioSid}" is correct. Error: ${errorMessage}`;
+        errorMessage = `This phone number couldn't be verified with your Twilio account. Please ensure the number exists in your Twilio account and the account SID is correct. Error: ${errorMessage}`;
       }
       
       return {
