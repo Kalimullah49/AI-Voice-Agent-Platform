@@ -642,7 +642,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Register the phone number with Vapi.ai
       try {
-        const { registerPhoneNumberWithVapiNumbers } = require('./utils/vapiIntegration');
+        const { registerPhoneNumberWithVapiNumbers } = await import('./utils/vapiIntegration');
         const vapiResult = await registerPhoneNumberWithVapiNumbers(
           purchasedNumber.phoneNumber,
           account.accountSid,
@@ -746,7 +746,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Register the number with Vapi.ai
         try {
-          const { registerPhoneNumberWithVapiNumbers } = require('./utils/vapiIntegration');
+          // Import the function directly instead of using require
+          const { registerPhoneNumberWithVapiNumbers } = await import('./utils/vapiIntegration');
           const vapiResult = await registerPhoneNumberWithVapiNumbers(
             twilioNumber.phoneNumber,
             twilioAccount.accountSid,
