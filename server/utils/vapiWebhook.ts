@@ -88,12 +88,22 @@ async function processEndOfCallReport(data: any) {
       return;
     }
     
-    // Try to find existing call in our database
+    // Try to find existing call in our database - with better matching
     const calls = await storage.getAllCalls();
-    const existingCall = calls.find(call => 
+    
+    // First try to match by exact number combination
+    let existingCall = calls.find(call => 
       (call.fromNumber === fromNumber && call.toNumber === toNumber) || 
       (call.fromNumber === toNumber && call.toNumber === fromNumber)
     );
+    
+    // If we can't find by numbers, try to look up by agent
+    if (!existingCall && agent) {
+      existingCall = calls.find(call => 
+        call.agentId === agent.id && 
+        (new Date(call.startedAt).getTime() > Date.now() - 24 * 60 * 60 * 1000) // Within last 24 hours
+      );
+    }
     
     // Determine the call direction
     const direction = callData.type === 'outboundPhoneCall' ? 'outbound' : 'inbound';
@@ -108,11 +118,14 @@ async function processEndOfCallReport(data: any) {
         cost,
         outcome: status
       });
+      
+      console.log(`Call record updated with cost: $${cost}, duration: ${duration}s`);
     } else {
       // Create a new call record
       console.log(`Creating new call record for call ${callId}`);
       
-      await storage.createCall({
+      // Create the call record with agent info and call details
+      const newCall = await storage.createCall({
         fromNumber,
         toNumber,
         agentId: agent.id,
@@ -122,6 +135,30 @@ async function processEndOfCallReport(data: any) {
         outcome: status,
         direction
       });
+      
+      console.log(`New call record created with ID: ${newCall.id}, cost: $${cost}, duration: ${duration}s`);
+    }
+    
+    // Update the webhook log to include the agent information
+    try {
+      const logs = await storage.getWebhookLogs(1);
+      if (logs.length > 0) {
+        const agentInfo = {
+          agentId: agent.id,
+          agentName: agent.name,
+          userId: agent.userId,
+          assistantId: assistantId,
+        };
+        
+        // Add more context to the webhook log
+        await storage.updateWebhookLog(logs[0].id, {
+          processed: true,
+          error: "",
+          payload: { ...logs[0].payload, agentInfo }
+        });
+      }
+    } catch (logError) {
+      console.error("Error updating webhook log with agent info:", logError);
     }
     
     console.log(`Call data successfully recorded`);
