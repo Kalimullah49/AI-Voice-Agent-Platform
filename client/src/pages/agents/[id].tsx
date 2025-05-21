@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useLocation, useRoute } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { WebCallScript } from "../../components/agents/WebCallScript";
+import { VapiWebCallButton } from "../../components/agents/VapiWebCallButton";
 import { 
   Tabs, 
   TabsContent, 
@@ -352,10 +352,70 @@ export default function AgentDetailPage() {
           {/* Test call button for Vapi integration */}
           {agentData.vapiAssistantId && (
             <Button 
-              variant={isWebCallActive ? "destructive" : "outline"}
+              variant="outline"
               size="sm" 
               className="mr-2" 
-              onClick={() => {
+              onClick={async () => {
+                try {
+                  // Remove any existing Vapi scripts first
+                  document.querySelectorAll('script[src*="vapi"]').forEach(el => {
+                    if (el.parentNode) el.parentNode.removeChild(el);
+                  });
+                  
+                  // Fetch the API token
+                  const response = await fetch('/api/vapi/token');
+                  const data = await response.json();
+                  
+                  if (!data.success || !data.token) {
+                    throw new Error(data.message || "Failed to get Vapi token");
+                  }
+                  
+                  // Create the direct Vapi script with the token
+                  const script = document.createElement('script');
+                  script.textContent = `
+                    var vapiInstance = null;
+                    const assistant = "${agentData.vapiAssistantId}";
+                    const apiKey = "${data.token}";
+                    
+                    (function (d, t) {
+                      var g = document.createElement(t),
+                        s = d.getElementsByTagName(t)[0];
+                      g.src = "https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js";
+                      g.defer = true;
+                      g.async = true;
+                      s.parentNode.insertBefore(g, s);
+                      
+                      g.onload = function () {
+                        vapiInstance = window.vapiSDK.run({
+                          apiKey: apiKey,
+                          assistant: assistant,
+                          config: {
+                            position: 'right',
+                            size: 'large',
+                            customText: 'Test Call'
+                          }
+                        });
+                      };
+                    })(document, "script");
+                  `;
+                  
+                  document.body.appendChild(script);
+                  
+                  toast({
+                    title: "Test Call Ready",
+                    description: "Look for the call button in the bottom right of the screen",
+                  });
+                } catch (error) {
+                  console.error("Error setting up web call:", error);
+                  toast({
+                    title: "Error",
+                    description: error instanceof Error ? error.message : "Failed to set up web call",
+                    variant: "destructive"
+                  });
+                }
+                
+                // The old function started here
+                //if (isWebCallActive) {
                 if (isWebCallActive) {
                   // Cleaner approach to removing the widget
                   try {
