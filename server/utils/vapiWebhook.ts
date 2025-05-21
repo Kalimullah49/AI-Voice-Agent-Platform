@@ -19,7 +19,7 @@ async function processEndOfCallReport(data: any) {
   try {
     console.log('Processing end-of-call report:', JSON.stringify(data, null, 2));
     
-    // Support both old and new Vapi webhook formats
+    // Support all Vapi webhook formats
     const callData = data.call || data;
     
     if (!callData) {
@@ -31,29 +31,58 @@ async function processEndOfCallReport(data: any) {
     const callId = callData.id || callData.call?.id || '';
     const assistantId = callData.assistantId || callData.assistant?.id || '';
     
-    // Extract time and duration information
-    let duration = callData.duration || 0;
+    // Extract time and duration information with better handling for different formats
+    let duration = 0;
     
-    // If we don't have duration directly, try to calculate it
-    if (!duration && callData.createdAt && callData.updatedAt) {
+    // Look for duration in different possible locations
+    if (callData.durationSeconds) {
+      // Newest format with explicit duration in seconds
+      duration = Math.ceil(callData.durationSeconds);
+    } else if (callData.durationMs) {
+      // Newer format with duration in milliseconds
+      duration = Math.ceil(callData.durationMs / 1000);
+    } else if (callData.duration) {
+      // Legacy format with direct duration
+      duration = callData.duration;
+    } else if (callData.startedAt && callData.endedAt) {
+      // Calculate from start/end timestamps
+      const startTime = new Date(callData.startedAt);
+      const endTime = new Date(callData.endedAt);
+      duration = Math.ceil((endTime.getTime() - startTime.getTime()) / 1000);
+    } else if (callData.createdAt && callData.updatedAt) {
+      // Fall back to created/updated timestamps
       const startTime = new Date(callData.createdAt);
       const endTime = new Date(callData.updatedAt);
-      duration = Math.ceil((endTime.getTime() - startTime.getTime()) / 1000); // duration in seconds
+      duration = Math.ceil((endTime.getTime() - startTime.getTime()) / 1000);
     }
     
     // If we still don't have duration, check if there's a transcript with timing info
-    if (!duration && callData.transcript && callData.transcript.length > 0) {
-      // Try to calculate from the transcript data
-      const lastEntry = callData.transcript[callData.transcript.length - 1];
+    if (duration === 0 && callData.messages && callData.messages.length > 0) {
+      // Try to calculate from the messages data
+      const lastEntry = callData.messages[callData.messages.length - 1];
       if (lastEntry.secondsFromStart) {
         duration = Math.ceil(lastEntry.secondsFromStart);
       }
     }
     
+    // Extract cost information with better handling for different formats
+    let cost = 0;
+    if (typeof callData.cost === 'number') {
+      // Direct cost field
+      cost = callData.cost;
+    } else if (callData.costBreakdown && callData.costBreakdown.total) {
+      // Cost from breakdown total
+      cost = callData.costBreakdown.total;
+    } else if (callData.costs && Array.isArray(callData.costs)) {
+      // Sum up costs from itemized costs array
+      cost = callData.costs.reduce((totalCost: number, costItem: any) => {
+        return totalCost + (typeof costItem.cost === 'number' ? costItem.cost : 0);
+      }, 0);
+    }
+    
     // Extract other call details
-    const cost = callData.cost || 0;
     const status = callData.status || 'completed';
-    const endReason = callData.endReason || null;
+    const endReason = callData.endedReason || null;
     
     // Extract phone numbers
     let fromNumber = '';
@@ -74,6 +103,18 @@ async function processEndOfCallReport(data: any) {
       toNumber = callData.transport.to;
     } else if (callData.to) {
       toNumber = callData.to;
+    }
+    
+    // Make sure we have valid phone numbers
+    console.log(`Extracted phone numbers - From: ${fromNumber}, To: ${toNumber}`);
+    
+    // If we still don't have valid phone numbers, check for nested objects
+    if (!fromNumber && callData.call && callData.call.phoneNumber) {
+      fromNumber = callData.call.phoneNumber.number || '';
+    }
+    
+    if (!toNumber && callData.call && callData.call.customer) {
+      toNumber = callData.call.customer.number || '';
     }
     
     console.log(`Call ${callId} ended with duration ${duration}s, cost $${cost}, status: ${status}`);
