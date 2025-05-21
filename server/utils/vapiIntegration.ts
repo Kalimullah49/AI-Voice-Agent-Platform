@@ -133,6 +133,17 @@ export async function assignPhoneToAgent(
       };
     }
     
+    // Check if agent already has a phone number assigned - we only allow one phone number per agent
+    if (agentId) {
+      const agentPhoneNumbers = await storage.getPhoneNumbersByAgentId(agentId);
+      if (agentPhoneNumbers.length > 0 && !agentPhoneNumbers.some(pn => pn.id === phoneNumberId)) {
+        return {
+          success: false,
+          message: `Agent "${agent.name}" already has a phone number assigned. Please unassign the existing number first.`
+        };
+      }
+    }
+    
     // If the phone number doesn't have a Vapi ID yet but has a Twilio SID and account ID
     // Register it with Vapi.ai
     if (!phoneNumber.vapiPhoneNumberId && phoneNumber.twilioSid && phoneNumber.twilioAccountId) {

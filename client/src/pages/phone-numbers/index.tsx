@@ -735,11 +735,19 @@ export default function PhoneNumbersPage() {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="none">None</SelectItem>
-                            {agents && Array.isArray(agents) && agents.filter(agent => agent && agent.id).map((agent: any) => (
-                              <SelectItem key={agent.id} value={agent.id.toString()}>
-                                {agent.name || "Unnamed Agent"}
-                              </SelectItem>
-                            ))}
+                            {agents && Array.isArray(agents) && agents
+                              .filter(agent => {
+                                // Only show agents that don't already have a phone number assigned
+                                if (!agent || !agent.id) return false;
+                                const hasPhoneNumber = phoneNumbers.some(pn => pn.agentId === agent.id);
+                                return !hasPhoneNumber;
+                              })
+                              .map((agent: any) => (
+                                <SelectItem key={agent.id} value={agent.id.toString()}>
+                                  {agent.name || "Unnamed Agent"}
+                                </SelectItem>
+                              ))
+                            }
                           </SelectContent>
                         </Select>
                       </div>

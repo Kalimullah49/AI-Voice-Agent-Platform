@@ -56,6 +56,7 @@ export interface IStorage {
   getAllPhoneNumbers(): Promise<PhoneNumber[]>;
   getPhoneNumbersByUserId(userId: string): Promise<PhoneNumber[]>;
   getPhoneNumbersByTwilioAccountId(twilioAccountId: number): Promise<PhoneNumber[]>;
+  getPhoneNumbersByAgentId(agentId: number): Promise<PhoneNumber[]>;
   
   // Contact group operations
   getContactGroup(id: number): Promise<ContactGroup | undefined>;

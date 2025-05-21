@@ -285,6 +285,13 @@ export class DatabaseStorage implements IStorage {
       .where(eq(phoneNumbers.twilioAccountId, twilioAccountId));
   }
   
+  async getPhoneNumbersByAgentId(agentId: number): Promise<PhoneNumber[]> {
+    return await db
+      .select()
+      .from(phoneNumbers)
+      .where(eq(phoneNumbers.agentId, agentId));
+  }
+  
   // Contact group operations
   async getContactGroup(id: number): Promise<ContactGroup | undefined> {
     const results = await db.select().from(contactGroups).where(eq(contactGroups.id, id));
