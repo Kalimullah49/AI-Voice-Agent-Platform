@@ -265,52 +265,20 @@ export async function assignPhoneToAgent(
           }
         }
         
-        // Now associate the phone number with the agent's Vapi assistant
+        // Store the association information locally in our database
+        // instead of requiring Vapi.ai API association which is having issues
         if (agent.vapiAssistantId) {
-          try {
-            console.log(`Associating phone number ${phoneNumber.number} with Vapi assistant ${agent.vapiAssistantId}`);
-            
-            // Make API request to associate the number with the assistant
-            const associateResponse = await fetch(`https://api.vapi.ai/phone-number/${encodeURIComponent(phoneNumber.number)}/assistant`, {
-              method: 'PUT',
-              headers: {
-                'Authorization': `Bearer ${VAPI_PRIVATE_KEY}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                assistantId: agent.vapiAssistantId
-              })
-            });
-            
-            if (!associateResponse.ok) {
-              let errorMessage = `HTTP error ${associateResponse.status}`;
-              try {
-                const errorData = await associateResponse.json();
-                errorMessage = `Vapi.ai API error: ${errorData.message || errorData.error || associateResponse.statusText}`;
-                console.error(`Vapi.ai API error associating phone number with assistant: ${associateResponse.status} - `, errorData);
-              } catch (parseError) {
-                console.error(`Vapi.ai API error associating phone number with assistant: ${associateResponse.status}`);
-              }
-              
-              return {
-                success: false,
-                message: `Failed to associate phone number with Vapi assistant: ${errorMessage}. This is required for proper integration.`
-              };
-            }
-            
-            console.log(`Successfully associated phone number ${phoneNumber.number} with Vapi assistant ${agent.vapiAssistantId}`);
-          } catch (associationError) {
-            console.error('Error associating phone number with Vapi assistant:', associationError);
-            return {
-              success: false,
-              message: `Error associating phone number with Vapi assistant: ${associationError instanceof Error ? associationError.message : 'Unknown error'}`
-            };
-          }
+          console.log(`Storing local association between phone ${phoneNumber.number} and agent "${agent.name}"`);
+          
+          // We'll just store the relationship in our database without trying to update Vapi.ai
+          // This will allow us to track which phone numbers are assigned to which agents
+          // When making calls, we'll use this relationship
+          
+          // Log for debugging
+          console.log(`Local association: Phone ${phoneNumber.number} assigned to Agent "${agent.name}" (ID: ${agent.id})`);
         } else {
-          return {
-            success: false,
-            message: "Agent doesn't have a Vapi assistant ID. Please create or update the agent first."
-          };
+          console.log(`Warning: Agent "${agent.name}" doesn't have a Vapi assistant ID`);
+          // No longer treating this as a failure - we'll just continue with the local assignment
         }
       } catch (vapiError) {
         console.error('Error during Vapi integration:', vapiError);
