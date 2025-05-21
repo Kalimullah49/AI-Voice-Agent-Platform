@@ -1476,6 +1476,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Create a Vapi call endpoint for outbound calls
+  // Webhook endpoint for Vapi.ai events (end-of-call reports, status updates, function calls)
+  app.post("/api/webhook/vapi", async (req: Request, res: Response) => {
+    try {
+      // Import the webhook handler
+      const { handleVapiWebhook } = await import('./utils/vapiWebhook');
+      // Process the webhook
+      return handleVapiWebhook(req, res);
+    } catch (error) {
+      console.error("Error handling Vapi webhook:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.post("/api/vapi/call", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { agentId, fromNumber, toNumber } = req.body;
