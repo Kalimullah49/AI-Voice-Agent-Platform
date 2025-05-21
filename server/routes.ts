@@ -1591,6 +1591,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Internal server error" });
     }
   });
+  
+  // API endpoint to create webhook logs table and get webhook logs
+  app.get("/api/webhook/logs", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      // Import the webhook logs handler
+      const { getWebhookLogs, createWebhookLogsTable } = await import('./api/webhookLogs');
+      
+      // First create the table if it doesn't exist
+      await createWebhookLogsTable();
+      
+      // Then get webhook logs
+      return getWebhookLogs(req, res);
+    } catch (error) {
+      console.error("Error getting webhook logs:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
 
   app.post("/api/vapi/call", isAuthenticated, async (req: Request, res: Response) => {
     try {
