@@ -9,6 +9,7 @@
 
 import { Request, Response } from 'express';
 import { storage } from '../storage';
+import { InsertWebhookLog } from '@shared/schema';
 
 /**
  * Process an end-of-call report
@@ -18,27 +19,65 @@ async function processEndOfCallReport(data: any) {
   try {
     console.log('Processing end-of-call report:', JSON.stringify(data, null, 2));
     
-    if (!data.call) {
+    // Support both old and new Vapi webhook formats
+    const callData = data.call || data;
+    
+    if (!callData) {
       console.error('Invalid end-of-call report: missing call data');
       return;
     }
     
-    const callData = data.call;
+    // Extract call details from the webhook data
+    const callId = callData.id || callData.call?.id || '';
+    const assistantId = callData.assistantId || callData.assistant?.id || '';
     
-    // Extract call details
-    const callId = callData.id;
-    const phoneNumberId = callData.phoneNumberId;
-    const assistantId = callData.assistantId;
-    const startTime = new Date(callData.createdAt);
-    const endTime = new Date(callData.updatedAt);
-    const duration = Math.ceil((endTime.getTime() - startTime.getTime()) / 1000); // duration in seconds
+    // Extract time and duration information
+    let duration = callData.duration || 0;
+    
+    // If we don't have duration directly, try to calculate it
+    if (!duration && callData.createdAt && callData.updatedAt) {
+      const startTime = new Date(callData.createdAt);
+      const endTime = new Date(callData.updatedAt);
+      duration = Math.ceil((endTime.getTime() - startTime.getTime()) / 1000); // duration in seconds
+    }
+    
+    // If we still don't have duration, check if there's a transcript with timing info
+    if (!duration && callData.transcript && callData.transcript.length > 0) {
+      // Try to calculate from the transcript data
+      const lastEntry = callData.transcript[callData.transcript.length - 1];
+      if (lastEntry.secondsFromStart) {
+        duration = Math.ceil(lastEntry.secondsFromStart);
+      }
+    }
+    
+    // Extract other call details
     const cost = callData.cost || 0;
-    const status = callData.status;
+    const status = callData.status || 'completed';
     const endReason = callData.endReason || null;
-    const fromNumber = callData.from || (callData.transport?.from) || '';
-    const toNumber = callData.to || (callData.customer?.number) || '';
+    
+    // Extract phone numbers
+    let fromNumber = '';
+    let toNumber = '';
+    
+    // Try different possible locations for the phone numbers in the webhook
+    if (callData.phoneNumber && callData.phoneNumber.number) {
+      fromNumber = callData.phoneNumber.number;
+    } else if (callData.transport && callData.transport.from) {
+      fromNumber = callData.transport.from;
+    } else if (callData.from) {
+      fromNumber = callData.from;
+    }
+    
+    if (callData.customer && callData.customer.number) {
+      toNumber = callData.customer.number;
+    } else if (callData.transport && callData.transport.to) {
+      toNumber = callData.transport.to;
+    } else if (callData.to) {
+      toNumber = callData.to;
+    }
     
     console.log(`Call ${callId} ended with duration ${duration}s, cost $${cost}, status: ${status}`);
+    console.log(`From: ${fromNumber}, To: ${toNumber}, Assistant ID: ${assistantId}`);
     
     // Find the agent associated with this assistantId
     const agents = await storage.getAllAgents();
@@ -55,6 +94,9 @@ async function processEndOfCallReport(data: any) {
       (call.fromNumber === fromNumber && call.toNumber === toNumber) || 
       (call.fromNumber === toNumber && call.toNumber === fromNumber)
     );
+    
+    // Determine the call direction
+    const direction = callData.type === 'outboundPhoneCall' ? 'outbound' : 'inbound';
     
     if (existingCall) {
       // Update existing call record
@@ -78,7 +120,7 @@ async function processEndOfCallReport(data: any) {
         endedReason: endReason,
         cost,
         outcome: status,
-        direction: fromNumber === toNumber ? 'outbound' : 'inbound'
+        direction
       });
     }
     
@@ -163,34 +205,95 @@ export async function handleVapiWebhook(req: Request, res: Response) {
     const data = req.body;
     console.log('Received Vapi webhook:', JSON.stringify(data, null, 2));
     
-    // Validate the webhook data
-    if (!data || !data.type) {
-      console.error('Invalid webhook payload: missing type');
-      return res.status(400).json({ error: 'Invalid webhook payload' });
+    // First, log the webhook payload regardless of its structure
+    // This ensures we capture all webhook data for debugging
+    let webhookType = "unknown";
+    let processed = false;
+    let error = "";
+    
+    try {
+      // Try to determine the type of webhook
+      if (data.event === "end-of-call-report") {
+        webhookType = "end-of-call-report";
+      } else if (data.type) {
+        webhookType = data.type;
+      } else if (data.event) {
+        webhookType = data.event;
+      }
+      
+      // Create webhook log entry
+      await storage.createWebhookLog({
+        type: webhookType,
+        payload: data,
+        processed: false,
+        error: ""
+      });
+    } catch (logError) {
+      console.error("Error logging webhook:", logError);
     }
     
-    // Process webhook based on type
-    switch (data.type) {
-      case 'end-of-call-report':
-        await processEndOfCallReport(data);
-        break;
-        
-      case 'status-update':
-        await processStatusUpdate(data);
-        break;
-        
-      case 'function-call':
-        await processFunctionCall(data);
-        break;
-        
-      default:
-        console.log(`Unhandled webhook type: ${data.type}`);
+    // Determine webhook type from the new Vapi webhook format
+    if (data.event === "end-of-call-report") {
+      // Handle end-of-call report in the new format
+      await processEndOfCallReport(data.data || data);
+      processed = true;
+    } else if (data.type) {
+      // Handle webhook based on the old format
+      switch (data.type) {
+        case 'end-of-call-report':
+          await processEndOfCallReport(data);
+          processed = true;
+          break;
+          
+        case 'status-update':
+          await processStatusUpdate(data);
+          processed = true;
+          break;
+          
+        case 'function-call':
+          await processFunctionCall(data);
+          processed = true;
+          break;
+          
+        default:
+          console.log(`Unhandled webhook type: ${data.type}`);
+          error = `Unhandled webhook type: ${data.type}`;
+      }
+    } else {
+      console.error('Unknown webhook format:', data);
+      error = 'Unknown webhook format';
+    }
+    
+    // Update the webhook log with processing status
+    try {
+      const logs = await storage.getWebhookLogs(1);
+      if (logs.length > 0) {
+        await storage.updateWebhookLog(logs[0].id, {
+          processed,
+          error
+        });
+      }
+    } catch (updateError) {
+      console.error("Error updating webhook log:", updateError);
     }
     
     // Always return success to acknowledge receipt
     return res.status(200).json({ success: true });
   } catch (error) {
     console.error('Error handling Vapi webhook:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    
+    // Try to log the error
+    try {
+      await storage.createWebhookLog({
+        type: "error",
+        payload: req.body,
+        processed: false,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    } catch (logError) {
+      console.error("Error logging webhook error:", logError);
+    }
+    
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

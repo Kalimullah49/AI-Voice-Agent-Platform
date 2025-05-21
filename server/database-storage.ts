@@ -374,6 +374,32 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(campaigns);
   }
   
+  // Webhook log operations
+  async createWebhookLog(log: InsertWebhookLog): Promise<WebhookLog> {
+    const [result] = await db
+      .insert(webhookLogs)
+      .values(log)
+      .returning();
+    return result;
+  }
+  
+  async getWebhookLogs(limit: number = 100): Promise<WebhookLog[]> {
+    return await db
+      .select()
+      .from(webhookLogs)
+      .orderBy(desc(webhookLogs.createdAt))
+      .limit(limit);
+  }
+  
+  async updateWebhookLog(id: number, data: Partial<InsertWebhookLog>): Promise<WebhookLog | undefined> {
+    const [updated] = await db
+      .update(webhookLogs)
+      .set(data)
+      .where(eq(webhookLogs.id, id))
+      .returning();
+    return updated;
+  }
+  
   // Clear all data
   async clearAllData(): Promise<void> {
     await db.delete(calls);
