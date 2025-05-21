@@ -1483,41 +1483,31 @@ export default function AgentDetailPage() {
                   <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
                 </div>
               ) : assignedPhoneNumbers && assignedPhoneNumbers.length > 0 ? (
-                <div className="border rounded-md overflow-hidden">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Number</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {assignedPhoneNumbers.map(phoneNumber => (
-                        <tr key={phoneNumber.id}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{phoneNumber.id}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{phoneNumber.number}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                              Active
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="mr-2"
-                              onClick={() => setCallNumberDialogOpen(true)}
-                            >
-                              <PhoneCall className="h-4 w-4 mr-1" />
-                              Call
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="mb-8">
+                  <h3 className="text-lg font-medium mb-4">Assigned Phone Number</h3>
+                  <div className="border rounded-md p-6 bg-white">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="bg-primary/10 rounded-full p-3">
+                          <Phone className="h-6 w-6 text-primary" />
+                        </div>
+                        <div>
+                          <div className="text-xl font-medium">{assignedPhoneNumbers[0].number}</div>
+                          <div className="text-sm text-muted-foreground">
+                            Number ID: {assignedPhoneNumbers[0].id}
+                          </div>
+                        </div>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        className="flex items-center gap-2"
+                        onClick={() => setCallNumberDialogOpen(true)}
+                      >
+                        <PhoneCall className="h-4 w-4" />
+                        Make Call
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="text-center py-10 border rounded-md">
