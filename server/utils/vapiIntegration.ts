@@ -189,10 +189,13 @@ export async function assignPhoneToAgent(
     if (agentId) {
       const agentPhoneNumbers = await storage.getPhoneNumbersByAgentId(agentId);
       if (agentPhoneNumbers.length > 0 && !agentPhoneNumbers.some(pn => pn.id === phoneNumberId)) {
-        return {
-          success: false,
-          message: `Agent "${agent.name}" already has a phone number assigned. Please unassign the existing number first.`
-        };
+        // Unassign all existing phone numbers from this agent first
+        console.log(`Agent "${agent.name}" already has ${agentPhoneNumbers.length} phone numbers assigned. Unassigning them first.`);
+        
+        for (const pn of agentPhoneNumbers) {
+          console.log(`Unassigning phone number ${pn.number} (ID: ${pn.id}) from agent ${agent.name} (ID: ${agentId})`);
+          await storage.updatePhoneNumber(pn.id, { agentId: null });
+        }
       }
     }
     

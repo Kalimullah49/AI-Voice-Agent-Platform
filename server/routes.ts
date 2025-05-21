@@ -677,8 +677,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/phone-numbers", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.session.userId;
-      const phoneNumbers = await storage.getPhoneNumbersByUserId(userId);
-      res.json(phoneNumbers);
+      const agentId = req.query.agentId ? parseInt(req.query.agentId as string) : undefined;
+      
+      // If agentId is specified, fetch phone numbers by agent
+      if (agentId) {
+        const phoneNumbers = await storage.getPhoneNumbersByAgentId(agentId);
+        console.log(`Fetched ${phoneNumbers.length} phone numbers for agent ID ${agentId}`);
+        res.json(phoneNumbers);
+      } else {
+        // Otherwise fetch all phone numbers for the user
+        const phoneNumbers = await storage.getPhoneNumbersByUserId(userId);
+        res.json(phoneNumbers);
+      }
     } catch (error) {
       console.error("Error fetching phone numbers:", error);
       res.status(500).json({ message: "Failed to fetch phone numbers" });
