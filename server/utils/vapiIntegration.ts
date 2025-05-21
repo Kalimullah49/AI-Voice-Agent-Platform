@@ -133,15 +133,25 @@ export async function assignPhoneToAgent(
       };
     }
     
-    // If the phone number doesn't have a Vapi ID yet but has a Twilio SID
+    // If the phone number doesn't have a Vapi ID yet but has a Twilio SID and account ID
     // Register it with Vapi.ai
-    if (!phoneNumber.vapiPhoneNumberId && phoneNumber.twilioSid) {
+    if (!phoneNumber.vapiPhoneNumberId && phoneNumber.twilioSid && phoneNumber.twilioAccountId) {
       try {
+        // Get the Twilio account details to use the correct account SID
+        const twilioAccount = await storage.getTwilioAccount(phoneNumber.twilioAccountId);
+        if (!twilioAccount) {
+          console.error(`Twilio account ${phoneNumber.twilioAccountId} not found for phone number ${phoneNumber.number}`);
+          return {
+            success: false,
+            message: "Twilio account not found for this phone number"
+          };
+        }
+        
         const friendlyName = `Agent Number - ${agent.name || agent.id}`;
         
         const vapiResult = await registerPhoneNumberWithVapiNumbers(
           phoneNumber.number,
-          phoneNumber.twilioSid,
+          twilioAccount.accountSid, // Use the actual Twilio account SID, not the phone number SID
           friendlyName
         );
         
