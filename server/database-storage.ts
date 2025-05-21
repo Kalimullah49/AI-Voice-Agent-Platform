@@ -1,9 +1,9 @@
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq, and, isNull, desc } from 'drizzle-orm';
 import {
-  User, Agent, Call, Action, PhoneNumber, ContactGroup, Contact, Campaign, TwilioAccount,
+  User, Agent, Call, Action, PhoneNumber, ContactGroup, Contact, Campaign, TwilioAccount, WebhookLog,
   InsertUser, InsertAgent, InsertCall, InsertAction, InsertPhoneNumber, InsertTwilioAccount,
-  InsertContactGroup, InsertContact, InsertCampaign,
-  users, agents, calls, actions, phoneNumbers, contactGroups, contacts, campaigns, twilioAccounts,
+  InsertContactGroup, InsertContact, InsertCampaign, InsertWebhookLog,
+  users, agents, calls, actions, phoneNumbers, contactGroups, contacts, campaigns, twilioAccounts, webhookLogs,
 } from "@shared/schema";
 import { IStorage } from './storage';
 import { db } from './db';

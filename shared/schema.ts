@@ -307,5 +307,25 @@ export type InsertContactGroup = z.infer<typeof insertContactGroupSchema>;
 export type Contact = typeof contacts.$inferSelect;
 export type InsertContact = z.infer<typeof insertContactSchema>;
 
+// Webhook logs for debugging
+export const webhookLogs = pgTable("webhook_logs", {
+  id: serial("id").primaryKey(),
+  type: varchar("type", { length: 100 }),
+  payload: jsonb("payload"),
+  processed: boolean("processed").default(false),
+  error: text("error").notNull().default(''),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+export const insertWebhookLogSchema = createInsertSchema(webhookLogs).pick({
+  type: true,
+  payload: true,
+  processed: true,
+  error: true
+});
+
+export type WebhookLog = typeof webhookLogs.$inferSelect;
+export type InsertWebhookLog = z.infer<typeof insertWebhookLogSchema>;
+
 export type Campaign = typeof campaigns.$inferSelect;
 export type InsertCampaign = z.infer<typeof insertCampaignSchema>;
