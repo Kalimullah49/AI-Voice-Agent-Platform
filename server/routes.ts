@@ -646,7 +646,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const vapiResult = await registerPhoneNumberWithVapiNumbers(
           purchasedNumber.phoneNumber,
           account.accountSid,
-          purchasedNumber.friendlyName
+          purchasedNumber.friendlyName,
+          account.authToken // Pass the user's own Twilio auth token for verification
         );
         
         if (vapiResult.success && vapiResult.phoneNumberId) {
@@ -759,7 +760,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const vapiResult = await registerPhoneNumberWithVapiNumbers(
             twilioNumber.phoneNumber,
             twilioAccount.accountSid,
-            twilioNumber.friendlyName || `Imported ${twilioNumber.phoneNumber}`
+            twilioNumber.friendlyName || `Imported ${twilioNumber.phoneNumber}`,
+            twilioAccount.authToken // Pass the user's own Twilio auth token for verification
           );
           
           if (vapiResult.success) {

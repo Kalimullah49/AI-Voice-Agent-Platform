@@ -18,7 +18,8 @@ const VAPI_PRIVATE_KEY = process.env.VAPI_PRIVATE_KEY || '';
 export async function registerPhoneNumberWithVapiNumbers(
   phoneNumber: string,
   twilioAccountSid: string,
-  friendlyName: string
+  friendlyName: string,
+  twilioAuthToken?: string
 ): Promise<{ success: boolean; message?: string; phoneNumberId?: string }> {
   try {
     // Check if Vapi private key is available
@@ -39,11 +40,17 @@ export async function registerPhoneNumberWithVapiNumbers(
     // Using only fields that Vapi.ai specifically accepts
     // IMPORTANT: Vapi.ai requires the Twilio account SID, not the phone number SID
     // This is critical for verification with Twilio's API
-    const payload = {
+    // Build the payload with available credentials
+    const payload: any = {
       provider: "twilio",
       number: formattedPhoneNumber,
       twilioAccountSid: twilioAccountSid
     };
+    
+    // Add auth token if provided (helps with verification)
+    if (twilioAuthToken) {
+      payload.twilioAuthToken = twilioAuthToken;
+    }
     
     console.log(`Attempting to register phone number ${formattedPhoneNumber} with Twilio account SID: ${twilioAccountSid}`);
     
