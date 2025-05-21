@@ -640,6 +640,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         active: true
       };
       
+      // Register the phone number with Vapi.ai
+      try {
+        const { registerPhoneNumberWithVapiNumbers } = require('./utils/vapiIntegration');
+        const vapiResult = await registerPhoneNumberWithVapiNumbers(
+          purchasedNumber.phoneNumber,
+          account.accountSid,
+          purchasedNumber.friendlyName
+        );
+        
+        if (vapiResult.success && vapiResult.phoneNumberId) {
+          console.log(`Successfully registered ${purchasedNumber.phoneNumber} with Vapi.ai (ID: ${vapiResult.phoneNumberId})`);
+          phoneNumberData.vapiPhoneNumberId = vapiResult.phoneNumberId;
+        } else {
+          console.warn(`Failed to register phone number with Vapi.ai: ${vapiResult.message}`);
+        }
+      } catch (vapiError) {
+        console.error('Error registering phone number with Vapi.ai:', vapiError);
+        // Continue despite the error - we'll try again when assigning to an agent
+      }
+      
       const savedNumber = await storage.createPhoneNumber(phoneNumberData);
       
       res.status(201).json(savedNumber);

@@ -36,13 +36,11 @@ export async function registerPhoneNumberWithVapiNumbers(
     console.log(`Registering phone number with Vapi.ai: ${formattedPhoneNumber} (${friendlyName})`);
     
     // Create the payload for Vapi.ai with correct field names
-    // Make sure we have all required fields for proper registration
+    // Using only fields that Vapi.ai specifically accepts
     const payload = {
       provider: "twilio",
       number: formattedPhoneNumber,
-      twilioAccountSid: twilioSid, // This is the critical field Vapi.ai uses to verify with Twilio
-      inbound: true, // Mark the number as supporting inbound calls by default
-      outbound: true // Enable outbound capabilities as well
+      twilioAccountSid: twilioSid // This is the critical field Vapi.ai uses to verify with Twilio
     };
     
     console.log('Request payload:', JSON.stringify(payload, null, 2));
@@ -97,7 +95,18 @@ export async function registerPhoneNumberWithVapiNumbers(
       console.error(`Vapi.ai API error registering phone number: ${response.status} - `, responseData);
       
       // Get a more detailed error message, especially for the "Number Not Found on Twilio" error
-      let errorMessage = responseData?.message || responseData?.error || response.statusText;
+      let errorMessage: string;
+      
+      // Handle array of error messages
+      if (Array.isArray(responseData?.message)) {
+        errorMessage = responseData.message.join(', ');
+      } else if (responseData?.message) {
+        errorMessage = responseData.message;
+      } else if (responseData?.error) {
+        errorMessage = responseData.error;
+      } else {
+        errorMessage = response.statusText;
+      }
       
       // If the error is about verifying with Twilio, provide a more helpful message
       if (errorMessage.includes("Number Not Found on Twilio") || errorMessage.toLowerCase().includes("twilio")) {
