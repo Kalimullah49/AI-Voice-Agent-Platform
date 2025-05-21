@@ -62,6 +62,9 @@ export default function AgentDetailPage() {
   const { id } = useParams();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [callNumberDialogOpen, setCallNumberDialogOpen] = useState(false);
+  const [callToNumber, setCallToNumber] = useState("");
+  const [isCallingLoading, setIsCallingLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("general");
   const [isWebCallActive, setIsWebCallActive] = useState(false);
   
@@ -73,6 +76,16 @@ export default function AgentDetailPage() {
   } = useQuery({
     queryKey: ["/api/agents", id],
     queryFn: () => apiRequest("GET", `/api/agents/${id}`).then(res => res.json()),
+  });
+
+  // Get phone numbers assigned to this agent
+  const {
+    data: assignedPhoneNumbers,
+    isLoading: isLoadingPhoneNumbers
+  } = useQuery({
+    queryKey: ["/api/phone-numbers", "agent", id],
+    queryFn: () => apiRequest("GET", `/api/phone-numbers?agentId=${id}`).then(res => res.json()),
+    enabled: !!id
   });
   
   // State for form fields
