@@ -1465,6 +1465,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     };
   }
 
+  // Create a Vapi call endpoint for outbound calls
+  app.post("/api/vapi/call", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { agentId, fromNumber, toNumber } = req.body;
+      
+      if (!agentId || !fromNumber || !toNumber) {
+        return res.status(400).json({ 
+          message: "Missing required fields: agentId, fromNumber, or toNumber" 
+        });
+      }
+      
+      // Get the agent to find the Vapi assistant ID
+      const agent = await storage.getAgent(parseInt(agentId));
+      if (!agent) {
+        return res.status(404).json({ message: "Agent not found" });
+      }
+      
+      // Make sure agent has a Vapi assistant ID
+      if (!agent.vapiAssistantId) {
+        return res.status(400).json({ 
+          message: "This agent doesn't have a Vapi assistant ID. Please update the agent first." 
+        });
+      }
+      
+      // Get VAPI configuration
+      const VAPI_PRIVATE_KEY = process.env.VAPI_PRIVATE_KEY;
+      if (!VAPI_PRIVATE_KEY) {
+        return res.status(500).json({ 
+          message: "VAPI_PRIVATE_KEY is missing. Please set this environment variable." 
+        });
+      }
+      
+      console.log(`Initiating outbound call from ${fromNumber} to ${toNumber} with agent ${agent.name} (${agent.vapiAssistantId})`);
+      
+      // Make API request to Vapi to initiate a call
+      const response = await fetch('https://api.vapi.ai/call', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${VAPI_PRIVATE_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          assistant_id: agent.vapiAssistantId,
+          from: fromNumber,
+          to: toNumber
+        })
+      });
+      
+      if (!response.ok) {
+        let errorText = await response.text();
+        try {
+          const errorData = JSON.parse(errorText);
+          console.error("Vapi.ai call API error:", errorData);
+          return res.status(response.status).json({ 
+            message: `Failed to initiate call: ${errorData.message || errorData.error || response.statusText}` 
+          });
+        } catch (e) {
+          console.error("Vapi.ai call API error:", errorText);
+          return res.status(response.status).json({ 
+            message: `Failed to initiate call: ${response.statusText}` 
+          });
+        }
+      }
+      
+      const data = await response.json();
+      console.log("Call initiated successfully:", data);
+      
+      // Create a call record in our database
+      await storage.createCall({
+        fromNumber: fromNumber,
+        toNumber: toNumber,
+        agentId: parseInt(agentId),
+        direction: "outbound",
+        duration: 0, // This will be updated when the call ends
+        startedAt: new Date(),
+      });
+      
+      res.json({ 
+        success: true, 
+        message: "Call initiated successfully", 
+        callId: data.id
+      });
+    } catch (error) {
+      console.error("Error initiating call:", error);
+      res.status(500).json({ 
+        message: "Failed to initiate call", 
+        error: error instanceof Error ? error.message : String(error) 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

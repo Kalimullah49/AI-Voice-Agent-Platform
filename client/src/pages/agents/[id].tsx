@@ -1467,53 +1467,99 @@ export default function AgentDetailPage() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex justify-between mb-6">
-                <Input 
-                  placeholder="Search phone numbers..."
-                  className="w-[300px]"
-                />
-                <select className="p-2 border rounded-md">
-                  <option>All</option>
-                  <option>Active</option>
-                  <option>Inactive</option>
-                </select>
-              </div>
-              
-              <div className="border rounded-md overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Number</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    <tr>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">3484</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">+14248551030</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                          Active
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <Button variant="destructive" size="sm">Delete</Button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              
-              <div className="flex items-center justify-between mt-4">
-                <div className="text-sm text-gray-700">
-                  Number of rows: 10
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Button variant="outline" size="sm" disabled>Previous</Button>
-                  <Button variant="outline" size="sm" disabled>Next</Button>
+                <div className="flex items-center gap-4">
+                  <Button 
+                    onClick={() => setCallNumberDialogOpen(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <PhoneCall className="h-4 w-4" />
+                    Call Phone Number
+                  </Button>
                 </div>
               </div>
+              
+              {isLoadingPhoneNumbers ? (
+                <div className="flex justify-center py-10">
+                  <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+                </div>
+              ) : assignedPhoneNumbers && assignedPhoneNumbers.length > 0 ? (
+                <div className="border rounded-md overflow-hidden">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Number</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {assignedPhoneNumbers.map(phoneNumber => (
+                        <tr key={phoneNumber.id}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{phoneNumber.id}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{phoneNumber.number}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                              Active
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="mr-2"
+                              onClick={() => setCallNumberDialogOpen(true)}
+                            >
+                              <PhoneCall className="h-4 w-4 mr-1" />
+                              Call
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-10 border rounded-md">
+                  <Phone className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No phone numbers assigned</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    This agent doesn't have any phone numbers assigned yet.
+                  </p>
+                </div>
+              )}
+              
+              {/* Call Number Dialog */}
+              <Dialog open={callNumberDialogOpen} onOpenChange={setCallNumberDialogOpen}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Make Outbound Call</DialogTitle>
+                    <DialogDescription>
+                      Enter the phone number you want to call. The call will be made from this agent's assigned phone number.
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <div className="py-4">
+                    <Label htmlFor="phoneNumber">Phone Number to Call</Label>
+                    <Input 
+                      id="phoneNumber" 
+                      placeholder="+12345678900" 
+                      value={callToNumber}
+                      onChange={(e) => setCallToNumber(e.target.value)}
+                    />
+                  </div>
+                  
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setCallNumberDialogOpen(false)}>Cancel</Button>
+                    <Button 
+                      onClick={makeOutboundCall} 
+                      disabled={isCallingLoading || !callToNumber}
+                    >
+                      {isCallingLoading ? "Initiating Call..." : "Call Now"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </CardContent>
           </Card>
         </TabsContent>
