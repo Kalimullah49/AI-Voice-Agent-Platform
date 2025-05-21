@@ -1517,9 +1517,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          assistant_id: agent.vapiAssistantId,
-          from: fromNumber,
-          to: toNumber
+          phone_number: fromNumber,
+          recipient: toNumber,
+          assistant_id: agent.vapiAssistantId
         })
       });
       
