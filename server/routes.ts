@@ -1499,6 +1499,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Get the phone number details to get its Vapi ID
+      // Find the phone number in our database by the phone number string
+      const phoneNumbers = await storage.getAllPhoneNumbers();
+      const phoneNumber = phoneNumbers.find(pn => pn.number === fromNumber);
+      
+      if (!phoneNumber) {
+        return res.status(404).json({ message: "Phone number not found in database" });
+      }
+      
+      if (!phoneNumber.vapiPhoneNumberId) {
+        return res.status(400).json({ 
+          message: "This phone number doesn't have a Vapi ID. Please make sure it's properly registered with Vapi.ai." 
+        });
+      }
+      
       // Get VAPI configuration
       const VAPI_PRIVATE_KEY = process.env.VAPI_PRIVATE_KEY;
       if (!VAPI_PRIVATE_KEY) {
@@ -1510,16 +1525,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Initiating outbound call from ${fromNumber} to ${toNumber} with agent ${agent.name} (${agent.vapiAssistantId})`);
       
       // Make API request to Vapi to initiate a call
-      const response = await fetch('https://api.vapi.ai/call', {
+      const response = await fetch('https://api.vapi.ai/v1/calls', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${VAPI_PRIVATE_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          phone_number: fromNumber,
-          recipient: toNumber,
-          assistant_id: agent.vapiAssistantId
+          assistantId: agent.vapiAssistantId,
+          phoneNumberId: phoneNumber?.vapiPhoneNumberId,
+          customer: {
+            number: toNumber
+          }
         })
       });
       
