@@ -36,11 +36,13 @@ export async function registerPhoneNumberWithVapiNumbers(
     console.log(`Registering phone number with Vapi.ai: ${formattedPhoneNumber} (${friendlyName})`);
     
     // Create the payload for Vapi.ai with correct field names
+    // Make sure we have all required fields for proper registration
     const payload = {
       provider: "twilio",
       number: formattedPhoneNumber,
-      twilioAccountSid: twilioSid, // Using the correct field name that Vapi.ai expects
-      // removing friendlyName as it's not expected by the API
+      twilioAccountSid: twilioSid, // This is the critical field Vapi.ai uses to verify with Twilio
+      inbound: true, // Mark the number as supporting inbound calls by default
+      outbound: true // Enable outbound capabilities as well
     };
     
     console.log('Request payload:', JSON.stringify(payload, null, 2));
@@ -165,85 +167,123 @@ export async function assignPhoneToAgent(
       }
     }
     
-    // If the phone number doesn't have a Vapi ID yet but has a Twilio SID and account ID
-    // Register it with Vapi.ai - but allow continuation even if this fails
-    if (agentId && !phoneNumber.vapiPhoneNumberId && phoneNumber.twilioAccountId) {
+    // Verify that this is a valid phone number in the Twilio account
+    if (phoneNumber.twilioAccountId) {
+      const twilioAccount = await storage.getTwilioAccount(phoneNumber.twilioAccountId);
+      if (!twilioAccount) {
+        return {
+          success: false,
+          message: "The Twilio account associated with this phone number was not found."
+        };
+      }
+      
+      // We need to make sure this phone number is actually valid in Twilio
+      // Before we try to register it with Vapi
+      if (!phoneNumber.twilioSid) {
+        return {
+          success: false,
+          message: "This phone number doesn't have a valid Twilio SID. Please make sure it's properly imported from your Twilio account."
+        };
+      }
+    }
+    
+    // For accurate synchronization with Vapi.ai, we need to register the phone number first
+    // and only proceed with assignment if registration is successful
+    if (agentId && phoneNumber.twilioAccountId) {
       try {
         // Get the Twilio account details to use the correct account SID
         const twilioAccount = await storage.getTwilioAccount(phoneNumber.twilioAccountId);
         if (!twilioAccount) {
-          console.error(`Twilio account ${phoneNumber.twilioAccountId} not found for phone number ${phoneNumber.number}`);
-          // Continue with the assignment even without Vapi registration
-          console.log(`Proceeding with assignment without Vapi.ai registration due to missing Twilio account`);
+          return {
+            success: false,
+            message: "Twilio account not found for this phone number. Cannot register with Vapi.ai."
+          };
+        }
+        
+        const friendlyName = `Agent Number - ${agent.name || agent.id}`;
+        
+        // Check if we already have a Vapi phone number ID
+        if (phoneNumber.vapiPhoneNumberId) {
+          console.log(`Phone number ${phoneNumber.number} already has Vapi ID: ${phoneNumber.vapiPhoneNumberId}`);
         } else {
-          const friendlyName = `Agent Number - ${agent.name || agent.id}`;
+          // Try to register with Vapi.ai, and REQUIRE it to be successful
+          const registerResult = await registerPhoneNumberWithVapiNumbers(
+            phoneNumber.number,
+            twilioAccount.accountSid,
+            friendlyName
+          );
           
-          // Try to register with Vapi.ai, but don't fail if it doesn't work
-          let vapiPhoneNumberId = null;
+          if (!registerResult.success) {
+            return {
+              success: false,
+              message: `Failed to register phone number with Vapi.ai: ${registerResult.message}. This is required for proper integration.`
+            };
+          }
           
+          console.log(`Successfully registered ${phoneNumber.number} with Vapi.ai (ID: ${registerResult.phoneNumberId})`);
+          
+          // Update the phone number with the Vapi ID
+          await storage.updatePhoneNumber(phoneNumberId, {
+            vapiPhoneNumberId: registerResult.phoneNumberId
+          });
+          
+          // Update our local copy for later use
+          phoneNumber.vapiPhoneNumberId = registerResult.phoneNumberId;
+        }
+        
+        // Now associate the phone number with the agent's Vapi assistant
+        if (agent.vapiAssistantId) {
           try {
-            const registerResult = await registerPhoneNumberWithVapiNumbers(
-              phoneNumber.number,
-              twilioAccount.accountSid,
-              friendlyName
-            );
+            console.log(`Associating phone number ${phoneNumber.number} with Vapi assistant ${agent.vapiAssistantId}`);
             
-            if (registerResult.success && registerResult.phoneNumberId) {
-              console.log(`Successfully registered ${phoneNumber.number} with Vapi.ai (ID: ${registerResult.phoneNumberId})`);
-              
-              // Update the phone number with the Vapi ID
-              await storage.updatePhoneNumber(phoneNumberId, {
-                vapiPhoneNumberId: registerResult.phoneNumberId
-              });
-              
-              // Update our local copy for later use
-              phoneNumber.vapiPhoneNumberId = registerResult.phoneNumberId;
-              vapiPhoneNumberId = registerResult.phoneNumberId;
-            } else {
-              // Log the error but continue with assignment
-              console.log(`Failed Vapi.ai registration for ${phoneNumber.number}: ${registerResult.message || "Unknown error"}`);
-            }
-          } catch (registerError) {
-            console.error(`Error registering phone number with Vapi.ai: ${registerError}`);
-            // Continue despite the error
-          }
-          
-          // Now try to associate the phone number with the agent's Vapi assistant
-          if (agent.vapiAssistantId) {
-            try {
-              console.log(`Associating phone number ${phoneNumber.number} with Vapi assistant ${agent.vapiAssistantId}`);
-              
-              // Make API request to associate the number with the assistant
-              const associateResponse = await fetch(`https://api.vapi.ai/phone-number/${encodeURIComponent(phoneNumber.number)}/assistant`, {
-                method: 'PUT',
-                headers: {
-                  'Authorization': `Bearer ${VAPI_PRIVATE_KEY}`,
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  assistantId: agent.vapiAssistantId
-                })
-              });
-              
-              if (!associateResponse.ok) {
-                try {
-                  const errorData = await associateResponse.json();
-                  console.error(`Vapi.ai API error associating phone number with assistant: ${associateResponse.status} - `, errorData);
-                } catch (parseError) {
-                  console.error(`Vapi.ai API error associating phone number with assistant: ${associateResponse.status} - could not parse response`);
-                }
-              } else {
-                console.log(`Successfully associated phone number ${phoneNumber.number} with Vapi assistant ${agent.vapiAssistantId}`);
+            // Make API request to associate the number with the assistant
+            const associateResponse = await fetch(`https://api.vapi.ai/phone-number/${encodeURIComponent(phoneNumber.number)}/assistant`, {
+              method: 'PUT',
+              headers: {
+                'Authorization': `Bearer ${VAPI_PRIVATE_KEY}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                assistantId: agent.vapiAssistantId
+              })
+            });
+            
+            if (!associateResponse.ok) {
+              let errorMessage = `HTTP error ${associateResponse.status}`;
+              try {
+                const errorData = await associateResponse.json();
+                errorMessage = `Vapi.ai API error: ${errorData.message || errorData.error || associateResponse.statusText}`;
+                console.error(`Vapi.ai API error associating phone number with assistant: ${associateResponse.status} - `, errorData);
+              } catch (parseError) {
+                console.error(`Vapi.ai API error associating phone number with assistant: ${associateResponse.status}`);
               }
-            } catch (associationError) {
-              console.error('Error associating phone number with Vapi assistant:', associationError);
-              // We'll continue since the phone number assignment can still proceed
+              
+              return {
+                success: false,
+                message: `Failed to associate phone number with Vapi assistant: ${errorMessage}. This is required for proper integration.`
+              };
             }
+            
+            console.log(`Successfully associated phone number ${phoneNumber.number} with Vapi assistant ${agent.vapiAssistantId}`);
+          } catch (associationError) {
+            console.error('Error associating phone number with Vapi assistant:', associationError);
+            return {
+              success: false,
+              message: `Error associating phone number with Vapi assistant: ${associationError instanceof Error ? associationError.message : 'Unknown error'}`
+            };
           }
+        } else {
+          return {
+            success: false,
+            message: "Agent doesn't have a Vapi assistant ID. Please create or update the agent first."
+          };
         }
       } catch (vapiError) {
-        console.error('Error registering with Vapi:', vapiError);
-        // Continue with assignment even if Vapi registration fails
+        console.error('Error during Vapi integration:', vapiError);
+        return {
+          success: false,
+          message: `Error during Vapi.ai integration: ${vapiError instanceof Error ? vapiError.message : 'Unknown error'}`
+        };
       }
     }
     
