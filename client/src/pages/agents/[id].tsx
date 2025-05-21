@@ -520,15 +520,29 @@ export default function AgentDetailPage() {
                     initScript.innerHTML = `
                       try {
                         const assistant = "${agentData.vapiAssistantId}";
-                        const apiKey = "317c2afe-8d25-4a7f-8ec8-613a6265dd14";
                         
-                        // Run the Vapi SDK with the proper configuration
-                        if (window.vapiSDK) {
-                          window.vapiSDK.run({
-                            apiKey: apiKey,
-                            assistant: assistant,
+                        // First fetch the API token from our backend
+                        fetch('/api/vapi/token')
+                          .then(response => response.json())
+                          .then(data => {
+                            if (data.success && data.token) {
+                              // Run the Vapi SDK with the proper configuration
+                              if (window.vapiSDK) {
+                                window.vapiSDK.run({
+                                  apiKey: data.token,
+                                  assistant: assistant,
+                                });
+                              }
+                            } else {
+                              console.error("Failed to fetch Vapi token:", data.message);
+                            }
+                          })
+                          .catch(error => {
+                            console.error("Error fetching Vapi token:", error);
                           });
-                        } else {
+                        
+                        // Check if SDK is available
+                        if (!window.vapiSDK) {
                           console.error("Vapi SDK not available");
                         }
                       } catch (err) {
