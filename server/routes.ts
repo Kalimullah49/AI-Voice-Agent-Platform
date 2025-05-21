@@ -1456,6 +1456,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Helper function to get daily call distribution
+  // Now using real data from webhook
   function getDailyCallsDistribution(calls: any[]) {
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const distribution = days.map(day => 0);
@@ -1472,6 +1473,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
   
   // Helper function to get daily duration and cost
+  // Now using real data from webhook 
   function getDailyDurationAndCost(calls: any[]) {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const duration = days.map(day => 0);
