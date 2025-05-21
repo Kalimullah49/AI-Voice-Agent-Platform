@@ -1525,18 +1525,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Initiating outbound call from ${fromNumber} to ${toNumber} with agent ${agent.name} (${agent.vapiAssistantId})`);
       
       // Make API request to Vapi to initiate a call
-      const response = await fetch('https://api.vapi.ai/v1/calls', {
+      const response = await fetch('https://api.vapi.ai/call', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${VAPI_PRIVATE_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          assistantId: agent.vapiAssistantId,
-          phoneNumberId: phoneNumber?.vapiPhoneNumberId,
-          customer: {
-            number: toNumber
-          }
+          assistant_id: agent.vapiAssistantId,
+          from: fromNumber,
+          to: toNumber
         })
       });
       
