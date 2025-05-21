@@ -109,6 +109,15 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(calls).where(eq(calls.agentId, agentId));
   }
   
+  async updateCall(id: number, callData: Partial<InsertCall>): Promise<Call | undefined> {
+    const [updatedCall] = await db
+      .update(calls)
+      .set(callData)
+      .where(eq(calls.id, id))
+      .returning();
+    return updatedCall;
+  }
+  
   // Action operations
   async getAction(id: number): Promise<Action | undefined> {
     const results = await db.select().from(actions).where(eq(actions.id, id));

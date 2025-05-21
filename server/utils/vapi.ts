@@ -246,6 +246,10 @@ export interface VapiAssistantParams {
   endCallFunctionEnabled?: boolean;
   transferCallFunctionEnabled?: boolean;
   metadata?: Record<string, any>;
+  server?: {
+    url: string;
+    messages?: string[];
+  };
 
   model: {
     provider: string;
