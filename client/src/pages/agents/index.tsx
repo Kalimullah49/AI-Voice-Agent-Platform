@@ -13,6 +13,7 @@ export default function AgentsPage() {
   const [_, navigate] = useLocation();
   const queryClient = useQueryClient();
   const [testCallModalOpen, setTestCallModalOpen] = useState(false);
+  const [createAgentDialogOpen, setCreateAgentDialogOpen] = useState(false);
   const [selectedAssistantId, setSelectedAssistantId] = useState<string | undefined>();
   const { data: agents = [], isLoading, error } = useQuery<any[]>({
     queryKey: ["/api/agents"],
