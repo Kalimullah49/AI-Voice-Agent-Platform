@@ -235,6 +235,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Endpoint to clear call records for a fresh start with webhook data
+  app.post("/api/calls/clear", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId;
+      
+      // Get user's agents
+      const userAgents = await storage.getAllAgentsByUserId(userId);
+      const userAgentIds = userAgents.map(agent => agent.id);
+      
+      // Get all calls
+      const allCalls = await storage.getAllCalls();
+      
+      // Filter to just the user's calls
+      const userCalls = allCalls.filter(call => 
+        call.agentId && userAgentIds.includes(call.agentId)
+      );
+      
+      // Delete each call
+      let deletedCount = 0;
+      for (const call of userCalls) {
+        await storage.deleteCall(call.id);
+        deletedCount++;
+      }
+      
+      return res.json({
+        success: true,
+        message: `Successfully cleared ${deletedCount} call records`,
+        count: deletedCount
+      });
+    } catch (error) {
+      console.error("Error clearing calls:", error);
+      return res.status(500).json({ 
+        success: false,
+        message: "Failed to clear call records" 
+      });
+    }
+  });
+  
   app.get("/api/calls/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.session.userId;

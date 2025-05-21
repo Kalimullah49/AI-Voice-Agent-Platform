@@ -118,6 +118,11 @@ export class DatabaseStorage implements IStorage {
     return updatedCall;
   }
   
+  async deleteCall(id: number): Promise<boolean> {
+    const result = await db.delete(calls).where(eq(calls.id, id));
+    return result !== undefined;
+  }
+  
   // Action operations
   async getAction(id: number): Promise<Action | undefined> {
     const results = await db.select().from(actions).where(eq(actions.id, id));
