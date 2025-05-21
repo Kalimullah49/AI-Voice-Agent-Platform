@@ -7,6 +7,7 @@ import { TableSkeleton } from "@/components/ui/skeleton";
 import { useLocation } from "wouter";
 import { toast } from "@/hooks/use-toast";
 import { TestCallModal } from "@/components/agents/TestCallModal";
+import { CreateAgentDialog } from "@/components/agents/CreateAgentDialog";
 import { useState } from "react";
 
 export default function AgentsPage() {
@@ -66,29 +67,7 @@ export default function AgentsPage() {
             Generate with AI
           </Button>
           <Button
-            onClick={() => {
-              // Create a new empty agent with default values
-              fetch('/api/agents', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                  name: "New Agent",
-                  type: "inbound",
-                  active: false
-                })
-              })
-              .then(response => response.json())
-              .then(data => {
-                // Navigate to the newly created agent's detail page
-                navigate(`/agents/${data.id}`);
-              })
-              .catch(error => {
-                console.error("Error creating agent:", error);
-                alert('Failed to create agent. Please try again.');
-              });
-            }}
+            onClick={() => setCreateAgentDialogOpen(true)}
           >
             <PlusIcon className="h-4 w-4 mr-2" />
             Create new agent
@@ -205,6 +184,12 @@ export default function AgentsPage() {
           setSelectedAssistantId(undefined);
         }}
         assistantId={selectedAssistantId}
+      />
+      
+      {/* Create Agent Dialog */}
+      <CreateAgentDialog
+        open={createAgentDialogOpen}
+        onOpenChange={setCreateAgentDialogOpen}
       />
     </div>
   );
