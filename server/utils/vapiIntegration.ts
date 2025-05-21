@@ -239,7 +239,8 @@ export async function assignPhoneToAgent(
           const registerResult = await registerPhoneNumberWithVapiNumbers(
             phoneNumber.number,
             twilioAccount.accountSid,
-            friendlyName
+            friendlyName,
+            twilioAccount.authToken // Pass the user's own Twilio auth token for verification
           );
           
           if (!registerResult.success) {
