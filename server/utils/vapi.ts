@@ -248,7 +248,6 @@ export interface VapiAssistantParams {
   metadata?: Record<string, any>;
   server?: {
     url: string;
-    messages?: string[];
   };
 
   model: {
