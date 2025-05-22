@@ -5,11 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import LoginForm from "@/components/auth/LoginForm";
 import RegisterForm from "@/components/auth/RegisterForm";
 import ReplitLoginButton from "@/components/auth/ReplitLoginButton";
+import { AuthProvider } from "@/providers/AuthProvider";
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState("login");
 
   return (
+    <AuthProvider>
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50">
       <div className="w-full max-w-5xl px-4 md:px-6">
         <div className="grid md:grid-cols-2 gap-6 items-stretch">
@@ -113,5 +115,6 @@ export default function AuthPage() {
         </div>
       </div>
     </div>
+    </AuthProvider>
   );
 }
