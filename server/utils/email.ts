@@ -20,7 +20,8 @@ const TEMPLATES = {
 };
 
 // Default sender email - using a Postmark verified sender address
-const DEFAULT_FROM = 'hello@resend.dev';
+// This should be a verified email in your Postmark account
+const DEFAULT_FROM = 'no-reply@aimai.com';
 
 /**
  * Verify Postmark connection is properly set up
