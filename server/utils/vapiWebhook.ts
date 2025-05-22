@@ -84,6 +84,13 @@ async function processEndOfCallReport(data: any) {
     const status = callData.status || 'completed';
     const endReason = callData.endedReason || null;
     
+    // Skip early updates that don't have final call data
+    // Only update with complete data when status indicates call is finished
+    const isCallFinished = ['completed', 'ended', 'failed', 'error', 'voicemail'].includes(status);
+    
+    // For end-of-call reports, we require valid metrics
+    const hasValidMetrics = duration > 0 || cost > 0 || endReason;
+    
     // Extract phone numbers
     let fromNumber = '';
     let toNumber = '';
@@ -168,25 +175,30 @@ async function processEndOfCallReport(data: any) {
     
     if (existingCall) {
       // Update existing call record
-      console.log(`Updating existing call record for call ${existingCall.id}`);
+      console.log(`Updating existing call record for call ${existingCall.id}, status: ${status}, isCallFinished: ${isCallFinished}`);
       
       // Ensure we have valid values before updating
       const updateData: any = {};
       
-      if (duration > 0) {
-        updateData.duration = duration;
-      }
-      
-      if (endReason) {
-        updateData.endedReason = endReason;
-      }
-      
-      if (cost > 0) {
-        updateData.cost = cost;
-      }
-      
       if (status) {
         updateData.outcome = status;
+      }
+      
+      // Only update metrics if the call is finished or we have valid metrics
+      if (isCallFinished || hasValidMetrics) {
+        console.log(`Call is finished or has valid metrics. Status: ${status}, Duration: ${duration}s, Cost: $${cost}`);
+        
+        if (duration > 0) {
+          updateData.duration = duration;
+        }
+        
+        if (endReason) {
+          updateData.endedReason = endReason;
+        }
+        
+        if (cost > 0) {
+          updateData.cost = cost;
+        }
       }
       
       console.log(`Call update data: ${JSON.stringify(updateData)}`);
@@ -195,42 +207,44 @@ async function processEndOfCallReport(data: any) {
       if (Object.keys(updateData).length > 0) {
         const updatedCall = await storage.updateCall(existingCall.id, updateData);
         console.log(`Call record updated: ${JSON.stringify(updatedCall)}`);
-        console.log(`Updated call with cost: $${cost}, duration: ${duration}s`);
+        console.log(`Updated call with status: ${status}, cost: $${cost}, duration: ${duration}s`);
       } else {
         console.log(`No valid update data found for call ${existingCall.id}`);
       }
     } else {
       // Create a new call record
-      console.log(`Creating new call record for call ${callId}`);
+      console.log(`Creating new call record for call ${callId}, status: ${status}, isCallFinished: ${isCallFinished}`);
       
       // Create the call record with agent info and call details
-      const callData = {
-        fromNumber,
-        toNumber,
+      const newCallData = {
+        fromNumber: fromNumber || 'unknown',
+        toNumber: toNumber || 'unknown',
         agentId: agent.id,
         direction,
-        startedAt: new Date()
+        startedAt: new Date(),
+        outcome: status || 'unknown'
       } as any;
       
-      // Only add metrics if they have valid values
-      if (duration > 0) {
-        callData.duration = duration;
+      // Only add metrics if the call is finished or we have valid metrics
+      if (isCallFinished || hasValidMetrics) {
+        console.log(`New call with finished status or valid metrics. Status: ${status}, Duration: ${duration}s, Cost: $${cost}`);
+        
+        if (duration > 0) {
+          newCallData.duration = duration;
+        }
+        
+        if (endReason) {
+          newCallData.endedReason = endReason;
+        }
+        
+        if (cost > 0) {
+          newCallData.cost = cost;
+        }
       }
       
-      if (endReason) {
-        callData.endedReason = endReason;
-      }
-      
-      if (cost > 0) {
-        callData.cost = cost;
-      }
-      
-      if (status) {
-        callData.outcome = status;
-      }
-      
-      const newCall = await storage.createCall(callData);
-      console.log(`New call record created with ID: ${newCall.id}, cost: $${cost}, duration: ${duration}s`);
+      console.log(`Creating new call with data: ${JSON.stringify(newCallData)}`);
+      const newCall = await storage.createCall(newCallData);
+      console.log(`New call record created with ID: ${newCall.id}, status: ${status}, cost: $${cost}, duration: ${duration}s`);
     }
     
     // Update the webhook log to include the agent information
