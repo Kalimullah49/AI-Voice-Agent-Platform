@@ -1530,13 +1530,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No phone number assigned to agent" });
       }
 
-      const fromNumber = phoneNumbers[0].number;
+      const phoneNumber = phoneNumbers[0];
+      const fromNumber = phoneNumber.number;
 
       // Update campaign status to active
       await storage.updateCampaign(campaignId, { status: 'active' });
 
       // Start campaign execution with concurrency control
-      executeCampaignCalls(campaign, contacts, agent, fromNumber, userId);
+      executeCampaignCalls(campaign, contacts, agent, phoneNumber, userId);
 
       res.json({ 
         success: true, 
