@@ -1500,6 +1500,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/campaigns/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const userId = (req as any).user?.claims?.sub || (req as any).session?.userId;
+
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      // Get the campaign to verify ownership
+      const campaign = await storage.getCampaign(id);
+      if (!campaign) {
+        return res.status(404).json({ message: "Campaign not found" });
+      }
+
+      // Verify the user owns this campaign
+      if (campaign.userId !== userId) {
+        return res.status(403).json({ message: "You don't have permission to delete this campaign" });
+      }
+
+      // Delete the campaign
+      const success = await storage.deleteCampaign(id);
+      if (!success) {
+        return res.status(404).json({ message: "Campaign not found or could not be deleted" });
+      }
+
+      res.json({ message: "Campaign deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting campaign:", error);
+      res.status(500).json({ message: "Failed to delete campaign" });
+    }
+  });
+
   // Campaign execution endpoint
   app.post("/api/campaigns/:id/start", isAuthenticated, async (req: Request, res: Response) => {
     try {
