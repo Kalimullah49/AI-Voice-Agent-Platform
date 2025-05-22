@@ -611,7 +611,7 @@ export default function AgentDetailPage() {
                   })()
                 },
                 voice: {
-                  provider: "elevenlabs",
+                  provider: "11labs",
                   voiceId: agentData.voiceId || agentData.selectedVoice?.voice_id || "Savannah" // Use selected ElevenLabs voice or fallback
                 },
                 transcriber: {
