@@ -1446,15 +1446,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const agentEndedCalls = calls.filter(call => call.endedReason === "Agent Ended Call").length;
       const transferredCallsCount = transferredCalls;
       
-      // Get today's calls - use createdAt instead of startedAt which doesn't exist
+      // Get today's calls - use startedAt which is the actual field
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const todayInboundCalls = inboundCalls.filter(call => 
-        call.createdAt && new Date(call.createdAt) >= today
+        call.startedAt && new Date(call.startedAt) >= today
       ).length;
       
       const todayOutboundCalls = outboundCalls.filter(call => 
-        call.createdAt && new Date(call.createdAt) >= today
+        call.startedAt && new Date(call.startedAt) >= today
       ).length;
       
       // Format duration for display (MM:SS)
@@ -1478,15 +1478,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Count calls by day of week
       for (const call of inboundCalls) {
-        if (call.createdAt) {
-          const day = new Date(call.createdAt).getDay(); // 0-6
+        if (call.startedAt) {
+          const day = new Date(call.startedAt).getDay(); // 0-6
           inboundByDay[day]++;
         }
       }
       
       for (const call of outboundCalls) {
-        if (call.createdAt) {
-          const day = new Date(call.createdAt).getDay(); // 0-6
+        if (call.startedAt) {
+          const day = new Date(call.startedAt).getDay(); // 0-6
           outboundByDay[day]++;
         }
       }
