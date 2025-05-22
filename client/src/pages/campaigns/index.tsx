@@ -124,6 +124,48 @@ export default function CampaignsPage() {
     }
   });
 
+  // Mutation for pausing campaign
+  const pauseCampaignMutation = useMutation({
+    mutationFn: async (campaignId: number) => {
+      const response = await fetch(`/api/campaigns/${campaignId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: 'paused' })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to pause campaign');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/campaigns"] });
+    }
+  });
+
+  // Mutation for deleting campaign
+  const deleteCampaignMutation = useMutation({
+    mutationFn: async (campaignId: number) => {
+      const response = await fetch(`/api/campaigns/${campaignId}`, {
+        method: 'DELETE'
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete campaign');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/campaigns"] });
+    }
+  });
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
