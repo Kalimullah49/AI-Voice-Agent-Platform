@@ -78,10 +78,10 @@ async function makeNextCall(execution: CampaignExecution) {
       },
       body: JSON.stringify({
         assistantId: execution.agent.vapiAssistantId,
-        phoneNumberId: execution.agent.vapiPhoneNumberId,
+        phoneNumber: execution.fromNumber,
         customer: {
           number: contact.phoneNumber,
-          name: `${contact.firstName} ${contact.lastName}`
+          name: `${contact.firstName || ''} ${contact.lastName || ''}`.trim() || contact.name
         }
       })
     });
