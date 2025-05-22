@@ -273,11 +273,9 @@ export default function CampaignsPage() {
                     const campaignData = {
                       name: campaignName,
                       agentId: parseInt(selectedAgentId),
-                      groupId: selectedGroupId ? parseInt(selectedGroupId) : null,
-                      localAreaPresence,
+                      contactGroupId: selectedGroupId ? parseInt(selectedGroupId) : null,
                       phoneNumberId: selectedPhoneNumberId ? parseInt(selectedPhoneNumberId) : null,
                       concurrentCalls: parseInt(concurrentCalls),
-                      scrubNationalBlacklists,
                       status: 'draft'
                     };
                     
