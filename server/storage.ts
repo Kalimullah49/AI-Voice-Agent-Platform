@@ -76,6 +76,7 @@ export interface IStorage {
   createCampaign(campaign: InsertCampaign): Promise<Campaign>;
   updateCampaign(id: number, campaign: Partial<InsertCampaign>): Promise<Campaign | undefined>;
   getAllCampaigns(): Promise<Campaign[]>;
+  deleteCampaign(id: number): Promise<boolean>;
   
   // Clear all data
   clearAllData(): Promise<void>;

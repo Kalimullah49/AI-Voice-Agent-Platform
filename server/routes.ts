@@ -1503,21 +1503,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/campaigns/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
-      const userId = (req as any).user?.claims?.sub || (req as any).session?.userId;
 
-      if (!userId) {
-        return res.status(401).json({ message: "User not authenticated" });
-      }
-
-      // Get the campaign to verify ownership
+      // Get the campaign to verify it exists
       const campaign = await storage.getCampaign(id);
       if (!campaign) {
         return res.status(404).json({ message: "Campaign not found" });
-      }
-
-      // Verify the user owns this campaign
-      if (campaign.userId !== userId) {
-        return res.status(403).json({ message: "You don't have permission to delete this campaign" });
       }
 
       // Delete the campaign

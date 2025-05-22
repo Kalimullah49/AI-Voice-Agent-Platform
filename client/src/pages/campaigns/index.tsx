@@ -414,9 +414,13 @@ export default function CampaignsPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem>View Details</DropdownMenuItem>
-                              <DropdownMenuItem>Edit Campaign</DropdownMenuItem>
-                              <DropdownMenuItem className="text-red-600">Delete Campaign</DropdownMenuItem>
+                              <DropdownMenuItem 
+                                className="text-red-600"
+                                onClick={() => deleteCampaignMutation.mutate(campaign.id)}
+                                disabled={deleteCampaignMutation.isPending}
+                              >
+                                Delete Campaign
+                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>

@@ -376,7 +376,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCampaign(id: number): Promise<boolean> {
     const result = await db.delete(campaigns).where(eq(campaigns.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
   
   // Webhook log operations
