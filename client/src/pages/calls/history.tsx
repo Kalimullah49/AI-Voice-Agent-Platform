@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useRealTime } from "@/hooks/use-real-time";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -86,6 +87,9 @@ export default function CallsHistoryPage() {
     to: new Date(),               // May 10, 2025
   });
   
+  // Real-time updates for calls
+  useRealTime();
+
   const { data: calls, isLoading, error } = useQuery<any[]>({
     queryKey: ["/api/calls"],
   });
