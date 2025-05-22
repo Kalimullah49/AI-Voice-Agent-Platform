@@ -217,21 +217,7 @@ export default function CampaignsPage() {
                   />
                 </div>
                 
-                <div className="space-y-2">
-                  <label htmlFor="phoneNumber" className="text-sm font-medium">Phone Number</label>
-                  <Select value={selectedPhoneNumberId} onValueChange={setSelectedPhoneNumberId}>
-                    <SelectTrigger id="phoneNumber" className="w-full">
-                      <SelectValue placeholder="Select a phone number" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {phoneNumbers?.map((phone: any) => (
-                        <SelectItem key={phone.id} value={phone.id.toString()}>
-                          {phone.number}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+
                 
                 <div className="space-y-2">
                   <label htmlFor="concurrentCalls" className="text-sm font-medium">Concurrent Calls</label>
@@ -274,7 +260,6 @@ export default function CampaignsPage() {
                       name: campaignName,
                       agentId: parseInt(selectedAgentId),
                       contactGroupId: selectedGroupId ? parseInt(selectedGroupId) : null,
-                      phoneNumberId: selectedPhoneNumberId ? parseInt(selectedPhoneNumberId) : null,
                       concurrentCalls: parseInt(concurrentCalls),
                       status: 'draft'
                     };
