@@ -615,7 +615,7 @@ export default function AgentDetailPage() {
                   voiceId: agentData.voiceId || agentData.selectedVoice?.voice_id || "Savannah", // Use selected ElevenLabs voice or fallback
                   speed: agentData.speed || 10,
                   stability: agentData.temperature || 0.4,
-                  similarity_boost: agentData.textGuidance || 0.8,
+                  // Note: Removed similarity_boost as it's not supported by Vapi API
                   background_noise: {
                     office_ambience: agentData.officeAmbience || false,
                     keyboard: agentData.keyboard || false,
