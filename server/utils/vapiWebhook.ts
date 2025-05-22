@@ -132,18 +132,35 @@ async function processEndOfCallReport(data: any) {
     // Try to find existing call in our database - with better matching
     const calls = await storage.getAllCalls();
     
+    console.log(`Looking for matching call with fromNumber=${fromNumber}, toNumber=${toNumber}, agentId=${agent.id}`);
+    
     // First try to match by exact number combination
     let existingCall = calls.find(call => 
       (call.fromNumber === fromNumber && call.toNumber === toNumber) || 
       (call.fromNumber === toNumber && call.toNumber === fromNumber)
     );
     
-    // If we can't find by numbers, try to look up by agent
+    // If we can't find by numbers, try to look up by agent and most recent calls
     if (!existingCall && agent) {
-      existingCall = calls.find(call => 
-        call.agentId === agent.id && 
-        (new Date(call.startedAt).getTime() > Date.now() - 24 * 60 * 60 * 1000) // Within last 24 hours
-      );
+      console.log(`No exact number match found, trying to match by agent ID: ${agent.id}`);
+      
+      // Get calls for this agent within the last 24 hours
+      const recentCalls = calls
+        .filter(call => call.agentId === agent.id)
+        .filter(call => {
+          const callTime = new Date(call.startedAt).getTime();
+          const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+          return callTime > oneDayAgo;
+        })
+        .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
+      
+      console.log(`Found ${recentCalls.length} recent calls for agent ID: ${agent.id}`);
+      
+      // Use the most recent call if available
+      if (recentCalls.length > 0) {
+        existingCall = recentCalls[0];
+        console.log(`Using most recent call (ID: ${existingCall.id}) for this agent`);
+      }
     }
     
     // Determine the call direction
@@ -153,30 +170,66 @@ async function processEndOfCallReport(data: any) {
       // Update existing call record
       console.log(`Updating existing call record for call ${existingCall.id}`);
       
-      await storage.updateCall(existingCall.id, {
-        duration,
-        endedReason: endReason,
-        cost,
-        outcome: status
-      });
+      // Ensure we have valid values before updating
+      const updateData: any = {};
       
-      console.log(`Call record updated with cost: $${cost}, duration: ${duration}s`);
+      if (duration > 0) {
+        updateData.duration = duration;
+      }
+      
+      if (endReason) {
+        updateData.endedReason = endReason;
+      }
+      
+      if (cost > 0) {
+        updateData.cost = cost;
+      }
+      
+      if (status) {
+        updateData.outcome = status;
+      }
+      
+      console.log(`Call update data: ${JSON.stringify(updateData)}`);
+      
+      // Only update if we have data to update
+      if (Object.keys(updateData).length > 0) {
+        const updatedCall = await storage.updateCall(existingCall.id, updateData);
+        console.log(`Call record updated: ${JSON.stringify(updatedCall)}`);
+        console.log(`Updated call with cost: $${cost}, duration: ${duration}s`);
+      } else {
+        console.log(`No valid update data found for call ${existingCall.id}`);
+      }
     } else {
       // Create a new call record
       console.log(`Creating new call record for call ${callId}`);
       
       // Create the call record with agent info and call details
-      const newCall = await storage.createCall({
+      const callData = {
         fromNumber,
         toNumber,
         agentId: agent.id,
-        duration,
-        endedReason: endReason,
-        cost,
-        outcome: status,
-        direction
-      });
+        direction,
+        startedAt: new Date()
+      } as any;
       
+      // Only add metrics if they have valid values
+      if (duration > 0) {
+        callData.duration = duration;
+      }
+      
+      if (endReason) {
+        callData.endedReason = endReason;
+      }
+      
+      if (cost > 0) {
+        callData.cost = cost;
+      }
+      
+      if (status) {
+        callData.outcome = status;
+      }
+      
+      const newCall = await storage.createCall(callData);
       console.log(`New call record created with ID: ${newCall.id}, cost: $${cost}, duration: ${duration}s`);
     }
     
