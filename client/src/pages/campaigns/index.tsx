@@ -97,6 +97,33 @@ export default function CampaignsPage() {
     }
   });
 
+  // Mutation for starting campaign
+  const startCampaignMutation = useMutation({
+    mutationFn: async (campaignId: number) => {
+      const response = await fetch(`/api/campaigns/${campaignId}/start`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to start campaign');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      console.log('Campaign started successfully:', data);
+      // Refresh campaigns to show updated status
+      queryClient.invalidateQueries({ queryKey: ["/api/campaigns"] });
+    },
+    onError: (error: Error) => {
+      console.error('Failed to start campaign:', error.message);
+    }
+  });
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
@@ -343,9 +370,15 @@ export default function CampaignsPage() {
                               Pause
                             </Button>
                           ) : campaign.status === 'paused' || campaign.status === 'draft' ? (
-                            <Button variant="ghost" size="sm" className="text-green-600">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-green-600"
+                              onClick={() => startCampaignMutation.mutate(campaign.id)}
+                              disabled={startCampaignMutation.isPending}
+                            >
                               <PlayCircle className="h-4 w-4 mr-1" />
-                              Start
+                              {startCampaignMutation.isPending ? 'Starting...' : 'Start'}
                             </Button>
                           ) : null}
                           
