@@ -30,13 +30,16 @@ export const sessions = pgTable(
 
 // User model with custom authentication
 export const users = pgTable("users", {
-  id: serial("id").primaryKey().notNull(), // Auto-incremented ID
+  id: varchar("id").primaryKey().notNull(), // UUID
   email: varchar("email").unique().notNull(),
   password: varchar("password").notNull(),  // Hashed password
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   role: varchar("role").default("user").notNull(), // admin, manager, user
+  emailVerified: boolean("email_verified").default(false),
+  emailVerificationToken: varchar("email_verification_token"),
+  emailVerificationTokenExpiry: timestamp("email_verification_token_expiry"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

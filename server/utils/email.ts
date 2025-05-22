@@ -1,127 +1,147 @@
+/**
+ * Email Service using Postmark
+ */
 import * as postmark from 'postmark';
-import crypto from 'crypto';
 
-// Constants
-const FROM_EMAIL = 'no-reply@aimai.com';
-const APP_NAME = 'AimAI';
-const BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://aimai.com' 
-  : process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}` : 'http://localhost:5000';
+// Get Postmark API token from environment variables
+const POSTMARK_SERVER_TOKEN = process.env.POSTMARK_SERVER_TOKEN;
 
-// Initialize Postmark client
-const client = new postmark.ServerClient(process.env.POSTMARK_SERVER_TOKEN || '');
+// Create a Postmark client if token exists
+const client = POSTMARK_SERVER_TOKEN 
+  ? new postmark.ServerClient(POSTMARK_SERVER_TOKEN)
+  : null;
+
+// Email template IDs - these would be set up in your Postmark account
+// You can replace these with your actual template IDs or use dynamic templates
+const TEMPLATES = {
+  VERIFICATION: 'email-verification',
+  WELCOME: 'welcome-user',
+  PASSWORD_RESET: 'password-reset'
+};
+
+// Default sender email - update with your sending domain email
+const DEFAULT_FROM = 'no-reply@yourdomain.com';
 
 /**
- * Generate a verification token
- * @returns The verification token
+ * Verify Postmark connection is properly set up
  */
-export function generateVerificationToken(): string {
-  return crypto.randomBytes(32).toString('hex');
+export function isPostmarkConfigured(): boolean {
+  return !!client;
 }
 
 /**
- * Generate a password reset token
- * @returns The password reset token
+ * Send an email verification message
  */
-export function generatePasswordResetToken(): string {
-  return crypto.randomBytes(32).toString('hex');
-}
+export async function sendVerificationEmail(to: string, token: string, verifyUrl: string) {
+  if (!client) {
+    throw new Error('Postmark is not configured. Please check your environment variables.');
+  }
 
-/**
- * Send a verification email
- * @param email The recipient's email
- * @param token The verification token
- * @returns Success status
- */
-export async function sendVerificationEmail(email: string, token: string): Promise<boolean> {
   try {
-    const verificationLink = `${BASE_URL}/verify-email?token=${token}`;
+    // Get the base URL from the environment or use a default
+    const baseUrl = process.env.APP_URL || `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
     
+    // Construct the full verification URL
+    const verificationUrl = `${baseUrl}/auth/verify?token=${token}`;
+
+    // If you have email templates set up in Postmark:
+    const response = await client.sendEmailWithTemplate({
+      From: DEFAULT_FROM,
+      To: to,
+      TemplateAlias: TEMPLATES.VERIFICATION,
+      TemplateModel: {
+        name: to.split('@')[0], // Use part before @ as the name if real name not available
+        action_url: verificationUrl,
+        verification_code: token.substring(0, 6), // First 6 chars as a readable code option
+        support_email: DEFAULT_FROM
+      }
+    });
+
+    // For testing without templates, you can use this instead:
+    /* 
     const response = await client.sendEmail({
-      From: FROM_EMAIL,
-      To: email,
-      Subject: `Verify your email for ${APP_NAME}`,
+      From: DEFAULT_FROM,
+      To: to,
+      Subject: 'Verify Your Email',
       HtmlBody: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>Welcome to ${APP_NAME}!</h2>
-          <p>Thank you for registering. Please verify your email address by clicking the button below:</p>
-          <a href="${verificationLink}" style="display: inline-block; background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 20px 0;">
-            Verify Email
-          </a>
-          <p>If you didn't create an account with us, you can ignore this email.</p>
-          <p>If the button doesn't work, copy and paste this link into your browser:</p>
-          <p>${verificationLink}</p>
-          <p>Thank you,<br>The ${APP_NAME} Team</p>
-        </div>
+        <h1>Verify Your Email</h1>
+        <p>Thank you for registering. Please verify your email by clicking the link below:</p>
+        <p><a href="${verificationUrl}">Verify Email</a></p>
+        <p>Or enter this code: ${token.substring(0, 6)}</p>
+        <p>This link will expire in 24 hours.</p>
       `,
       TextBody: `
-        Welcome to ${APP_NAME}!
+        Verify Your Email
         
-        Thank you for registering. Please verify your email address by clicking the link below:
+        Thank you for registering. Please verify your email by visiting this link:
+        ${verificationUrl}
         
-        ${verificationLink}
+        Or enter this code: ${token.substring(0, 6)}
         
-        If you didn't create an account with us, you can ignore this email.
-        
-        Thank you,
-        The ${APP_NAME} Team
-      `
+        This link will expire in 24 hours.
+      `,
+      MessageStream: 'outbound'
     });
-    
-    return response.ErrorCode === 0;
+    */
+
+    return response;
   } catch (error) {
-    console.error('Error sending verification email:', error);
-    return false;
+    console.error('Failed to send verification email:', error);
+    throw error;
   }
 }
 
 /**
- * Send a password reset email
- * @param email The recipient's email
- * @param token The password reset token
- * @returns Success status
+ * Send a welcome email after verification
  */
-export async function sendPasswordResetEmail(email: string, token: string): Promise<boolean> {
+export async function sendWelcomeEmail(to: string, firstName?: string) {
+  if (!client) {
+    throw new Error('Postmark is not configured. Please check your environment variables.');
+  }
+
   try {
-    const resetLink = `${BASE_URL}/reset-password?token=${token}`;
+    const name = firstName || to.split('@')[0];
     
-    const response = await client.sendEmail({
-      From: FROM_EMAIL,
-      To: email,
-      Subject: `Reset your ${APP_NAME} password`,
-      HtmlBody: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>Reset Your Password</h2>
-          <p>We received a request to reset your password. If you didn't make this request, you can ignore this email.</p>
-          <p>To reset your password, click the button below:</p>
-          <a href="${resetLink}" style="display: inline-block; background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 20px 0;">
-            Reset Password
-          </a>
-          <p>If the button doesn't work, copy and paste this link into your browser:</p>
-          <p>${resetLink}</p>
-          <p>This link will expire in 1 hour.</p>
-          <p>Thank you,<br>The ${APP_NAME} Team</p>
-        </div>
-      `,
-      TextBody: `
-        Reset Your Password
-        
-        We received a request to reset your password. If you didn't make this request, you can ignore this email.
-        
-        To reset your password, click the link below:
-        
-        ${resetLink}
-        
-        This link will expire in 1 hour.
-        
-        Thank you,
-        The ${APP_NAME} Team
-      `
+    const response = await client.sendEmailWithTemplate({
+      From: DEFAULT_FROM,
+      To: to,
+      TemplateAlias: TEMPLATES.WELCOME,
+      TemplateModel: {
+        name: name,
+        login_url: process.env.APP_URL || `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}/auth`,
+        support_email: DEFAULT_FROM
+      }
+    });
+
+    return response;
+  } catch (error) {
+    console.error('Failed to send welcome email:', error);
+    throw error;
+  }
+}
+
+/**
+ * Send a test email to verify Postmark configuration
+ */
+export async function sendTestEmail(to: string): Promise<boolean> {
+  if (!client) {
+    console.error('Postmark is not configured. Please check your environment variables.');
+    return false;
+  }
+
+  try {
+    await client.sendEmail({
+      From: DEFAULT_FROM,
+      To: to,
+      Subject: 'Postmark Test',
+      HtmlBody: '<strong>Hello</strong> from Postmark!',
+      TextBody: 'Hello from Postmark!',
+      MessageStream: 'outbound'
     });
     
-    return response.ErrorCode === 0;
+    return true;
   } catch (error) {
-    console.error('Error sending password reset email:', error);
+    console.error('Failed to send test email:', error);
     return false;
   }
 }

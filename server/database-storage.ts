@@ -34,6 +34,62 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
   
+  async verifyEmail(token: string): Promise<User | undefined> {
+    // Find user with this verification token
+    const results = await db
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.emailVerificationToken, token),
+          eq(users.emailVerified, false)
+        )
+      );
+    
+    const user = results[0];
+    
+    if (!user) {
+      return undefined;
+    }
+    
+    // Check if token is expired
+    if (user.emailVerificationTokenExpiry && new Date() > user.emailVerificationTokenExpiry) {
+      return undefined;
+    }
+    
+    // Update user to verified status
+    const [updatedUser] = await db
+      .update(users)
+      .set({ 
+        emailVerified: true, 
+        emailVerificationToken: null, 
+        emailVerificationTokenExpiry: null,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, user.id))
+      .returning();
+    
+    return updatedUser;
+  }
+  
+  async createVerificationToken(userId: string, token: string, expiryHours: number = 24): Promise<boolean> {
+    // Calculate expiry time
+    const expiry = new Date();
+    expiry.setHours(expiry.getHours() + expiryHours);
+    
+    // Update user with verification token
+    const result = await db
+      .update(users)
+      .set({
+        emailVerificationToken: token,
+        emailVerificationTokenExpiry: expiry,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId));
+    
+    return result.count > 0;
+  }
+  
   async upsertUser(userData: InsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
