@@ -81,11 +81,8 @@ export default function CallsHistoryPage() {
   
   // State for table display
   
-  // State for date range
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: subDays(new Date(), 7), // May 3, 2025
-    to: new Date(),               // May 10, 2025
-  });
+  // State for date range - no default filter, show all data
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   
   // Real-time updates for calls
   useRealTime();
