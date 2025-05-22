@@ -14,6 +14,116 @@ import twilio from 'twilio';
 // Our custom auth middleware will be imported dynamically
 import { DatabaseStorage } from "./database-storage";
 
+// Campaign execution queue management for concurrent calls across multiple users
+interface CampaignExecution {
+  campaignId: number;
+  userId: string;
+  contacts: any[];
+  agent: any;
+  fromNumber: string;
+  concurrentCalls: number;
+  currentIndex: number;
+  activeCalls: Set<string>;
+}
+
+const activeCampaigns = new Map<number, CampaignExecution>();
+
+// Execute campaign calls with proper concurrency control for SaaS multi-tenancy
+async function executeCampaignCalls(campaign: any, contacts: any[], agent: any, fromNumber: string, userId: string) {
+  const execution: CampaignExecution = {
+    campaignId: campaign.id,
+    userId,
+    contacts,
+    agent,
+    fromNumber,
+    concurrentCalls: campaign.concurrentCalls || 1,
+    currentIndex: 0,
+    activeCalls: new Set()
+  };
+
+  activeCampaigns.set(campaign.id, execution);
+  
+  console.log(`🚀 Starting campaign ${campaign.name} (ID: ${campaign.id}) for user ${userId}`);
+  console.log(`📞 Total contacts: ${contacts.length}, Concurrent calls: ${execution.concurrentCalls}`);
+
+  // Start initial batch of concurrent calls
+  for (let i = 0; i < Math.min(execution.concurrentCalls, contacts.length); i++) {
+    makeNextCall(execution);
+  }
+}
+
+async function makeNextCall(execution: CampaignExecution) {
+  if (execution.currentIndex >= execution.contacts.length) {
+    // Check if all calls are complete
+    if (execution.activeCalls.size === 0) {
+      console.log(`✅ Campaign ${execution.campaignId} completed for user ${execution.userId}`);
+      await storage.updateCampaign(execution.campaignId, { status: 'completed' });
+      activeCampaigns.delete(execution.campaignId);
+    }
+    return;
+  }
+
+  const contact = execution.contacts[execution.currentIndex];
+  execution.currentIndex++;
+
+  try {
+    console.log(`📞 Call ${execution.currentIndex}/${execution.contacts.length}: ${contact.firstName} ${contact.lastName} -> ${contact.phoneNumber}`);
+
+    // Make the call via Vapi.ai with user's agent
+    const vapiResponse = await fetch('https://api.vapi.ai/call', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.VAPI_AI_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        assistantId: execution.agent.vapiAssistantId,
+        phoneNumberId: execution.agent.vapiPhoneNumberId,
+        customer: {
+          number: contact.phoneNumber,
+          name: `${contact.firstName} ${contact.lastName}`
+        }
+      })
+    });
+
+    if (!vapiResponse.ok) {
+      const errorText = await vapiResponse.text();
+      throw new Error(`Vapi API error ${vapiResponse.status}: ${errorText}`);
+    }
+
+    const callData = await vapiResponse.json();
+    const callId = callData.id;
+    
+    execution.activeCalls.add(callId);
+
+    // Create call record in database
+    await storage.createCall({
+      fromNumber: execution.fromNumber,
+      toNumber: contact.phoneNumber,
+      direction: 'outbound',
+      agentId: execution.agent.id,
+      duration: 0,
+      cost: 0,
+      outcome: 'in-progress'
+    });
+
+    console.log(`✅ Call initiated: ${callId} to ${contact.firstName} ${contact.lastName}`);
+
+    // The webhook will handle call completion and trigger the next call
+    // For now, simulate call progression
+    setTimeout(() => {
+      execution.activeCalls.delete(callId);
+      // Start next call when this one completes
+      makeNextCall(execution);
+    }, 5000); // Give time for the call to establish
+
+  } catch (error) {
+    console.error(`❌ Failed to call ${contact.firstName} ${contact.lastName} (${contact.phoneNumber}):`, error);
+    // Continue with next call even if this one fails
+    setTimeout(() => makeNextCall(execution), 1000);
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Create a database storage instance for our routes
   const dbStorage = new DatabaseStorage();
@@ -1385,6 +1495,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(campaign);
     } catch (error) {
       res.status(500).json({ message: "Failed to update campaign" });
+    }
+  });
+
+  // Campaign execution endpoint
+  app.post("/api/campaigns/:id/start", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const campaignId = parseInt(req.params.id);
+      const userId = req.session.userId;
+
+      // Get campaign details
+      const campaign = await storage.getCampaign(campaignId);
+      if (!campaign) {
+        return res.status(404).json({ message: "Campaign not found" });
+      }
+
+      // Get campaign contacts
+      const contacts = await storage.getContactsByGroupId(campaign.contactGroupId);
+      if (!contacts || contacts.length === 0) {
+        return res.status(400).json({ message: "No contacts found in campaign group" });
+      }
+
+      // Get agent details
+      const agent = await storage.getAgent(campaign.agentId);
+      if (!agent) {
+        return res.status(400).json({ message: "Agent not found" });
+      }
+
+      // Get phone number for the agent
+      const phoneNumbers = await storage.getPhoneNumbersByAgentId(campaign.agentId);
+      if (!phoneNumbers || phoneNumbers.length === 0) {
+        return res.status(400).json({ message: "No phone number assigned to agent" });
+      }
+
+      const fromNumber = phoneNumbers[0].number;
+
+      // Update campaign status to active
+      await storage.updateCampaign(campaignId, { status: 'active' });
+
+      // Start campaign execution with concurrency control
+      executeCampaignCalls(campaign, contacts, agent, fromNumber, userId);
+
+      res.json({ 
+        success: true, 
+        message: `Campaign started with ${contacts.length} contacts`,
+        totalContacts: contacts.length,
+        concurrentCalls: campaign.concurrentCalls || 1
+      });
+
+    } catch (error) {
+      console.error("Error starting campaign:", error);
+      res.status(500).json({ message: "Failed to start campaign" });
     }
   });
 

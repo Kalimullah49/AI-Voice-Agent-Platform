@@ -269,6 +269,9 @@ export const campaigns = pgTable("campaigns", {
   name: text("name").notNull(),
   status: text("status").default("draft").notNull(), // draft, active, paused, completed
   agentId: integer("agent_id").references(() => agents.id),
+  contactGroupId: integer("contact_group_id").references(() => contactGroups.id),
+  concurrentCalls: integer("concurrent_calls").default(1),
+  phoneNumberId: integer("phone_number_id").references(() => phoneNumbers.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -277,6 +280,9 @@ export const insertCampaignSchema = createInsertSchema(campaigns).pick({
   name: true,
   status: true,
   agentId: true,
+  contactGroupId: true,
+  concurrentCalls: true,
+  phoneNumberId: true,
 });
 
 // Define types
