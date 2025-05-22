@@ -1,0 +1,23 @@
+Failed to send verification email: InactiveRecipientsError: You tried to send to recipient(s) that have been marked as inactive. Found inactive addresses: . Inactive recipients are ones that have generated a hard bounce, a spam complaint, or a manual suppression.
+    at Function.ApiInputError.buildSpecificError (/home/runner/workspace/node_modules/postmark/src/client/errors/Errors.ts:88:24)
+    at ErrorHandler.ErrorHandler.buildErrorByHttpStatusCode (/home/runner/workspace/node_modules/postmark/src/client/errors/ErrorHandler.ts:41:45)
+    at ErrorHandler.ErrorHandler.buildError (/home/runner/workspace/node_modules/postmark/src/client/errors/ErrorHandler.ts:21:25)
+    at AxiosHttpClient.AxiosHttpClient.transformError (/home/runner/workspace/node_modules/postmark/src/client/HttpClient.ts:74:38)
+    at <anonymous> (/home/runner/workspace/node_modules/postmark/src/client/HttpClient.ts:55:40)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async sendVerificationEmail (/home/runner/workspace/server/utils/email.ts:66:24)
+    at async <anonymous> (/home/runner/workspace/server/auth.ts:108:11) {
+  statusCode: 422,
+  code: 406,
+  recipients: [ '.' ]
+}
+11:02:13 PM [express] POST /api/auth/register 201 in 542ms :: {"id":"260aeead-840d-4d8c-b272-7a706d21…
+11:02:18 PM [express] POST /api/auth/manual-verify 200 in 57ms :: {"message":"Email manually verified…
+11:02:27 PM [express] GET /api/auth/user 401 in 38ms :: {"message":"Unauthorized"}
+11:03:07 PM [express] GET /api/auth/user 401 in 207ms :: {"message":"Unauthorized"}
+11:03:09 PM [express] GET /api/auth/user 401 in 48ms :: {"message":"Unauthorized"}
+11:03:14 PM [express] GET /api/auth/user 401 in 39ms :: {"message":"Unauthorized"}
+11:03:27 PM [express] GET /api/auth/user 401 in 31ms :: {"message":"Unauthorized"}
+11:03:28 PM [express] GET /api/auth/user 401 in 30ms :: {"message":"Unauthorized"}
+11:03:30 PM [express] GET /api/auth/user 401 in 31ms :: {"message":"Unauthorized"}
+11:03:35 PM [express] GET /api/auth/user 401 in 32ms :: {"message":"Unauthorized"}
