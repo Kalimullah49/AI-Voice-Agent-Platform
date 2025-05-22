@@ -1,12 +1,14 @@
 import { Express, Request, Response, NextFunction } from "express";
 import { db } from "./db";
 import { storage } from "./storage";
-import { loginUserSchema, registerUserSchema } from "@shared/schema";
+import { loginUserSchema, registerUserSchema, emailVerificationSchema, users } from "@shared/schema";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import session from "express-session";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
+import { eq } from "drizzle-orm";
+import { sendVerificationEmail, sendWelcomeEmail, isPostmarkConfigured } from "./utils/email";
 
 const scryptAsync = promisify(scrypt);
 
@@ -77,21 +79,76 @@ export function setupAuth(app: Express) {
       // Hash password
       const hashedPassword = await hashPassword(validatedData.password);
       
+      // Generate a verification token (24 chars random string)
+      const verificationToken = randomBytes(24).toString('hex');
+      
       // Create user with a UUID as ID
+      const userId = uuidv4();
       const user = await storage.createUser({
-        id: uuidv4(), // Generate a UUID for the user
+        id: userId,
         email: validatedData.email,
         password: hashedPassword,
         firstName: validatedData.firstName,
         lastName: validatedData.lastName,
         role: "user",
+        emailVerified: false,
+        emailVerificationToken: verificationToken,
+        emailVerificationTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
       });
       
-      // Remove password from response
-      const { password, ...userWithoutPassword } = user;
-      
-      // Return user
-      return res.status(201).json(userWithoutPassword);
+      // Try to send verification email
+      const isEmailConfigured = isPostmarkConfigured();
+      if (isEmailConfigured) {
+        try {
+          // Get the base URL from the request
+          const protocol = req.protocol;
+          const host = req.get('host') || '';
+          const baseUrl = `${protocol}://${host}`;
+          
+          await sendVerificationEmail(
+            user.email,
+            verificationToken,
+            `${baseUrl}/auth/verify?token=${verificationToken}`
+          );
+          
+          // Remove password from response
+          const { password, emailVerificationToken, ...userWithoutSensitiveData } = user;
+          
+          // Return user with a message about verification
+          return res.status(201).json({
+            ...userWithoutSensitiveData,
+            message: "Registration successful. Please check your email to verify your account."
+          });
+        } catch (emailError) {
+          console.error("Failed to send verification email:", emailError);
+          
+          // Registration is still successful, but email failed
+          const { password, emailVerificationToken, ...userWithoutSensitiveData } = user;
+          
+          return res.status(201).json({
+            ...userWithoutSensitiveData,
+            message: "Registration successful, but we couldn't send a verification email. Please contact support."
+          });
+        }
+      } else {
+        // Postmark not configured - auto-verify the user for development
+        if (process.env.NODE_ENV !== 'production') {
+          await db.update(users)
+            .set({ emailVerified: true })
+            .where(eq(users.id, userId));
+            
+          console.log('Email verification bypassed in development mode');
+        }
+        
+        // Remove password from response
+        const { password, emailVerificationToken, ...userWithoutSensitiveData } = user;
+        
+        // Return user
+        return res.status(201).json({
+          ...userWithoutSensitiveData,
+          message: "Registration successful. Verification email service not configured."
+        });
+      }
     } catch (error) {
       console.error("Registration error:", error);
       if (error instanceof z.ZodError) {
@@ -159,6 +216,55 @@ export function setupAuth(app: Express) {
     });
   });
 
+  // Email verification endpoint
+  app.get("/api/auth/verify", async (req: Request, res: Response) => {
+    try {
+      const { token } = req.query;
+      
+      if (!token || typeof token !== 'string') {
+        return res.status(400).json({ message: "Invalid verification token" });
+      }
+      
+      // Validate token with schema
+      try {
+        emailVerificationSchema.parse({ token });
+      } catch (validationError) {
+        return res.status(400).json({ message: "Invalid verification token format" });
+      }
+      
+      // Verify email using the token
+      const user = await storage.verifyEmail(token);
+      
+      if (!user) {
+        return res.status(400).json({ 
+          message: "Invalid or expired verification token" 
+        });
+      }
+      
+      // Send welcome email if Postmark is configured
+      if (isPostmarkConfigured()) {
+        try {
+          await sendWelcomeEmail(user.email, user.firstName || undefined);
+        } catch (emailError) {
+          console.error("Failed to send welcome email:", emailError);
+          // Continue anyway, this is not critical
+        }
+      }
+      
+      // Automatically log the user in after verification
+      req.session.userId = user.id;
+      
+      // Return success response (frontend will handle redirect)
+      return res.status(200).json({ 
+        message: "Email verification successful! You are now logged in.",
+        verified: true
+      });
+    } catch (error) {
+      console.error("Email verification error:", error);
+      return res.status(500).json({ message: "Failed to verify email" });
+    }
+  });
+
   // Get current user endpoint
   app.get("/api/auth/user", async (req: Request, res: Response) => {
     try {
@@ -171,10 +277,10 @@ export function setupAuth(app: Express) {
         return res.status(401).json({ message: "Unauthorized" });
       }
       
-      // Remove password from response
-      const { password, ...userWithoutPassword } = user;
+      // Remove sensitive data from response
+      const { password, emailVerificationToken, ...userWithoutSensitiveData } = user;
       
-      return res.status(200).json(userWithoutPassword);
+      return res.status(200).json(userWithoutSensitiveData);
     } catch (error) {
       console.error("Get user error:", error);
       return res.status(500).json({ message: "Failed to fetch user" });
