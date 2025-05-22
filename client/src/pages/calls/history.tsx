@@ -46,7 +46,7 @@ export default function CallsHistoryPage() {
       formatPhoneNumber(call.toNumber),
       call.agent || "Recovery Agent",
       call.direction === 'inbound' ? 'Inbound' : 'Outbound',
-      Math.floor(call.duration / 60),
+      formatDuration(call.duration),
       call.endedReason || 'N/A',
       call.outcome === 'transferred' ? 'Transferred' : 'No outcome',
       `$${call.cost.toFixed(2)}`,
@@ -366,7 +366,7 @@ export default function CallsHistoryPage() {
                           </Badge>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {Math.floor(call.duration / 60)}
+                          {formatDuration(call.duration)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {call.endedReason || 'N/A'}
