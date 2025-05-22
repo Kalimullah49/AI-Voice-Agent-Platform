@@ -614,13 +614,8 @@ export default function AgentDetailPage() {
                   provider: "11labs",
                   voiceId: agentData.voiceId || agentData.selectedVoice?.voice_id || "Savannah", // Use selected ElevenLabs voice or fallback
                   speed: agentData.speed || 10,
-                  stability: agentData.temperature || 0.4,
-                  // Note: Removed similarity_boost as it's not supported by Vapi API
-                  background_noise: {
-                    office_ambience: agentData.officeAmbience || false,
-                    keyboard: agentData.keyboard || false,
-                    phone_ringing: agentData.phoneRinging || false
-                  }
+                  stability: agentData.temperature || 0.4
+                  // Note: Removed similarity_boost and background_noise as they're not supported by Vapi API
                 },
                 transcriber: {
                   provider: "deepgram",
