@@ -112,6 +112,27 @@ async function processCallData(
       const updatedCall = await storage.updateCall(existingCall.id, updateData);
       console.log(`Call record updated: ${JSON.stringify(updatedCall)}`);
       console.log(`Updated call with status: ${status}, cost: $${cost}, duration: ${duration}s`);
+      
+      // Emit real-time update to the user's dashboard
+      const io = (global as any).io;
+      if (io && agent) {
+        // Get the agent to find the user ID
+        const agents = await storage.getAllAgents();
+        const agentData = agents.find(a => a.id === agent.id);
+        if (agentData && agentData.userId) {
+          // Emit call update to the specific user
+          io.to(`user-${agentData.userId}`).emit('call-updated', {
+            call: updatedCall,
+            type: 'call-metrics-updated'
+          });
+          
+          // Also emit dashboard refresh event
+          io.to(`user-${agentData.userId}`).emit('dashboard-refresh', {
+            reason: 'call-updated',
+            callId: existingCall.id
+          });
+        }
+      }
     } else {
       console.log(`No valid update data found for call ${existingCall.id}`);
     }

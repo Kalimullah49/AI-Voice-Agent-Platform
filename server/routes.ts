@@ -1,5 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
+import { Server as SocketIOServer } from "socket.io";
 import { storage } from "./storage";
 import { 
   insertUserSchema, insertAgentSchema, insertCallSchema, insertActionSchema, 
@@ -1718,5 +1719,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  
+  // Setup Socket.IO for real-time updates
+  const io = new SocketIOServer(httpServer, {
+    cors: {
+      origin: "*",
+      methods: ["GET", "POST"]
+    }
+  });
+  
+  // Store the io instance globally for use in other parts of the application
+  (global as any).io = io;
+  
+  io.on('connection', (socket) => {
+    console.log('Client connected for real-time updates:', socket.id);
+    
+    // Join user to their own room for user-specific updates
+    socket.on('join-user-room', (userId) => {
+      socket.join(`user-${userId}`);
+      console.log(`User ${userId} joined their room for real-time updates`);
+    });
+    
+    socket.on('disconnect', () => {
+      console.log('Client disconnected:', socket.id);
+    });
+  });
+  
   return httpServer;
 }
