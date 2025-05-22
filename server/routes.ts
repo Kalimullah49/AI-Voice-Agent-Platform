@@ -1419,15 +1419,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const inboundCount = inboundCalls.length;
       const outboundCount = outboundCalls.length;
       
-      // Calculate averages with null safeguards
-      const avgDuration = totalCalls > 0 ? Math.round(totalDuration / totalCalls) : 0;
-      const avgCost = totalCalls > 0 ? parseFloat((totalCost / totalCalls).toFixed(2)) : 0;
+      // Calculate averages only for calls with actual duration (> 0)
+      const callsWithDuration = calls.filter(call => call.duration > 0);
+      const avgDuration = callsWithDuration.length > 0 ? 
+        Math.round(totalDuration / callsWithDuration.length) : 0;
+      const avgCost = callsWithDuration.length > 0 ? 
+        parseFloat((totalCost / callsWithDuration.length).toFixed(2)) : 0;
       
-      const inboundAvgDuration = inboundCount > 0 ? 
-        Math.round(inboundCalls.reduce((sum, call) => sum + (call.duration || 0), 0) / inboundCount) : 0;
+      const inboundCallsWithDuration = inboundCalls.filter(call => call.duration > 0);
+      const inboundAvgDuration = inboundCallsWithDuration.length > 0 ? 
+        Math.round(inboundCallsWithDuration.reduce((sum, call) => sum + call.duration, 0) / inboundCallsWithDuration.length) : 0;
       
-      const outboundAvgDuration = outboundCount > 0 ? 
-        Math.round(outboundCalls.reduce((sum, call) => sum + (call.duration || 0), 0) / outboundCount) : 0;
+      const outboundCallsWithDuration = outboundCalls.filter(call => call.duration > 0);
+      const outboundAvgDuration = outboundCallsWithDuration.length > 0 ? 
+        Math.round(outboundCallsWithDuration.reduce((sum, call) => sum + call.duration, 0) / outboundCallsWithDuration.length) : 0;
       
       // Calculate conversion rates
       const transferredCalls = calls.filter(call => call.outcome === "transferred").length;
