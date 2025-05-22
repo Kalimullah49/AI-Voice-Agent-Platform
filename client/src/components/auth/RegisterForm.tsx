@@ -35,9 +35,9 @@ export default function RegisterForm() {
 
   function onSubmit(data: RegisterUser) {
     register(data, {
-      onSuccess: (response) => {
+      onSuccess: (response: any) => {
         // If the response contains a message about verification
-        if (response?.message?.includes("verification") || !response.emailVerified) {
+        if (response?.message?.includes("verification") || response?.emailVerified === false) {
           setVerificationSent(true);
           setRegisteredEmail(data.email);
           form.reset();

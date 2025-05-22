@@ -60,6 +60,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (!res.ok) {
         const error = await res.json();
+        // Special handling for email verification required error
+        if (res.status === 403 && error.message && error.message.includes("verify")) {
+          throw new Error(error.message);
+        }
         throw new Error(error.message || "Failed to log in");
       }
       
@@ -74,11 +78,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.location.href = "/";
     },
     onError: (error: Error) => {
-      toast({
-        title: "Login failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      // Check if error is related to email verification
+      if (error.message && error.message.includes("verify")) {
+        toast({
+          title: "Email verification required",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Login failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
     },
   });
 
@@ -99,12 +112,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       return await res.json();
     },
-    onSuccess: (user: User) => {
-      queryClient.setQueryData(["/api/auth/user"], user);
-      toast({
-        title: "Account created successfully",
-        description: "Welcome to AimAI!",
-      });
+    onSuccess: (response: any) => {
+      // Check if the response indicates email verification is required
+      if (response.emailVerified === false || (response.message && response.message.includes("verification"))) {
+        toast({
+          title: "Account created successfully",
+          description: "Please check your email for a verification link.",
+        });
+        // Don't set user data until verified
+      } else {
+        // User is already verified, set data
+        queryClient.setQueryData(["/api/auth/user"], response);
+        toast({
+          title: "Account created successfully",
+          description: "Welcome to AimAI!",
+        });
+      }
     },
     onError: (error: Error) => {
       toast({

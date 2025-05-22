@@ -7,6 +7,7 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Dashboard from "@/pages/dashboard";
 import AuthPage from "@/pages/auth";
 import VerifyPage from "@/pages/auth/verify";
+import EmailVerificationPage from "@/pages/auth/EmailVerification";
 import { AuthProvider } from "@/providers/AuthProvider";
 import AgentsPage from "@/pages/agents";
 import AgentDetailPage from "@/pages/agents/[id]";
@@ -39,6 +40,9 @@ function Router() {
       </Route>
       <Route path="/auth/verify">
         <VerifyPage />
+      </Route>
+      <Route path="/auth/verify-email">
+        <EmailVerificationPage />
       </Route>
       <Route path="/agents">
         <ProtectedAppRoute>
@@ -104,12 +108,10 @@ function Router() {
 
 function App() {
   return (
-    <AuthProvider>
-      <TooltipProvider>
-        <Router />
-        <Toaster />
-      </TooltipProvider>
-    </AuthProvider>
+    <TooltipProvider>
+      <Router />
+      <Toaster />
+    </TooltipProvider>
   );
 }
 

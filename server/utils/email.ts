@@ -42,7 +42,7 @@ export async function sendVerificationEmail(to: string, token: string, verifyUrl
     const baseUrl = process.env.APP_URL || `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
     
     // Construct the full verification URL
-    const verificationUrl = `${baseUrl}/auth/verify?token=${token}`;
+    const verificationUrl = `${baseUrl}/auth/verify-email?token=${token}`;
 
     // If you have email templates set up in Postmark:
     const response = await client.sendEmailWithTemplate({
