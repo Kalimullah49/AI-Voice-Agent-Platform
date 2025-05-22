@@ -181,14 +181,46 @@ export function setupAuth(app: Express) {
         return res.status(401).json({ message: "Invalid email or password" });
       }
       
+      // Check if email is verified (skip this check in development environment)
+      if (process.env.NODE_ENV === 'production' && user.emailVerified === false) {
+        // Generate a new verification token
+        const verificationToken = randomBytes(24).toString('hex');
+        
+        // Update user with new verification token
+        await storage.createVerificationToken(user.id, verificationToken, 24);
+        
+        // Try to send verification email again if Postmark is configured
+        if (isPostmarkConfigured()) {
+          try {
+            // Get the base URL from the request
+            const protocol = req.protocol;
+            const host = req.get('host') || '';
+            const baseUrl = `${protocol}://${host}`;
+            
+            await sendVerificationEmail(
+              user.email,
+              verificationToken,
+              `${baseUrl}/auth/verify?token=${verificationToken}`
+            );
+          } catch (emailError) {
+            console.error("Failed to send verification email:", emailError);
+          }
+        }
+        
+        return res.status(403).json({ 
+          message: "Please verify your email before logging in. A new verification email has been sent.",
+          verified: false
+        });
+      }
+      
       // Set user in session
       req.session.userId = String(user.id);
       
-      // Remove password from response
-      const { password, ...userWithoutPassword } = user;
+      // Remove sensitive data from response
+      const { password, emailVerificationToken, ...userWithoutSensitiveData } = user;
       
       // Return user
-      return res.status(200).json(userWithoutPassword);
+      return res.status(200).json(userWithoutSensitiveData);
     } catch (error) {
       console.error("Login error:", error);
       if (error instanceof z.ZodError) {

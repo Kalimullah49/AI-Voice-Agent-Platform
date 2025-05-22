@@ -45,12 +45,16 @@ export const users = pgTable("users", {
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
+  id: true,
   email: true,
   password: true,
   firstName: true,
   lastName: true,
   profileImageUrl: true,
   role: true,
+  emailVerified: true,
+  emailVerificationToken: true,
+  emailVerificationTokenExpiry: true,
 });
 
 export const registerUserSchema = createInsertSchema(users)

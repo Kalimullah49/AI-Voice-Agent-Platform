@@ -24,11 +24,7 @@ export class DatabaseStorage implements IStorage {
   async createUser(userData: InsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
-      .values({
-        ...userData,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      })
+      .values(userData)
       .returning();
     
     return user;
@@ -78,16 +74,21 @@ export class DatabaseStorage implements IStorage {
     expiry.setHours(expiry.getHours() + expiryHours);
     
     // Update user with verification token
-    const result = await db
-      .update(users)
-      .set({
-        emailVerificationToken: token,
-        emailVerificationTokenExpiry: expiry,
-        updatedAt: new Date()
-      })
-      .where(eq(users.id, userId));
-    
-    return result.count > 0;
+    try {
+      const result = await db
+        .update(users)
+        .set({
+          emailVerificationToken: token,
+          emailVerificationTokenExpiry: expiry,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, userId));
+      
+      return true;
+    } catch (error) {
+      console.error("Failed to create verification token:", error);
+      return false;
+    }
   }
   
   async upsertUser(userData: InsertUser): Promise<User> {
