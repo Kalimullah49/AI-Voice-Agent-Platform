@@ -20,7 +20,7 @@ interface CampaignExecution {
   userId: string;
   contacts: any[];
   agent: any;
-  fromNumber: string;
+  phoneNumber: any;
   concurrentCalls: number;
   currentIndex: number;
   activeCalls: Set<string>;
@@ -29,13 +29,13 @@ interface CampaignExecution {
 const activeCampaigns = new Map<number, CampaignExecution>();
 
 // Execute campaign calls with proper concurrency control for SaaS multi-tenancy
-async function executeCampaignCalls(campaign: any, contacts: any[], agent: any, fromNumber: string, userId: string) {
+async function executeCampaignCalls(campaign: any, contacts: any[], agent: any, phoneNumber: any, userId: string) {
   const execution: CampaignExecution = {
     campaignId: campaign.id,
     userId,
     contacts,
     agent,
-    fromNumber,
+    phoneNumber,
     concurrentCalls: campaign.concurrentCalls || 1,
     currentIndex: 0,
     activeCalls: new Set()
@@ -78,7 +78,7 @@ async function makeNextCall(execution: CampaignExecution) {
       },
       body: JSON.stringify({
         assistantId: execution.agent.vapiAssistantId,
-        phoneNumberId: "3d3a2fb7-5e41-414c-8a84-0fc5dee5a476",
+        phoneNumberId: execution.phoneNumber.vapiPhoneNumberId,
         customer: {
           number: contact.phoneNumber
         }
@@ -97,7 +97,7 @@ async function makeNextCall(execution: CampaignExecution) {
 
     // Create call record in database
     await storage.createCall({
-      fromNumber: execution.fromNumber,
+      fromNumber: execution.phoneNumber.number,
       toNumber: contact.phoneNumber,
       direction: 'outbound',
       agentId: execution.agent.id,
