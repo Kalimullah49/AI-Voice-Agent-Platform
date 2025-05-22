@@ -181,8 +181,8 @@ export function setupAuth(app: Express) {
         return res.status(401).json({ message: "Invalid email or password" });
       }
       
-      // Check if email is verified (skip this check in development environment)
-      if (process.env.NODE_ENV === 'production' && user.emailVerified === false) {
+      // Check if email is verified (always check regardless of environment)
+      if (user.emailVerified === false) {
         // Generate a new verification token
         const verificationToken = randomBytes(24).toString('hex');
         
@@ -246,6 +246,36 @@ export function setupAuth(app: Express) {
       res.clearCookie("connect.sid");
       return res.status(200).json({ message: "Logged out successfully" });
     });
+  });
+
+  // Manual verification endpoint (for development)
+  app.post("/api/auth/manual-verify", async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email || typeof email !== 'string') {
+        return res.status(400).json({ message: "Email is required" });
+      }
+      
+      // Find user by email
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Update user to verified
+      await db.update(users)
+        .set({ emailVerified: true })
+        .where(eq(users.id, user.id));
+      
+      return res.status(200).json({ 
+        message: "Email manually verified for development purposes",
+        verified: true
+      });
+    } catch (error) {
+      console.error("Manual verification error:", error);
+      return res.status(500).json({ message: "Failed to manually verify email" });
+    }
   });
 
   // Email verification endpoint

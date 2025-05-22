@@ -20,8 +20,8 @@ const TEMPLATES = {
 };
 
 // Default sender email - using a Postmark verified sender address
-// This should be a verified email in your Postmark account
-const DEFAULT_FROM = 'no-reply@aimai.com';
+// While account is pending approval, FROM and TO addresses must share the same domain
+const DEFAULT_FROM = 'no-reply@example.com';
 
 /**
  * Verify Postmark connection is properly set up
