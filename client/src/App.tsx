@@ -108,10 +108,12 @@ function Router() {
 
 function App() {
   return (
-    <TooltipProvider>
-      <Router />
-      <Toaster />
-    </TooltipProvider>
+    <AuthProvider>
+      <TooltipProvider>
+        <Router />
+        <Toaster />
+      </TooltipProvider>
+    </AuthProvider>
   );
 }
 
