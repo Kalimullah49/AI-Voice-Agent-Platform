@@ -15,7 +15,7 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
-  const { loginMutation } = useAuth();
+  const { login, isLoginPending } = useAuth();
   
   const form = useForm<LoginUser>({
     resolver: zodResolver(loginUserSchema),
@@ -26,7 +26,7 @@ export default function LoginForm() {
   });
 
   function onSubmit(data: LoginUser) {
-    loginMutation.mutate(data);
+    login(data);
   }
 
   return (
@@ -74,9 +74,9 @@ export default function LoginForm() {
         <Button 
           type="submit" 
           className="w-full" 
-          disabled={loginMutation.isPending}
+          disabled={isLoginPending}
         >
-          {loginMutation.isPending ? (
+          {isLoginPending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Signing in...
