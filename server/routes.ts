@@ -69,19 +69,18 @@ async function makeNextCall(execution: CampaignExecution) {
   try {
     console.log(`📞 Call ${execution.currentIndex}/${execution.contacts.length}: ${contact.firstName} ${contact.lastName} -> ${contact.phoneNumber}`);
 
-    // Make the call via Vapi.ai with user's agent
+    // Make the call via Vapi.ai using the same format as the working single call
     const vapiResponse = await fetch('https://api.vapi.ai/call', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.VAPI_AI_TOKEN}`,
+        'Authorization': `Bearer ${process.env.VAPI_PRIVATE_KEY}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         assistantId: execution.agent.vapiAssistantId,
-        phoneNumberId: "3d3a2fb7-5e41-414c-8a84-0fc5dee5a476", // Your Vapi phone number ID for +14322558694
+        phoneNumberId: "3d3a2fb7-5e41-414c-8a84-0fc5dee5a476",
         customer: {
-          number: contact.phoneNumber,
-          name: `${contact.firstName || ''} ${contact.lastName || ''}`.trim() || contact.name
+          number: contact.phoneNumber
         }
       })
     });
