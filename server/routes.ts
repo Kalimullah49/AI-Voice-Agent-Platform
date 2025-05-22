@@ -78,7 +78,7 @@ async function makeNextCall(execution: CampaignExecution) {
       },
       body: JSON.stringify({
         assistantId: execution.agent.vapiAssistantId,
-        phoneNumber: execution.fromNumber,
+        phoneNumberId: "3d3a2fb7-5e41-414c-8a84-0fc5dee5a476", // Your Vapi phone number ID for +14322558694
         customer: {
           number: contact.phoneNumber,
           name: `${contact.firstName || ''} ${contact.lastName || ''}`.trim() || contact.name
