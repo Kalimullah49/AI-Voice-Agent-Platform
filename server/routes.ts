@@ -1441,9 +1441,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const hoursPerCall = 0.05; // 3 minutes per call that would be handled manually
       const totalHoursSaved = parseFloat((totalCalls * hoursPerCall).toFixed(2));
       
-      // Call outcomes
-      const customerEndedCalls = calls.filter(call => call.endedReason === "Customer Ended Call").length;
-      const agentEndedCalls = calls.filter(call => call.endedReason === "Agent Ended Call").length;
+      // Call outcomes - using actual end reasons from your calls
+      const customerEndedCalls = calls.filter(call => 
+        call.endedReason && (
+          call.endedReason.toLowerCase().includes("customer") ||
+          call.endedReason === "customer-ended-call" ||
+          call.endedReason === "customer-busy"
+        )
+      ).length;
+      
+      const agentEndedCalls = calls.filter(call => 
+        call.endedReason && (
+          call.endedReason.toLowerCase().includes("assistant") ||
+          call.endedReason === "assistant-ended-call" ||
+          call.endedReason === "silence-timed-out"
+        )
+      ).length;
       const transferredCallsCount = transferredCalls;
       
       // Get today's calls - use startedAt which is the actual field
@@ -1526,11 +1539,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             values: outboundByDay
           }
         },
-        durationVsCost: { 
-          labels: days,
-          duration: Array(7).fill(0),
-          cost: Array(7).fill(0)
-        }
+        durationVsCost: getDailyDurationAndCost(calls)
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch dashboard metrics" });
