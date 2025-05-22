@@ -3,7 +3,7 @@ import { useLocation, useRoute, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, CheckCircle2, LoaderCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/providers/AuthProvider";
 
 export default function VerifyPage() {
   const [, setLocation] = useLocation();

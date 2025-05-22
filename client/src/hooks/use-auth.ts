@@ -15,8 +15,8 @@ type RegisterData = {
   email: string;
   password: string;
   confirmPassword: string;
-  firstName?: string;
-  lastName?: string;
+  firstName?: string | null;
+  lastName?: string | null;
 };
 
 export function useAuth() {
@@ -140,13 +140,31 @@ export function useAuth() {
     };
   }, []);
 
+  // Function to handle register with callbacks
+  const register = (
+    data: RegisterData, 
+    options?: { 
+      onSuccess?: (response: any) => void;
+      onError?: (error: Error) => void; 
+    }
+  ) => {
+    registerMutation.mutate(data, {
+      onSuccess: (response) => {
+        options?.onSuccess?.(response);
+      },
+      onError: (error: Error) => {
+        options?.onError?.(error);
+      }
+    });
+  };
+
   return {
     user,
     isLoading,
     isAuthenticated: !!user,
     error,
     login: loginMutation.mutate,
-    register: registerMutation.mutate,
+    register,
     logout: logoutMutation.mutate,
     isLoginPending: loginMutation.isPending,
     isRegisterPending: registerMutation.isPending,
