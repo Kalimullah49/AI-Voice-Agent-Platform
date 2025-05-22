@@ -1461,16 +1461,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Campaign routes
-  app.get("/api/campaigns", async (req, res) => {
+  app.get("/api/campaigns", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const campaigns = await storage.getAllCampaigns();
       res.json(campaigns);
     } catch (error) {
+      console.error("Error fetching campaigns:", error);
       res.status(500).json({ message: "Failed to fetch campaigns" });
     }
   });
 
-  app.post("/api/campaigns", async (req, res) => {
+  app.post("/api/campaigns", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const campaignData = insertCampaignSchema.parse(req.body);
       const campaign = await storage.createCampaign(campaignData);
@@ -1479,12 +1480,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         res.status(400).json({ message: "Invalid campaign data", errors: error.errors });
       } else {
+        console.error("Error creating campaign:", error);
         res.status(500).json({ message: "Failed to create campaign" });
       }
     }
   });
 
-  app.patch("/api/campaigns/:id", async (req, res) => {
+  app.patch("/api/campaigns/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       const campaignData = req.body;
@@ -1494,6 +1496,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(campaign);
     } catch (error) {
+      console.error("Error updating campaign:", error);
       res.status(500).json({ message: "Failed to update campaign" });
     }
   });
