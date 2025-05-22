@@ -69,9 +69,9 @@ export default function CallsHistoryPage() {
     link.click();
     document.body.removeChild(link);
   };
-  // State for filters
-  const [minDuration, setMinDuration] = useState<number>(5);
-  const [maxDuration, setMaxDuration] = useState<number>(10);
+  // State for filters - no default duration restrictions
+  const [minDuration, setMinDuration] = useState<number>(0);
+  const [maxDuration, setMaxDuration] = useState<number>(999);
   const [callerPhoneFilter, setCallerPhoneFilter] = useState<string>("");
   const [calleePhoneFilter, setCalleePhoneFilter] = useState<string>("");
   const [agentFilter, setAgentFilter] = useState<string>("all");
