@@ -19,8 +19,8 @@ const TEMPLATES = {
   PASSWORD_RESET: 'password-reset'
 };
 
-// Default sender email - update with your sending domain email
-const DEFAULT_FROM = 'no-reply@yourdomain.com';
+// Default sender email - using a Postmark verified sender address
+const DEFAULT_FROM = 'hello@resend.dev';
 
 /**
  * Verify Postmark connection is properly set up
@@ -44,47 +44,49 @@ export async function sendVerificationEmail(to: string, token: string, verifyUrl
     // Construct the full verification URL
     const verificationUrl = `${baseUrl}/auth/verify-email?token=${token}`;
 
-    // If you have email templates set up in Postmark:
-    const response = await client.sendEmailWithTemplate({
-      From: DEFAULT_FROM,
-      To: to,
-      TemplateAlias: TEMPLATES.VERIFICATION,
-      TemplateModel: {
-        name: to.split('@')[0], // Use part before @ as the name if real name not available
-        action_url: verificationUrl,
-        verification_code: token.substring(0, 6), // First 6 chars as a readable code option
-        support_email: DEFAULT_FROM
-      }
-    });
-
-    // For testing without templates, you can use this instead:
-    /* 
-    const response = await client.sendEmail({
-      From: DEFAULT_FROM,
-      To: to,
-      Subject: 'Verify Your Email',
-      HtmlBody: `
-        <h1>Verify Your Email</h1>
-        <p>Thank you for registering. Please verify your email by clicking the link below:</p>
-        <p><a href="${verificationUrl}">Verify Email</a></p>
-        <p>Or enter this code: ${token.substring(0, 6)}</p>
-        <p>This link will expire in 24 hours.</p>
-      `,
-      TextBody: `
-        Verify Your Email
-        
-        Thank you for registering. Please verify your email by visiting this link:
-        ${verificationUrl}
-        
-        Or enter this code: ${token.substring(0, 6)}
-        
-        This link will expire in 24 hours.
-      `,
-      MessageStream: 'outbound'
-    });
-    */
-
-    return response;
+    // First try to send with template if it exists
+    try {
+      const response = await client.sendEmailWithTemplate({
+        From: DEFAULT_FROM,
+        To: to,
+        TemplateAlias: TEMPLATES.VERIFICATION,
+        TemplateModel: {
+          name: to.split('@')[0], // Use part before @ as the name if real name not available
+          action_url: verificationUrl,
+          verification_code: token.substring(0, 6), // First 6 chars as a readable code option
+          support_email: DEFAULT_FROM
+        }
+      });
+      return response;
+    } catch (templateError) {
+      console.log("Template error, falling back to direct email:", templateError);
+      
+      // Fallback to direct email sending if template fails
+      const response = await client.sendEmail({
+        From: DEFAULT_FROM,
+        To: to,
+        Subject: 'Verify Your Email - AimAI',
+        HtmlBody: `
+          <h1>Verify Your Email</h1>
+          <p>Thank you for registering with AimAI. Please verify your email by clicking the link below:</p>
+          <p><a href="${verificationUrl}" style="display: inline-block; padding: 10px 20px; background-color: #4F46E5; color: white; text-decoration: none; border-radius: 4px;">Verify Email</a></p>
+          <p>Or enter this code: <strong>${token.substring(0, 6)}</strong></p>
+          <p>This link will expire in 24 hours.</p>
+        `,
+        TextBody: `
+          Verify Your Email - AimAI
+          
+          Thank you for registering with AimAI. Please verify your email by visiting this link:
+          ${verificationUrl}
+          
+          Or enter this code: ${token.substring(0, 6)}
+          
+          This link will expire in 24 hours.
+        `,
+        MessageStream: 'outbound'
+      });
+      return response;
+    }
   } catch (error) {
     console.error('Failed to send verification email:', error);
     throw error;

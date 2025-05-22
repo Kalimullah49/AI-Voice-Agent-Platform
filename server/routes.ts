@@ -1795,6 +1795,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // API endpoint to create webhook logs table and get webhook logs
+  // Test endpoint for email verification
+  app.get("/api/test-email", async (req: Request, res: Response) => {
+    try {
+      const { email } = req.query;
+      
+      if (!email || typeof email !== 'string') {
+        return res.status(400).json({ success: false, message: 'Email is required' });
+      }
+      
+      // Import with ES module syntax
+      const { sendTestEmail, isPostmarkConfigured } = await import('./utils/email');
+      
+      // Check if Postmark is configured
+      if (!isPostmarkConfigured()) {
+        return res.status(500).json({ 
+          success: false,
+          message: 'Postmark is not configured properly. Please check your environment variables.',
+          postmarkConfigured: false
+        });
+      }
+      
+      // Send a test email
+      const result = await sendTestEmail(email);
+      
+      return res.json({
+        success: result,
+        message: result ? 'Test email sent successfully' : 'Failed to send test email',
+        email
+      });
+    } catch (error) {
+      console.error('Error sending test email:', error);
+      return res.status(500).json({ 
+        success: false,
+        message: 'Error sending test email', 
+        error: error.message || String(error)
+      });
+    }
+  });
+
   app.get("/api/webhook/logs", isAuthenticated, async (req: Request, res: Response) => {
     try {
       // Import the webhook logs handler
