@@ -1,54 +1,37 @@
 import { createContext, ReactNode, useContext } from "react";
-import {
-  useQuery,
-  useMutation,
-  UseMutationResult,
-} from "@tanstack/react-query";
-import { User, LoginUser, RegisterUser } from "@shared/schema";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { LoginUser, RegisterUser, User } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 
+// Define types for our auth context
 type AuthContextType = {
   user: User | null;
   isLoading: boolean;
-  error: Error | null;
-  loginMutation: UseMutationResult<User, Error, LoginUser>;
-  logoutMutation: UseMutationResult<void, Error, void>;
-  registerMutation: UseMutationResult<User, Error, RegisterUser>;
+  isAuthenticated: boolean;
+  loginMutation: any;
+  registerMutation: any;
+  logoutMutation: any;
 };
 
-export const AuthContext = createContext<AuthContextType | null>(null);
+// Create context
+const AuthContext = createContext<AuthContextType | null>(null);
 
+// Provider component
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
-  
+
+  // Get current user
   const {
     data: user,
-    error,
-    isLoading,
-  } = useQuery<User | null, Error>({
+    isLoading
+  } = useQuery<User>({
     queryKey: ["/api/auth/user"],
     retry: false,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    // Suppress 401 errors since we use them for auth checking
-    queryFn: async ({ queryKey }) => {
-      try {
-        const response = await fetch(queryKey[0] as string);
-        if (response.status === 401) {
-          return null;
-        }
-        if (!response.ok) {
-          throw new Error("Failed to fetch user");
-        }
-        return await response.json();
-      } catch (error) {
-        console.error("Auth error:", error);
-        return null;
-      }
-    },
   });
 
-  const loginMutation = useMutation<User, Error, LoginUser>({
+  // Login mutation
+  const loginMutation = useMutation({
     mutationFn: async (credentials: LoginUser) => {
       const res = await fetch("/api/auth/login", {
         method: "POST",
@@ -60,10 +43,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (!res.ok) {
         const error = await res.json();
-        // Special handling for email verification required error
-        if (res.status === 403 && error.message && error.message.includes("verify")) {
-          throw new Error(error.message);
-        }
         throw new Error(error.message || "Failed to log in");
       }
       
@@ -78,31 +57,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.location.href = "/";
     },
     onError: (error: Error) => {
-      // Check if error is related to email verification
-      if (error.message && error.message.includes("verify")) {
-        toast({
-          title: "Email verification required",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Login failed",
-          description: error.message,
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Login failed",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
-  const registerMutation = useMutation<User, Error, RegisterUser>({
-    mutationFn: async (credentials: RegisterUser) => {
+  // Register mutation
+  const registerMutation = useMutation({
+    mutationFn: async (data: RegisterUser) => {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(credentials),
+        body: JSON.stringify(data),
       });
       
       if (!res.ok) {
@@ -138,10 +109,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  const logoutMutation = useMutation<void, Error, void>({
+  // Logout mutation
+  const logoutMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch("/api/auth/logout", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
       });
       
       if (!res.ok) {
@@ -150,8 +125,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/auth/user"], null);
+      queryClient.clear();
       toast({
         title: "Logged out successfully",
+        description: "You have been logged out.",
       });
       window.location.href = "/auth";
     },
@@ -165,21 +142,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        error,
-        loginMutation,
-        logoutMutation,
-        registerMutation,
-      }}
-    >
+    <AuthContext.Provider value={{
+      user: user || null,
+      isLoading,
+      isAuthenticated: !!user,
+      loginMutation,
+      registerMutation,
+      logoutMutation
+    }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
+// Hook to use auth context
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {

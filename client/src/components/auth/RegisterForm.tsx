@@ -31,10 +31,10 @@ export default function RegisterForm() {
     },
   });
 
-  const { register, isRegisterPending } = useAuth();
+  const { registerMutation } = useAuth();
 
   function onSubmit(data: RegisterUser) {
-    register(data, {
+    registerMutation.mutate(data, {
       onSuccess: (response: any) => {
         // If the response contains a message about verification
         if (response?.message?.includes("verification") || response?.emailVerified === false) {
