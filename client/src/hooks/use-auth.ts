@@ -28,14 +28,19 @@ export function useAuth() {
     data: user, 
     isLoading, 
     refetch 
-  } = useQuery<User>({
+  } = useQuery<User | undefined>({
     queryKey: ["/api/auth/user"],
     refetchOnWindowFocus: false,
     refetchOnMount: true,
-    retry: 1,
     retryDelay: 500,
-    onError: () => {
-      // Fail silently - not authenticated is a normal state
+    gcTime: 0,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: (failureCount, error: any) => {
+      // Don't retry on 401 (Unauthorized)
+      if (error?.response?.status === 401) {
+        return false;
+      }
+      return failureCount < 3;
     }
   });
 
