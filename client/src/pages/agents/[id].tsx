@@ -611,8 +611,8 @@ export default function AgentDetailPage() {
                   })()
                 },
                 voice: {
-                  provider: "vapi",
-                  voiceId: "Savannah" // Using one of Vapi's standard voices
+                  provider: "elevenlabs",
+                  voiceId: agentData.voiceId || agentData.selectedVoice?.voice_id || "Savannah" // Use selected ElevenLabs voice or fallback
                 },
                 transcriber: {
                   provider: "deepgram",
