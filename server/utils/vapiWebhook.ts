@@ -12,6 +12,147 @@ import { storage } from '../storage';
 import { InsertWebhookLog } from '@shared/schema';
 
 /**
+ * Process and save call data to the database
+ * This function finds the correct agent and updates or creates a call record
+ */
+async function processCallData(
+  assistantId: string, 
+  callId: string, 
+  fromNumber: string, 
+  toNumber: string, 
+  duration: number, 
+  cost: number, 
+  status: string, 
+  endReason: string | null,
+  direction: string
+) {
+  console.log(`Processing call data for assistantId: ${assistantId}, callId: ${callId}`);
+  console.log(`Call details - Duration: ${duration}s, Cost: $${cost}, Status: ${status}, End Reason: ${endReason}`);
+  console.log(`From: ${fromNumber}, To: ${toNumber}`);
+  
+  // Find the agent associated with this assistantId
+  const agents = await storage.getAllAgents();
+  const agent = agents.find(agent => agent.vapiAssistantId === assistantId);
+  
+  if (!agent) {
+    console.warn(`No agent found for assistant ID ${assistantId}`);
+    return;
+  }
+  
+  // Try to find existing call in our database
+  const calls = await storage.getAllCalls();
+  
+  console.log(`Looking for matching call with fromNumber=${fromNumber}, toNumber=${toNumber}, agentId=${agent.id}`);
+  
+  // First try to match by exact number combination
+  let existingCall = calls.find(call => 
+    (call.fromNumber === fromNumber && call.toNumber === toNumber) || 
+    (call.fromNumber === toNumber && call.toNumber === fromNumber)
+  );
+  
+  // If we can't find by numbers, try to look up by agent and most recent calls
+  if (!existingCall && agent) {
+    console.log(`No exact number match found, trying to match by agent ID: ${agent.id}`);
+    
+    // Get calls for this agent within the last 24 hours
+    const recentCalls = calls
+      .filter(call => call.agentId === agent.id)
+      .filter(call => {
+        const callTime = new Date(call.startedAt).getTime();
+        const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+        return callTime > oneDayAgo;
+      })
+      .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
+    
+    console.log(`Found ${recentCalls.length} recent calls for agent ID: ${agent.id}`);
+    
+    // Use the most recent call if available
+    if (recentCalls.length > 0) {
+      existingCall = recentCalls[0];
+      console.log(`Using most recent call (ID: ${existingCall.id}) for this agent`);
+    }
+  }
+  
+  // Prepare the call status update
+  const isCallFinished = ['completed', 'ended', 'failed', 'error', 'voicemail'].includes(status);
+  const hasValidMetrics = duration > 0 || cost > 0 || endReason;
+  
+  if (existingCall) {
+    // Update existing call record
+    console.log(`Updating existing call record for call ${existingCall.id}, status: ${status}, isCallFinished: ${isCallFinished}`);
+    
+    // Ensure we have valid values before updating
+    const updateData: any = {};
+    
+    if (status) {
+      updateData.outcome = status;
+    }
+    
+    // Only update metrics if the call is finished or we have valid metrics
+    if (isCallFinished || hasValidMetrics) {
+      console.log(`Call is finished or has valid metrics. Status: ${status}, Duration: ${duration}s, Cost: $${cost}`);
+      
+      if (duration > 0) {
+        updateData.duration = duration;
+      }
+      
+      if (endReason) {
+        updateData.endedReason = endReason;
+      }
+      
+      if (cost > 0) {
+        updateData.cost = cost;
+      }
+    }
+    
+    console.log(`Call update data: ${JSON.stringify(updateData)}`);
+    
+    // Only update if we have data to update
+    if (Object.keys(updateData).length > 0) {
+      const updatedCall = await storage.updateCall(existingCall.id, updateData);
+      console.log(`Call record updated: ${JSON.stringify(updatedCall)}`);
+      console.log(`Updated call with status: ${status}, cost: $${cost}, duration: ${duration}s`);
+    } else {
+      console.log(`No valid update data found for call ${existingCall.id}`);
+    }
+  } else {
+    // Create a new call record
+    console.log(`Creating new call record for call ${callId}, status: ${status}, isCallFinished: ${isCallFinished}`);
+    
+    // Create the call record with agent info and call details
+    const newCallData = {
+      fromNumber: fromNumber || 'unknown',
+      toNumber: toNumber || 'unknown',
+      agentId: agent.id,
+      direction,
+      startedAt: new Date(),
+      outcome: status || 'unknown'
+    } as any;
+    
+    // Only add metrics if the call is finished or we have valid metrics
+    if (isCallFinished || hasValidMetrics) {
+      console.log(`New call with finished status or valid metrics. Status: ${status}, Duration: ${duration}s, Cost: $${cost}`);
+      
+      if (duration > 0) {
+        newCallData.duration = duration;
+      }
+      
+      if (endReason) {
+        newCallData.endedReason = endReason;
+      }
+      
+      if (cost > 0) {
+        newCallData.cost = cost;
+      }
+    }
+    
+    console.log(`Creating new call with data: ${JSON.stringify(newCallData)}`);
+    const newCall = await storage.createCall(newCallData);
+    console.log(`New call record created with ID: ${newCall.id}, status: ${status}, cost: $${cost}, duration: ${duration}s`);
+  }
+}
+
+/**
  * Process an end-of-call report
  * @param data The webhook payload for an end-of-call report
  */
@@ -19,7 +160,68 @@ async function processEndOfCallReport(data: any) {
   try {
     console.log('Processing end-of-call report:', JSON.stringify(data, null, 2));
     
-    // Support all Vapi webhook formats
+    // Check for the new format with data.message structure
+    if (data.message) {
+      console.log('Detected new Vapi webhook format with message wrapper');
+      
+      // New format - message object contains all data
+      const message = data.message;
+      
+      // Extract the call details from different locations
+      let callData = message.call || {};
+      let duration = 0;
+      let cost = 0;
+      let endReason = null;
+      let status = callData.status || 'completed';
+      
+      // Get assistant ID to identify the agent
+      const assistantId = message.assistant?.id || callData.assistantId || '';
+      
+      // Extract duration from different possible fields
+      if (message.durationSeconds) {
+        duration = Math.ceil(message.durationSeconds);
+      } else if (message.durationMs) {
+        duration = Math.ceil(message.durationMs / 1000);
+      } else if (message.duration) {
+        duration = message.duration;
+      } else if (typeof message.durationMinutes === 'number') {
+        duration = Math.ceil(message.durationMinutes * 60);
+      }
+      
+      // Extract cost from new format
+      if (typeof message.cost === 'number') {
+        cost = message.cost;
+      } else if (message.costBreakdown && message.costBreakdown.total) {
+        cost = message.costBreakdown.total;
+      }
+      
+      // Extract end reason
+      endReason = message.endedReason || null;
+      
+      // Extract phone numbers
+      let fromNumber = '';
+      let toNumber = '';
+      
+      if (message.phoneNumber && message.phoneNumber.number) {
+        fromNumber = message.phoneNumber.number;
+      }
+      
+      if (message.customer && message.customer.number) {
+        toNumber = message.customer.number;
+      }
+      
+      // Process the extracted data
+      console.log(`Call details from new format - Duration: ${duration}s, Cost: $${cost}, Status: ${status}, End Reason: ${endReason}`);
+      console.log(`Phone numbers - From: ${fromNumber}, To: ${toNumber}`);
+      
+      // Find the agent and update/create the call record
+      await processCallData(assistantId, callData.id || '', fromNumber, toNumber, duration, cost, status, endReason, 
+                           message.type === 'outboundPhoneCall' ? 'outbound' : 'inbound');
+      
+      return;
+    }
+    
+    // Original format handling
     const callData = data.call || data;
     
     if (!callData) {
@@ -127,33 +329,18 @@ async function processEndOfCallReport(data: any) {
     console.log(`Call ${callId} ended with duration ${duration}s, cost $${cost}, status: ${status}`);
     console.log(`From: ${fromNumber}, To: ${toNumber}, Assistant ID: ${assistantId}`);
     
-    // Find the agent associated with this assistantId
-    const agents = await storage.getAllAgents();
-    const agent = agents.find(agent => agent.vapiAssistantId === assistantId);
-    
-    if (!agent) {
-      console.warn(`No agent found for assistant ID ${assistantId}`);
-      return;
-    }
-    
-    // Try to find existing call in our database - with better matching
-    const calls = await storage.getAllCalls();
-    
-    console.log(`Looking for matching call with fromNumber=${fromNumber}, toNumber=${toNumber}, agentId=${agent.id}`);
-    
-    // First try to match by exact number combination
-    let existingCall = calls.find(call => 
-      (call.fromNumber === fromNumber && call.toNumber === toNumber) || 
-      (call.fromNumber === toNumber && call.toNumber === fromNumber)
+    // Process the call data to update or create a call record
+    await processCallData(
+      assistantId,
+      callId,
+      fromNumber,
+      toNumber,
+      duration,
+      cost,
+      status,
+      endReason,
+      callData.type === 'outboundPhoneCall' ? 'outbound' : 'inbound'
     );
-    
-    // If we can't find by numbers, try to look up by agent and most recent calls
-    if (!existingCall && agent) {
-      console.log(`No exact number match found, trying to match by agent ID: ${agent.id}`);
-      
-      // Get calls for this agent within the last 24 hours
-      const recentCalls = calls
-        .filter(call => call.agentId === agent.id)
         .filter(call => {
           const callTime = new Date(call.startedAt).getTime();
           const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
