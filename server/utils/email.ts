@@ -66,18 +66,18 @@ export async function sendVerificationEmail(to: string, token: string, verifyUrl
       const response = await client.sendEmail({
         From: DEFAULT_FROM,
         To: to,
-        Subject: 'Verify Your Email - AimAI',
+        Subject: 'Verify Your Email - Mind AI',
         HtmlBody: `
           <h1>Verify Your Email</h1>
-          <p>Thank you for registering with AimAI. Please verify your email by clicking the link below:</p>
+          <p>Thank you for registering with Mind AI. Please verify your email by clicking the link below:</p>
           <p><a href="${verificationUrl}" style="display: inline-block; padding: 10px 20px; background-color: #4F46E5; color: white; text-decoration: none; border-radius: 4px;">Verify Email</a></p>
           <p>Or enter this code: <strong>${token.substring(0, 6)}</strong></p>
           <p>This link will expire in 24 hours.</p>
         `,
         TextBody: `
-          Verify Your Email - AimAI
+          Verify Your Email - Mind AI
           
-          Thank you for registering with AimAI. Please verify your email by visiting this link:
+          Thank you for registering with Mind AI. Please verify your email by visiting this link:
           ${verificationUrl}
           
           Or enter this code: ${token.substring(0, 6)}
