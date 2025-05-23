@@ -24,7 +24,7 @@ export default function AuthPage() {
                 <CardDescription className="text-center">
                   {activeTab === "login" 
                     ? "Enter your credentials to access your account" 
-                    : "Sign up to get started with AimAI"}
+                    : "Sign up to get started with Mind AI"}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -72,7 +72,7 @@ export default function AuthPage() {
                 Power Your Addiction Recovery Call Center with AI
               </h1>
               <p className="text-lg text-gray-600">
-                AimAI is a specialized AI-powered platform designed to enhance call center operations 
+                Mind AI is a specialized AI-powered platform designed to enhance call center operations 
                 in addiction recovery services, providing comprehensive communication tools and intelligent insights.
               </p>
               <div className="space-y-4 mt-8">

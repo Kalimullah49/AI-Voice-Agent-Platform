@@ -775,7 +775,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Purchase phone number from Twilio
       const purchasedNumber = await client.incomingPhoneNumbers.create({
         phoneNumber,
-        friendlyName: friendlyName || `AimAI Number ${new Date().toISOString()}`
+        friendlyName: friendlyName || `Mind AI Number ${new Date().toISOString()}`
       });
       
       // Store the phone number in our database
