@@ -47,11 +47,11 @@ export default function AuthPage() {
           <div className="hidden md:flex flex-col justify-center">
             <div className="text-center space-y-6">
               <h1 className="text-4xl font-bold tracking-tight text-gray-900">
-                Power Your Addiction Recovery Call Center with AI
+                Power Your Business with AI Voice Agents
               </h1>
               <p className="text-lg text-gray-600">
-                Mind AI is a specialized AI-powered platform designed to enhance call center operations 
-                in addiction recovery services, providing comprehensive communication tools and intelligent insights.
+                Mind AI is an advanced AI-powered platform designed to enhance your call center operations 
+                across any industry, providing comprehensive communication tools and intelligent voice automation.
               </p>
               <div className="space-y-4 mt-8">
                 <div className="flex items-start gap-3">
@@ -61,8 +61,8 @@ export default function AuthPage() {
                     </svg>
                   </div>
                   <div className="text-left">
-                    <h3 className="font-medium">AI-Powered Call Assistants</h3>
-                    <p className="text-sm text-gray-600">Create custom voice agents trained on your protocols</p>
+                    <h3 className="font-medium">Smart Voice Agents</h3>
+                    <p className="text-sm text-gray-600">Create intelligent agents that handle calls, appointments, and customer service</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
@@ -72,8 +72,8 @@ export default function AuthPage() {
                     </svg>
                   </div>
                   <div className="text-left">
-                    <h3 className="font-medium">Advanced Analytics</h3>
-                    <p className="text-sm text-gray-600">Track performance and gain insights from every call</p>
+                    <h3 className="font-medium">Campaign Management</h3>
+                    <p className="text-sm text-gray-600">Run automated outbound campaigns with detailed analytics and reporting</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
@@ -83,8 +83,8 @@ export default function AuthPage() {
                     </svg>
                   </div>
                   <div className="text-left">
-                    <h3 className="font-medium">Seamless Integration</h3>
-                    <p className="text-sm text-gray-600">Connect with your existing CRM and telephony systems</p>
+                    <h3 className="font-medium">Enterprise Ready</h3>
+                    <p className="text-sm text-gray-600">Scale across teams with multi-user support and advanced integrations</p>
                   </div>
                 </div>
               </div>
