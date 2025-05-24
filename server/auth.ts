@@ -334,6 +334,7 @@ export function setupAuth(app: Express) {
   // Get current user endpoint
   app.get("/api/auth/user", async (req: Request, res: Response) => {
     try {
+      console.log('Get user - session:', req.session?.userId);
       if (!req.session.userId) {
         return res.status(401).json({ message: "Unauthorized" });
       }
