@@ -15,17 +15,7 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
-  // Temporary fix for the login form while we're implementing email verification
-  const loginMutation = {
-    mutate: (data: any) => {
-      console.log("Login attempt", data);
-      toast({
-        title: "Login system under maintenance",
-        description: "We're currently implementing email verification. Please try again soon.",
-      });
-    },
-    isPending: false,
-  };
+  const { login, isLoginPending } = useAuth();
   
   const form = useForm<LoginUser>({
     resolver: zodResolver(loginUserSchema),
@@ -36,7 +26,11 @@ export default function LoginForm() {
   });
 
   function onSubmit(data: LoginUser) {
-    loginMutation.mutate(data);
+    login(data, {
+      onSuccess: () => {
+        setLocation("/");
+      }
+    });
   }
 
   return (
@@ -89,9 +83,9 @@ export default function LoginForm() {
         <Button 
           type="submit" 
           className="w-full" 
-          disabled={loginMutation.isPending}
+          disabled={isLoginPending}
         >
-          {loginMutation.isPending ? (
+          {isLoginPending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Signing in...
