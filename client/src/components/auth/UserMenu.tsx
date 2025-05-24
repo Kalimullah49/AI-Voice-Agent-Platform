@@ -58,7 +58,18 @@ export default function UserMenu() {
         </div>
         <DropdownMenuItem 
           className="cursor-pointer"
-          onClick={() => window.location.href = "/api/logout"}
+          onClick={async () => {
+            try {
+              await fetch("/api/auth/logout", {
+                method: "POST",
+                credentials: "include"
+              });
+              window.location.href = "/auth";
+            } catch (error) {
+              console.error("Logout error:", error);
+              window.location.href = "/auth";
+            }
+          }}
         >
           <LogOut className="mr-2 h-4 w-4" />
           Log out

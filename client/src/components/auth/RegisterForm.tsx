@@ -31,41 +31,47 @@ export default function RegisterForm() {
     },
   });
 
-  // Temporary implementation while email verification is being set up
-  const registerMutation = {
-    mutate: (data: any, options?: any) => {
-      console.log("Registration attempt", data);
-      // Simulate a successful registration with email verification
-      setVerificationSent(true);
-      setRegisteredEmail(data.email);
-      form.reset();
+  const registerMutation = useMutation({
+    mutationFn: async (data: RegisterUser) => {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(data),
+      });
       
-      if (options?.onSuccess) {
-        options.onSuccess({
-          emailVerified: false,
-          message: "Please check your email for verification"
-        });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to register");
       }
+      
+      return await res.json();
     },
-    isPending: false
-  };
+    onSuccess: () => {
+      toast({
+        title: "Account created successfully",
+        description: "Welcome to Mind AI! You are now logged in.",
+      });
+      window.location.href = "/";
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Registration failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   function onSubmit(data: RegisterUser) {
-    registerMutation.mutate(data, {
-      onSuccess: (response: any) => {
-        // If the response contains a message about verification
-        if (response?.message?.includes("verification") || response?.emailVerified === false) {
-          setVerificationSent(true);
-          setRegisteredEmail(data.email);
-          form.reset();
-        }
-      }
-    });
+    registerMutation.mutate(data);
   }
 
   return (
     <>
-      {verificationSent ? (
+      {false && verificationSent ? (
         <div className="space-y-4">
           <Alert className="bg-green-50 border-green-200">
             <CheckCircle className="h-5 w-5 text-green-500" />
