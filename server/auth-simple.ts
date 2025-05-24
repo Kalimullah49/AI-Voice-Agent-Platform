@@ -1,14 +1,11 @@
 import { Express, Request, Response, NextFunction } from "express";
-import { db } from "./db";
-import { storage } from "./storage";
-import { loginUserSchema, registerUserSchema, emailVerificationSchema, users } from "@shared/schema";
+import { storage } from "./database-storage";
+import { loginUserSchema, registerUserSchema } from "@shared/schema";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import session from "express-session";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
-// Email imports removed - simplified auth without verification
 
 const scryptAsync = promisify(scrypt);
 
@@ -21,13 +18,15 @@ async function hashPassword(password: string): Promise<string> {
 
 async function comparePasswords(supplied: string, stored: string): Promise<boolean> {
   const [hashed, salt] = stored.split(".");
+  if (!hashed || !salt) return false;
+  
   const hashedBuf = Buffer.from(hashed, "hex");
   const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
-// Extend Express Session
-declare module 'express-session' {
+// Session interface
+declare module "express-session" {
   interface SessionData {
     userId: string;
   }
@@ -44,7 +43,7 @@ export function isAuthenticated(req: Request, res: Response, next: NextFunction)
 }
 
 export function setupAuth(app: Express) {
-  // Configure session
+  // Configure session with better settings for development
   app.use(
     session({
       secret: process.env.SESSION_SECRET || "your-secret-key",
@@ -54,7 +53,7 @@ export function setupAuth(app: Express) {
         secure: false, // Set to false for development
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000, // 1 day
-        sameSite: 'lax' // Add sameSite for better compatibility
+        sameSite: 'lax'
       },
     })
   );
@@ -62,13 +61,6 @@ export function setupAuth(app: Express) {
   // Registration endpoint
   app.post("/api/auth/register", async (req: Request, res: Response) => {
     try {
-      // Make sure confirmPassword is in the request body
-      if (!req.body.confirmPassword) {
-        return res.status(400).json({ 
-          message: "Confirm password is required" 
-        });
-      }
-      
       // Validate request body
       const validatedData = registerUserSchema.parse(req.body);
       
@@ -81,9 +73,7 @@ export function setupAuth(app: Express) {
       // Hash password
       const hashedPassword = await hashPassword(validatedData.password);
       
-      // Simple registration without verification
-      
-      // Create user with a UUID as ID - auto-verified
+      // Create user - auto-verified
       const userId = uuidv4();
       const user = await storage.createUser({
         id: userId,
@@ -96,7 +86,7 @@ export function setupAuth(app: Express) {
         emailVerificationToken: null,
         emailVerificationTokenExpiry: null
       });
-      
+
       // Automatically log the user in after registration
       req.session.userId = userId;
       console.log('Registration successful, user logged in:', userId);
@@ -113,12 +103,10 @@ export function setupAuth(app: Express) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ 
           message: "Validation failed", 
-          errors: error.errors
+          errors: error.errors 
         });
       }
-      return res.status(400).json({ 
-        message: error instanceof Error ? error.message : "Registration failed" 
-      });
+      return res.status(500).json({ message: "Registration failed" });
     }
   });
 
@@ -128,19 +116,17 @@ export function setupAuth(app: Express) {
       // Validate request body
       const validatedData = loginUserSchema.parse(req.body);
       
-      // Find user
+      // Get user by email
       const user = await storage.getUserByEmail(validatedData.email);
       if (!user) {
         return res.status(401).json({ message: "Invalid email or password" });
       }
       
-      // Compare passwords
+      // Check password
       const passwordMatch = await comparePasswords(validatedData.password, user.password);
       if (!passwordMatch) {
         return res.status(401).json({ message: "Invalid email or password" });
       }
-      
-      // Simple login - no verification needed
       
       // Set user in session
       req.session.userId = String(user.id);
@@ -156,12 +142,10 @@ export function setupAuth(app: Express) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ 
           message: "Validation failed", 
-          errors: error.errors
+          errors: error.errors 
         });
       }
-      return res.status(400).json({ 
-        message: error instanceof Error ? error.message : "Login failed" 
-      });
+      return res.status(500).json({ message: "Login failed" });
     }
   });
 
@@ -172,89 +156,9 @@ export function setupAuth(app: Express) {
         console.error("Logout error:", err);
         return res.status(500).json({ message: "Logout failed" });
       }
-      
-      res.clearCookie("connect.sid");
+      res.clearCookie('connect.sid');
       return res.status(200).json({ message: "Logged out successfully" });
     });
-  });
-
-  // Manual verification endpoint (for development)
-  app.post("/api/auth/manual-verify", async (req: Request, res: Response) => {
-    try {
-      const { email } = req.body;
-      
-      if (!email || typeof email !== 'string') {
-        return res.status(400).json({ message: "Email is required" });
-      }
-      
-      // Find user by email
-      const user = await storage.getUserByEmail(email);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      // Update user to verified
-      await db.update(users)
-        .set({ emailVerified: true })
-        .where(eq(users.id, user.id));
-      
-      return res.status(200).json({ 
-        message: "Email manually verified for development purposes",
-        verified: true
-      });
-    } catch (error) {
-      console.error("Manual verification error:", error);
-      return res.status(500).json({ message: "Failed to manually verify email" });
-    }
-  });
-
-  // Email verification endpoint
-  app.get("/api/auth/verify", async (req: Request, res: Response) => {
-    try {
-      const { token } = req.query;
-      
-      if (!token || typeof token !== 'string') {
-        return res.status(400).json({ message: "Invalid verification token" });
-      }
-      
-      // Validate token with schema
-      try {
-        emailVerificationSchema.parse({ token });
-      } catch (validationError) {
-        return res.status(400).json({ message: "Invalid verification token format" });
-      }
-      
-      // Verify email using the token
-      const user = await storage.verifyEmail(token);
-      
-      if (!user) {
-        return res.status(400).json({ 
-          message: "Invalid or expired verification token" 
-        });
-      }
-      
-      // Send welcome email if Postmark is configured
-      if (isPostmarkConfigured()) {
-        try {
-          await sendWelcomeEmail(user.email, user.firstName || undefined);
-        } catch (emailError) {
-          console.error("Failed to send welcome email:", emailError);
-          // Continue anyway, this is not critical
-        }
-      }
-      
-      // Automatically log the user in after verification
-      req.session.userId = user.id;
-      
-      // Return success response (frontend will handle redirect)
-      return res.status(200).json({ 
-        message: "Email verification successful! You are now logged in.",
-        verified: true
-      });
-    } catch (error) {
-      console.error("Email verification error:", error);
-      return res.status(500).json({ message: "Failed to verify email" });
-    }
   });
 
   // Get current user endpoint
