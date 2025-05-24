@@ -19,9 +19,8 @@ const TEMPLATES = {
   PASSWORD_RESET: 'password-reset'
 };
 
-// Default sender email - using a Postmark verified sender address
-// While account is pending approval, FROM and TO addresses must share the same domain
-const DEFAULT_FROM = 'no-reply@example.com';
+// Default sender email - using your verified sender address
+const DEFAULT_FROM = 'toby@ashgrove.ai';
 
 /**
  * Verify Postmark connection is properly set up
