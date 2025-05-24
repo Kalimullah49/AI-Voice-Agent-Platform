@@ -181,8 +181,9 @@ export function setupAuth(app: Express) {
         return res.status(401).json({ message: "Invalid email or password" });
       }
       
-      // Check if email is verified (always check regardless of environment)
-      if (user.emailVerified === false) {
+      // Skip email verification for now (until Postmark is approved)
+      // TODO: Re-enable when Postmark account is fully approved
+      if (false && user.emailVerified === false) {
         // Generate a new verification token
         const verificationToken = randomBytes(24).toString('hex');
         
