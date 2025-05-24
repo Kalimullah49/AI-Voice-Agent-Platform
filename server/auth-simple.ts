@@ -1,5 +1,5 @@
 import { Express, Request, Response, NextFunction } from "express";
-import { storage } from "./database-storage";
+import { storage } from "./storage";
 import { loginUserSchema, registerUserSchema } from "@shared/schema";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
