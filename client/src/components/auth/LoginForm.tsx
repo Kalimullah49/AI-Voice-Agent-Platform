@@ -15,7 +15,39 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
-  const { login, isLoginPending } = useAuth();
+  const loginMutation = useMutation({
+    mutationFn: async (credentials: LoginUser) => {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(credentials),
+      });
+      
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to log in");
+      }
+      
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Login successful",
+        description: "Welcome back!",
+      });
+      window.location.href = "/";
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Login failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
   
   const form = useForm<LoginUser>({
     resolver: zodResolver(loginUserSchema),
@@ -26,11 +58,7 @@ export default function LoginForm() {
   });
 
   function onSubmit(data: LoginUser) {
-    login(data, {
-      onSuccess: () => {
-        setLocation("/");
-      }
-    });
+    loginMutation.mutate(data);
   }
 
   return (
@@ -83,9 +111,9 @@ export default function LoginForm() {
         <Button 
           type="submit" 
           className="w-full" 
-          disabled={isLoginPending}
+          disabled={loginMutation.isPending}
         >
-          {isLoginPending ? (
+          {loginMutation.isPending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Signing in...
