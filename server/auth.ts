@@ -35,6 +35,7 @@ declare module 'express-session' {
 
 // Middleware to check if user is authenticated
 export function isAuthenticated(req: Request, res: Response, next: NextFunction) {
+  console.log('Auth check - session:', req.session?.userId);
   if (req.session && req.session.userId) {
     return next();
   }
@@ -50,9 +51,10 @@ export function setupAuth(app: Express) {
       resave: false,
       saveUninitialized: false,
       cookie: {
-        secure: process.env.NODE_ENV === "production",
+        secure: false, // Set to false for development
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000, // 1 day
+        sameSite: 'lax' // Add sameSite for better compatibility
       },
     })
   );
@@ -216,6 +218,7 @@ export function setupAuth(app: Express) {
       
       // Set user in session
       req.session.userId = String(user.id);
+      console.log('Session set for user:', req.session.userId);
       
       // Remove sensitive data from response
       const { password, emailVerificationToken, ...userWithoutSensitiveData } = user;
