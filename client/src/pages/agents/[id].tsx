@@ -520,7 +520,10 @@ export default function AgentDetailPage() {
                     initScript.innerHTML = `
                       try {
                         const assistant = "${agentData.vapiAssistantId}";
-                        const apiKey = "317c2afe-8d25-4a7f-8ec8-613a6265dd14";
+                        // Fetch the public key from the server
+                        const response = await fetch('/api/vapi/public-key');
+                        const { publicKey } = await response.json();
+                        const apiKey = publicKey;
                         
                         // Run the Vapi SDK with the proper configuration
                         if (window.vapiSDK) {
