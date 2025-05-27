@@ -1164,7 +1164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Add webhook configuration to receive call events
       assistantParams.server = {
-        url: `${req.protocol}://${req.hostname}/api/webhook/vapi`
+        url: `https://${req.hostname}/api/webhook/vapi`
       };
       
       // Ensure the agentId is associated with the current user if specified
