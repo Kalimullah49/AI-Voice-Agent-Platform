@@ -143,10 +143,20 @@ export class DatabaseStorage implements IStorage {
   }
   
   async deleteAgent(id: number): Promise<boolean> {
-    // First delete all related call records
+    // First delete all related records in order of dependencies
+    
+    // Delete campaigns that reference this agent
+    await db.delete(campaigns).where(eq(campaigns.agentId, id));
+    
+    // Delete call records
     await db.delete(calls).where(eq(calls.agentId, id));
     
-    // Then delete the agent
+    // Delete phone number assignments (set agentId to null)
+    await db.update(phoneNumbers)
+      .set({ agentId: null })
+      .where(eq(phoneNumbers.agentId, id));
+    
+    // Finally delete the agent
     const result = await db.delete(agents).where(eq(agents.id, id));
     return result !== undefined;
   }
