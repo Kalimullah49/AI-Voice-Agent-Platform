@@ -1271,6 +1271,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       token: process.env.VAPI_AI_TOKEN
     });
   });
+
+  // Endpoint to provide Vapi public key for web calls
+  app.get("/api/vapi/public-key", isAuthenticated, (req, res) => {
+    if (!process.env.VAPI_PUBLIC_KEY) {
+      return res.status(500).json({ 
+        success: false,
+        message: "Vapi public key is not configured on the server" 
+      });
+    }
+    
+    res.json({ 
+      success: true,
+      publicKey: process.env.VAPI_PUBLIC_KEY
+    });
+  });
   
   app.get("/api/vapi/voices", async (req, res) => {
     try {

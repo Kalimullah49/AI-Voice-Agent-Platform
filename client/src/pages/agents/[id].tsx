@@ -518,25 +518,36 @@ export default function AgentDetailPage() {
                   script.onload = () => {
                     // Add the actual initialization script
                     initScript.innerHTML = `
-                      try {
-                        const assistant = "${agentData.vapiAssistantId}";
-                        // Fetch the public key from the server
-                        const response = await fetch('/api/vapi/public-key');
-                        const { publicKey } = await response.json();
-                        const apiKey = publicKey;
-                        
-                        // Run the Vapi SDK with the proper configuration
-                        if (window.vapiSDK) {
-                          window.vapiSDK.run({
-                            apiKey: apiKey,
-                            assistant: assistant,
+                      (async function() {
+                        try {
+                          const assistant = "${agentData.vapiAssistantId}";
+                          
+                          // Fetch the public key from the server
+                          const response = await fetch('/api/vapi/public-key', {
+                            credentials: 'include'
                           });
-                        } else {
-                          console.error("Vapi SDK not available");
+                          const data = await response.json();
+                          
+                          if (!data.success || !data.publicKey) {
+                            console.error("Failed to get VAPI public key:", data.message);
+                            return;
+                          }
+                          
+                          const apiKey = data.publicKey;
+                          
+                          // Run the Vapi SDK with the proper configuration
+                          if (window.vapiSDK) {
+                            window.vapiSDK.run({
+                              apiKey: apiKey,
+                              assistant: assistant,
+                            });
+                          } else {
+                            console.error("Vapi SDK not available");
+                          }
+                        } catch (err) {
+                          console.error("Error initializing Vapi widget:", err);
                         }
-                      } catch (err) {
-                        console.error("Error initializing Vapi widget:", err);
-                      }
+                      })();
                     `;
                     document.body.appendChild(initScript);
                   };
