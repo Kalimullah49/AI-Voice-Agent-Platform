@@ -12,7 +12,11 @@ import { useAuth } from "@/providers/AuthProvider";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Eye, EyeOff, Loader2, Mail, CheckCircle } from "lucide-react";
 
-export default function RegisterForm() {
+interface RegisterFormProps {
+  onSwitchToLogin?: () => void;
+}
+
+export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
@@ -101,7 +105,7 @@ export default function RegisterForm() {
             >
               Register Another Account
             </Button>
-            <Button onClick={() => setLocation("/auth")}>
+            <Button onClick={() => onSwitchToLogin ? onSwitchToLogin() : setLocation("/auth")}>
               Go to Login
             </Button>
           </div>

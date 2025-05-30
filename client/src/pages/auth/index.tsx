@@ -37,7 +37,7 @@ export default function AuthPage() {
                     <LoginForm />
                   </TabsContent>
                   <TabsContent value="register">
-                    <RegisterForm />
+                    <RegisterForm onSwitchToLogin={() => setActiveTab("login")} />
                   </TabsContent>
                 </Tabs>
               </CardContent>
