@@ -113,6 +113,66 @@ export class DatabaseStorage implements IStorage {
   async getAllUsers(): Promise<User[]> {
     return await db.select().from(users);
   }
+
+  async createPasswordResetToken(userId: string, token: string, expiryHours: number = 1): Promise<boolean> {
+    try {
+      const expiry = new Date();
+      expiry.setHours(expiry.getHours() + expiryHours);
+      
+      await db
+        .update(users)
+        .set({
+          passwordResetToken: token,
+          passwordResetTokenExpiry: expiry,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, userId));
+      
+      return true;
+    } catch (error) {
+      console.error("Failed to create password reset token:", error);
+      return false;
+    }
+  }
+
+  async verifyPasswordResetToken(token: string): Promise<User | undefined> {
+    const results = await db
+      .select()
+      .from(users)
+      .where(eq(users.passwordResetToken, token));
+    
+    const user = results[0];
+    
+    if (!user) {
+      return undefined;
+    }
+    
+    // Check if token is expired
+    if (user.passwordResetTokenExpiry && new Date() > user.passwordResetTokenExpiry) {
+      return undefined;
+    }
+    
+    return user;
+  }
+
+  async updatePassword(userId: string, hashedPassword: string): Promise<boolean> {
+    try {
+      await db
+        .update(users)
+        .set({
+          password: hashedPassword,
+          passwordResetToken: null,
+          passwordResetTokenExpiry: null,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, userId));
+      
+      return true;
+    } catch (error) {
+      console.error("Failed to update password:", error);
+      return false;
+    }
+  }
   
   // Agent operations
   async getAgent(id: number): Promise<Agent | undefined> {

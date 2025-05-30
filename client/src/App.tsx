@@ -8,6 +8,8 @@ import Dashboard from "@/pages/dashboard";
 import AuthPage from "@/pages/auth";
 import VerifyPage from "@/pages/auth/verify";
 import EmailVerificationPage from "@/pages/auth/EmailVerification";
+import ForgotPasswordPage from "@/pages/forgot-password";
+import ResetPasswordPage from "@/pages/reset-password";
 import { AuthProvider } from "@/providers/AuthProvider";
 import AgentsPage from "@/pages/agents";
 import AgentDetailPage from "@/pages/agents/[id]";
@@ -43,6 +45,12 @@ function Router() {
       </Route>
       <Route path="/auth/verify-email">
         <EmailVerificationPage />
+      </Route>
+      <Route path="/forgot-password">
+        <ForgotPasswordPage />
+      </Route>
+      <Route path="/reset-password">
+        <ResetPasswordPage />
       </Route>
       <Route path="/agents">
         <ProtectedAppRoute>

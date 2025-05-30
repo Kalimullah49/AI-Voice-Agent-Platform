@@ -1,5 +1,5 @@
 import { 
-  users, type User, type InsertUser, type UpsertUser,
+  users, type User, type InsertUser,
   agents, type Agent, type InsertAgent,
   calls, type Call, type InsertCall,
   actions, type Action, type InsertAction,
@@ -18,6 +18,11 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   upsertUser(user: InsertUser): Promise<User>;
   getAllUsers(): Promise<User[]>;
+  verifyEmail(token: string): Promise<User | undefined>;
+  createVerificationToken(userId: string, token: string, expiryHours?: number): Promise<boolean>;
+  createPasswordResetToken(userId: string, token: string, expiryHours?: number): Promise<boolean>;
+  verifyPasswordResetToken(token: string): Promise<User | undefined>;
+  updatePassword(userId: string, hashedPassword: string): Promise<boolean>;
   
   // Agent operations
   getAgent(id: number): Promise<Agent | undefined>;

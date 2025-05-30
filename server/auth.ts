@@ -8,7 +8,7 @@ import session from "express-session";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
-// Email imports removed - simplified auth without verification
+import { sendVerificationEmail, sendPasswordResetEmail } from "./utils/postmark";
 
 const scryptAsync = promisify(scrypt);
 
@@ -234,7 +234,7 @@ export function setupAuth(app: Express) {
       }
       
       // Send welcome email if Postmark is configured
-      if (isPostmarkConfigured()) {
+      if (process.env.POSTMARK_SERVER_TOKEN) {
         try {
           await sendWelcomeEmail(user.email, user.firstName || undefined);
         } catch (emailError) {
@@ -278,5 +278,146 @@ export function setupAuth(app: Express) {
       console.error("Get user error:", error);
       return res.status(500).json({ message: "Failed to fetch user" });
     }
+  });
+
+  // Request password reset endpoint
+  app.post("/api/auth/forgot-password", async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email || typeof email !== 'string') {
+        return res.status(400).json({ message: "Email is required" });
+      }
+      
+      // Find user by email
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        // For security, always return success even if user doesn't exist
+        return res.status(200).json({ 
+          message: "If an account with that email exists, a password reset link has been sent." 
+        });
+      }
+      
+      // Generate reset token
+      const resetToken = randomBytes(32).toString('hex');
+      
+      // Save reset token to database
+      await storage.createPasswordResetToken(user.id, resetToken, 1); // 1 hour expiry
+      
+      // Send password reset email
+      const baseUrl = req.protocol + '://' + req.get('host');
+      const emailSent = await sendPasswordResetEmail(user.email, resetToken, baseUrl);
+      
+      if (!emailSent) {
+        console.error("Failed to send password reset email");
+        return res.status(500).json({ message: "Failed to send password reset email" });
+      }
+      
+      return res.status(200).json({ 
+        message: "If an account with that email exists, a password reset link has been sent." 
+      });
+    } catch (error) {
+      console.error("Password reset request error:", error);
+      return res.status(500).json({ message: "Failed to process password reset request" });
+    }
+  });
+
+  // Reset password endpoint
+  app.post("/api/auth/reset-password", async (req: Request, res: Response) => {
+    try {
+      const { token, password } = req.body;
+      
+      if (!token || !password) {
+        return res.status(400).json({ message: "Token and password are required" });
+      }
+      
+      if (password.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters long" });
+      }
+      
+      // Verify reset token
+      const user = await storage.verifyPasswordResetToken(token);
+      if (!user) {
+        return res.status(400).json({ message: "Invalid or expired reset token" });
+      }
+      
+      // Hash new password
+      const hashedPassword = await hashPassword(password);
+      
+      // Update password and clear reset token
+      await storage.updatePassword(user.id, hashedPassword);
+      
+      return res.status(200).json({ message: "Password reset successful" });
+    } catch (error) {
+      console.error("Password reset error:", error);
+      return res.status(500).json({ message: "Failed to reset password" });
+    }
+  });
+
+  // Send verification email endpoint
+  app.post("/api/auth/send-verification", async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email || typeof email !== 'string') {
+        return res.status(400).json({ message: "Email is required" });
+      }
+      
+      // Find user by email
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      if (user.emailVerified) {
+        return res.status(400).json({ message: "Email is already verified" });
+      }
+      
+      // Generate verification token
+      const verificationToken = randomBytes(32).toString('hex');
+      
+      // Save verification token to database
+      await storage.createVerificationToken(user.id, verificationToken, 24); // 24 hours expiry
+      
+      // Send verification email
+      const baseUrl = req.protocol + '://' + req.get('host');
+      const emailSent = await sendVerificationEmail(user.email, verificationToken, baseUrl);
+      
+      if (!emailSent) {
+        console.error("Failed to send verification email");
+        return res.status(500).json({ message: "Failed to send verification email" });
+      }
+      
+      return res.status(200).json({ 
+        message: "Verification email sent successfully" 
+      });
+    } catch (error) {
+      console.error("Send verification email error:", error);
+      return res.status(500).json({ message: "Failed to send verification email" });
+    }
+  });
+}
+
+// Send welcome email function
+async function sendWelcomeEmail(email: string, firstName?: string): Promise<void> {
+  const { sendEmail } = await import("./utils/postmark");
+  
+  const htmlBody = `
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
+      <h1 style="color: #333; text-align: center;">Welcome to Mind AI!</h1>
+      <p>Hi ${firstName || 'there'},</p>
+      <p>Your email has been verified successfully! You can now access all features of your Mind AI platform.</p>
+      <p>Get started by creating your first AI agent and setting up your call center automation.</p>
+      <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+      <p style="color: #666; font-size: 12px; text-align: center;">
+        Welcome to Mind AI - Your AI-powered call center solution
+      </p>
+    </div>
+  `;
+
+  await sendEmail({
+    to: email,
+    subject: 'Welcome to Mind AI!',
+    htmlBody
   });
 }
