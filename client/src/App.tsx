@@ -6,7 +6,7 @@ import AppLayout from "@/components/layouts/AppLayout";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Dashboard from "@/pages/dashboard";
 import AuthPage from "@/pages/auth";
-import VerifyPage from "@/pages/auth/verify";
+import VerifyPage from "@/pages/verify";
 import EmailVerificationPage from "@/pages/auth/EmailVerification";
 import ForgotPasswordPage from "@/pages/forgot-password";
 import ResetPasswordPage from "@/pages/reset-password";
@@ -40,7 +40,7 @@ function Router() {
       <Route path="/auth">
         <AuthPage />
       </Route>
-      <Route path="/auth/verify">
+      <Route path="/verify">
         <VerifyPage />
       </Route>
       <Route path="/auth/verify-email">
