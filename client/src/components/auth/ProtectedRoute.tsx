@@ -1,14 +1,15 @@
 import { ReactNode } from 'react';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../providers/AuthProvider';
 import { Redirect } from 'wouter';
 import { Loader2 } from 'lucide-react';
+import EmailVerification from '@/pages/email-verification';
 
 interface ProtectedRouteProps {
   children: ReactNode;
 }
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, refetchUser } = useAuth();
   
   if (isLoading) {
     return (
@@ -20,6 +21,16 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   
   if (!user) {
     return <Redirect to="/auth" />;
+  }
+
+  // Check if user exists but email is not verified
+  if (user && user.emailVerified === false) {
+    return (
+      <EmailVerification 
+        email={user.email} 
+        onVerificationComplete={refetchUser}
+      />
+    );
   }
   
   return <>{children}</>;
