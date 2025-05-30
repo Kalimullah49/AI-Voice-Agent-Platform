@@ -381,6 +381,38 @@ export function setupAuth(app: Express) {
     }
   });
 
+  // Manual password reset for development
+  app.post("/api/auth/manual-reset-token", async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email || typeof email !== 'string') {
+        return res.status(400).json({ message: "Email is required" });
+      }
+      
+      // Find user by email
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Generate reset token
+      const resetToken = randomBytes(32).toString('hex');
+      
+      // Save reset token to database
+      await storage.createPasswordResetToken(user.id, resetToken, 1); // 1 hour expiry
+      
+      return res.status(200).json({ 
+        message: "Password reset token generated for development",
+        resetToken,
+        resetUrl: `${req.protocol}://${req.get('host')}/reset-password?token=${resetToken}`
+      });
+    } catch (error) {
+      console.error("Manual reset token error:", error);
+      return res.status(500).json({ message: "Failed to generate reset token" });
+    }
+  });
+
   // Send verification email endpoint
   app.post("/api/auth/send-verification", async (req: Request, res: Response) => {
     try {
