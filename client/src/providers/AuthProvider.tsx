@@ -46,14 +46,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { 
     data: user, 
     isLoading, 
-    refetch 
+    refetch,
+    error: queryError
   } = useQuery<User>({
     queryKey: ["/api/auth/user"],
     refetchOnWindowFocus: false,
     refetchOnMount: true,
     retry: (failureCount, error: any) => {
-      // Don't retry on 401 (Unauthorized)
-      if (error?.response?.status === 401) {
+      // Don't retry on 401 (Unauthorized) or 403 (Email not verified)
+      if (error?.response?.status === 401 || error?.response?.status === 403) {
         return false;
       }
       return failureCount < 3;
@@ -111,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         queryClient.setQueryData(["/api/auth/user"], data);
         toast({
           title: "Registration successful",
-          description: "Welcome to AimAI!",
+          description: "Welcome to Mind AI!",
         });
       }
     },

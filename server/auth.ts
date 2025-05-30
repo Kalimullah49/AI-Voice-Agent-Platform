@@ -85,6 +85,9 @@ export function setupAuth(app: Express) {
       
       // Create user with a UUID as ID - auto-verified
       const userId = uuidv4();
+      // Generate verification token
+      const verificationToken = randomBytes(32).toString('hex');
+      
       const user = await storage.createUser({
         id: userId,
         email: validatedData.email,
@@ -92,21 +95,29 @@ export function setupAuth(app: Express) {
         firstName: validatedData.firstName,
         lastName: validatedData.lastName,
         role: "user",
-        emailVerified: true, // Auto-verify all users
-        emailVerificationToken: null,
-        emailVerificationTokenExpiry: null
+        emailVerified: false, // Require email verification
+        emailVerificationToken: verificationToken,
+        emailVerificationTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
       });
       
-      // Automatically log the user in after registration
-      req.session.userId = userId;
-      console.log('Registration successful, user logged in:', userId);
+      // Send verification email
+      const baseUrl = req.protocol + '://' + req.get('host');
+      try {
+        const emailSent = await sendVerificationEmail(user.email, verificationToken, baseUrl);
+        if (!emailSent) {
+          console.error("Failed to send verification email");
+        }
+      } catch (emailError) {
+        console.error("Error sending verification email:", emailError);
+      }
       
+      // Don't auto-login - user must verify email first
       // Remove password from response
       const { password, emailVerificationToken, ...userWithoutSensitiveData } = user;
       
       return res.status(201).json({
         ...userWithoutSensitiveData,
-        message: "Registration successful! You are now logged in."
+        message: "Registration successful! Please check your email to verify your account before logging in."
       });
     } catch (error) {
       console.error("Registration error:", error);
@@ -140,14 +151,21 @@ export function setupAuth(app: Express) {
         return res.status(401).json({ message: "Invalid email or password" });
       }
       
-      // Simple login - no verification needed
+      // Check if email is verified before allowing login
+      if (!user.emailVerified) {
+        return res.status(403).json({ 
+          message: "Please verify your email address before logging in. Check your inbox for a verification link.",
+          emailVerified: false,
+          email: user.email
+        });
+      }
       
-      // Set user in session
+      // Set user in session only if email is verified
       req.session.userId = String(user.id);
       console.log('Session set for user:', req.session.userId);
       
       // Remove sensitive data from response
-      const { password, emailVerificationToken, ...userWithoutSensitiveData } = user;
+      const { password, emailVerificationToken, passwordResetToken, ...userWithoutSensitiveData } = user;
       
       // Return user
       return res.status(200).json(userWithoutSensitiveData);
@@ -270,8 +288,17 @@ export function setupAuth(app: Express) {
         return res.status(401).json({ message: "Unauthorized" });
       }
       
+      // Check if email is verified
+      if (!user.emailVerified) {
+        return res.status(403).json({ 
+          message: "Email not verified", 
+          emailVerified: false,
+          email: user.email
+        });
+      }
+      
       // Remove sensitive data from response
-      const { password, emailVerificationToken, ...userWithoutSensitiveData } = user;
+      const { password, emailVerificationToken, passwordResetToken, ...userWithoutSensitiveData } = user;
       
       return res.status(200).json(userWithoutSensitiveData);
     } catch (error) {
