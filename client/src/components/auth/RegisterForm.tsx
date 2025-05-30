@@ -49,12 +49,14 @@ export default function RegisterForm() {
       
       return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Registration successful, now show verification message
+      setRegisteredEmail(data.email);
+      setVerificationSent(true);
       toast({
         title: "Account created successfully",
-        description: "Welcome to Mind AI! You are now logged in.",
+        description: "Please check your email to verify your account.",
       });
-      window.location.href = "/";
     },
     onError: (error: Error) => {
       toast({
@@ -71,7 +73,7 @@ export default function RegisterForm() {
 
   return (
     <>
-      {false && verificationSent ? (
+      {verificationSent ? (
         <div className="space-y-4">
           <Alert className="bg-green-50 border-green-200">
             <CheckCircle className="h-5 w-5 text-green-500" />
