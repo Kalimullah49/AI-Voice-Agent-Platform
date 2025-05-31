@@ -102,13 +102,16 @@ export function setupAuth(app: Express) {
       
       // Send verification email
       const baseUrl = req.protocol + '://' + req.get('host');
+      let emailSent = false;
       try {
-        const emailSent = await sendVerificationEmail(user.email, verificationToken, baseUrl);
+        emailSent = await sendVerificationEmail(user.email, verificationToken, baseUrl);
         if (!emailSent) {
-          console.error("Failed to send verification email");
+          console.error("Failed to send verification email to:", user.email);
+        } else {
+          console.log("Verification email sent successfully to:", user.email);
         }
       } catch (emailError) {
-        console.error("Error sending verification email:", emailError);
+        console.error("Error sending verification email to:", user.email, emailError);
       }
       
       // Don't auto-login - user must verify email first

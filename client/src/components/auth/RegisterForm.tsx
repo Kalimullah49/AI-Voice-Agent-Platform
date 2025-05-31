@@ -98,16 +98,45 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
             </ul>
           </div>
           
-          <div className="flex justify-between mt-6">
-            <Button 
-              variant="outline" 
-              onClick={() => setVerificationSent(false)}
-            >
-              Register Another Account
-            </Button>
-            <Button onClick={() => onSwitchToLogin ? onSwitchToLogin() : setLocation("/auth")}>
+          <div className="space-y-3 mt-6">
+            <Button onClick={() => onSwitchToLogin ? onSwitchToLogin() : setLocation("/auth")} className="w-full">
               Go to Login
             </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setVerificationSent(false)}
+                className="flex-1"
+              >
+                Register Another Account
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    await fetch("/api/auth/send-verification", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      credentials: "include",
+                      body: JSON.stringify({ email: registeredEmail })
+                    });
+                    toast({
+                      title: "Email Sent",
+                      description: "Verification email has been resent. Please check your inbox.",
+                    });
+                  } catch (error) {
+                    toast({
+                      title: "Error",
+                      description: "Failed to resend verification email. Please try again.",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+                className="flex-1"
+              >
+                Resend Email
+              </Button>
+            </div>
           </div>
         </div>
       ) : (

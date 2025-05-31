@@ -14,6 +14,7 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [_, setLocation] = useLocation();
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
   const { toast } = useToast();
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginUser) => {
@@ -40,12 +41,22 @@ export default function LoginForm() {
       });
       window.location.href = "/";
     },
-    onError: (error: Error) => {
-      toast({
-        title: "Login failed",
-        description: error.message,
-        variant: "destructive",
-      });
+    onError: (error: any) => {
+      if (error.message.includes("verify your email")) {
+        const email = form.getValues("email");
+        setUnverifiedEmail(email);
+        toast({
+          title: "Email verification required",
+          description: "Please verify your email address before logging in.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Login failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
     },
   });
   
@@ -60,6 +71,29 @@ export default function LoginForm() {
   function onSubmit(data: LoginUser) {
     loginMutation.mutate(data);
   }
+
+  const handleResendVerification = async () => {
+    if (!unverifiedEmail) return;
+    
+    try {
+      await fetch("/api/auth/send-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email: unverifiedEmail })
+      });
+      toast({
+        title: "Email Sent",
+        description: "Verification email has been resent. Please check your inbox.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to resend verification email. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <Form {...form}>
@@ -122,6 +156,22 @@ export default function LoginForm() {
             "Sign In"
           )}
         </Button>
+        
+        {unverifiedEmail && (
+          <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="text-sm text-amber-700 mb-2">
+              Email verification required for: <strong>{unverifiedEmail}</strong>
+            </p>
+            <Button 
+              onClick={handleResendVerification}
+              variant="outline" 
+              size="sm"
+              className="w-full"
+            >
+              Resend Verification Email
+            </Button>
+          </div>
+        )}
       </form>
     </Form>
   );
