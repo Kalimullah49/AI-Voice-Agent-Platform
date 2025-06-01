@@ -411,6 +411,11 @@ export function setupAuth(app: Express) {
       // Save verification token to database
       await storage.createVerificationToken(user.id, verificationToken, 24); // 24 hours expiry
       
+      // Validate email before sending
+      if (!user.email || !user.email.includes('@')) {
+        return res.status(400).json({ message: "Invalid email address" });
+      }
+
       // Send verification email
       const baseUrl = req.protocol + '://' + req.get('host');
       const emailSent = await sendVerificationEmail(user.email, verificationToken, baseUrl);

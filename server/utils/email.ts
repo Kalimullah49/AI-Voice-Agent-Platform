@@ -37,6 +37,14 @@ export async function sendVerificationEmail(to: string, token: string, verifyUrl
     throw new Error('Postmark is not configured. Please check your environment variables.');
   }
 
+  // Validate email address
+  if (!to || typeof to !== 'string' || !to.includes('@') || to.trim().length === 0) {
+    throw new Error(`Invalid email address: ${to}`);
+  }
+
+  const cleanEmail = to.trim();
+  console.log(`Sending verification email to: ${cleanEmail}`);
+
   try {
     // Get the base URL from the environment or use a default
     const baseUrl = process.env.APP_URL || `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
@@ -64,7 +72,7 @@ export async function sendVerificationEmail(to: string, token: string, verifyUrl
       // Fallback to direct email sending if template fails
       const response = await client.sendEmail({
         From: DEFAULT_FROM,
-        To: to,
+        To: cleanEmail,
         Subject: 'Verify Your Email - Mind AI',
         HtmlBody: `
           <h1>Verify Your Email</h1>
@@ -87,8 +95,18 @@ export async function sendVerificationEmail(to: string, token: string, verifyUrl
       });
       return response;
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to send verification email:', error);
+    
+    // Handle specific Postmark errors
+    if (error.code === 406 || error.message?.includes('InactiveRecipientsError')) {
+      throw new Error(`Email address ${cleanEmail} is inactive in Postmark. Please contact support or try a different email address.`);
+    }
+    
+    if (error.code === 422) {
+      throw new Error(`Invalid email format or blocked recipient: ${cleanEmail}`);
+    }
+    
     throw error;
   }
 }
