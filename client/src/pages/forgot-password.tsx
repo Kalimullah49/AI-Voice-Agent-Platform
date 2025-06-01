@@ -50,36 +50,20 @@ export default function ForgotPasswordPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CardTitle>{resetUrl ? "Reset Password" : "Check Your Email"}</CardTitle>
+            <CardTitle>Check Your Email</CardTitle>
             <CardDescription>
-              {resetUrl 
-                ? "Use the link below to reset your password:"
-                : "We've sent a password reset link to your email address. Please check your inbox and follow the instructions."
-              }
+              We've sent a password reset link to your email address. Please check your inbox and follow the instructions.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {resetUrl && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-700 mb-2">Development Reset Link:</p>
-                  <Button asChild className="w-full" size="sm">
-                    <Link href={resetUrl.replace(window.location.origin, "")}>
-                      Reset Your Password
-                    </Link>
-                  </Button>
-                </div>
-              )}
-              <Button asChild className="w-full" variant={resetUrl ? "outline" : "default"}>
+              <Button asChild className="w-full">
                 <Link href="/auth">Back to Login</Link>
               </Button>
               <Button 
                 variant="ghost" 
                 className="w-full"
-                onClick={() => {
-                  setSent(false);
-                  setResetUrl("");
-                }}
+                onClick={() => setSent(false)}
               >
                 Didn't receive an email? Try again
               </Button>
