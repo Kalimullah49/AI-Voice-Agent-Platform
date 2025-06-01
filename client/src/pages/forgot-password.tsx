@@ -10,7 +10,7 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [sent, setSent] = useState(false);
-  const [resetUrl, setResetUrl] = useState("");
+
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,23 +35,11 @@ export default function ForgotPasswordPage() {
         description: "If an account with that email exists, a password reset link has been sent.",
       });
     } catch (error) {
-      // If email sending fails, try the development endpoint
-      try {
-        const response = await apiRequest("POST", "/api/auth/manual-reset-token", { email });
-        const data = await response.json();
-        setResetUrl(data.resetUrl);
-        setSent(true);
-        toast({
-          title: "Development Mode",
-          description: "Email sending failed, but a reset link has been generated for testing.",
-        });
-      } catch (devError) {
-        toast({
-          title: "Error",
-          description: "Failed to send reset email. Please try again.",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Error",
+        description: "Failed to send reset email. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
