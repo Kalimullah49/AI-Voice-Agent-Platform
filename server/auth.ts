@@ -8,7 +8,7 @@ import session from "express-session";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
-import { sendVerificationEmail, sendPasswordResetEmail } from "./utils/postmark";
+import { sendVerificationEmail } from "./utils/email";
 
 const scryptAsync = promisify(scrypt);
 
@@ -102,16 +102,22 @@ export function setupAuth(app: Express) {
       
       // Send verification email
       const baseUrl = req.protocol + '://' + req.get('host');
+      console.log("Attempting to send verification email to:", user.email);
+      console.log("Base URL:", baseUrl);
+      console.log("Verification token:", verificationToken);
+      
       let emailSent = false;
       try {
-        emailSent = await sendVerificationEmail(user.email, verificationToken, baseUrl);
+        const verificationUrl = `${baseUrl}/auth/verify-email?token=${verificationToken}`;
+        emailSent = await sendVerificationEmail(user.email, verificationToken, verificationUrl);
         if (!emailSent) {
           console.error("Failed to send verification email to:", user.email);
         } else {
           console.log("Verification email sent successfully to:", user.email);
         }
       } catch (emailError) {
-        console.error("Error sending verification email to:", user.email, emailError);
+        console.error("Error sending verification email to:", user.email);
+        console.error("Email error details:", emailError);
       }
       
       // Don't auto-login - user must verify email first
@@ -334,9 +340,10 @@ export function setupAuth(app: Express) {
       // Save reset token to database
       await storage.createPasswordResetToken(user.id, resetToken, 1); // 1 hour expiry
       
-      // Send password reset email
+      // Send password reset email  
       const baseUrl = req.protocol + '://' + req.get('host');
-      const emailSent = await sendPasswordResetEmail(user.email, resetToken, baseUrl);
+      const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
+      const emailSent = await sendPasswordResetEmail(user.email, resetToken, resetUrl);
       
       if (!emailSent) {
         console.error("Failed to send password reset email");
@@ -385,6 +392,41 @@ export function setupAuth(app: Express) {
   });
 
 
+
+  // Test email endpoint for debugging
+  app.post("/api/auth/test-email", async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email || typeof email !== 'string') {
+        return res.status(400).json({ message: "Email is required" });
+      }
+      
+      console.log("Testing email to:", email);
+      
+      // Test Postmark configuration
+      const { sendTestEmail } = await import("./utils/email");
+      const testResult = await sendTestEmail(email);
+      
+      if (testResult) {
+        return res.status(200).json({ 
+          message: "Test email sent successfully",
+          success: true 
+        });
+      } else {
+        return res.status(500).json({ 
+          message: "Failed to send test email",
+          success: false 
+        });
+      }
+    } catch (error) {
+      console.error("Test email error:", error);
+      return res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Failed to send test email",
+        success: false 
+      });
+    }
+  });
 
   // Send verification email endpoint
   app.post("/api/auth/send-verification", async (req: Request, res: Response) => {

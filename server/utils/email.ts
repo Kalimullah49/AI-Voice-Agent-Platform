@@ -141,6 +141,82 @@ export async function sendWelcomeEmail(to: string, firstName?: string) {
 }
 
 /**
+ * Send a password reset email
+ */
+export async function sendPasswordResetEmail(to: string, token: string, resetUrl: string) {
+  if (!client) {
+    throw new Error('Postmark is not configured. Please check your environment variables.');
+  }
+
+  // Validate email address
+  if (!to || typeof to !== 'string' || !to.includes('@') || to.trim().length === 0) {
+    throw new Error(`Invalid email address: ${to}`);
+  }
+
+  const cleanEmail = to.trim();
+  console.log(`Sending password reset email to: ${cleanEmail}`);
+
+  try {
+    // First try to send with template if it exists
+    try {
+      const response = await client.sendEmailWithTemplate({
+        From: DEFAULT_FROM,
+        To: cleanEmail,
+        TemplateAlias: TEMPLATES.PASSWORD_RESET,
+        TemplateModel: {
+          name: cleanEmail.split('@')[0],
+          action_url: resetUrl,
+          reset_code: token.substring(0, 6),
+          support_email: DEFAULT_FROM
+        }
+      });
+      return response;
+    } catch (templateError) {
+      console.log("Template error, falling back to direct email:", templateError);
+      
+      // Fallback to direct email sending if template fails
+      const response = await client.sendEmail({
+        From: DEFAULT_FROM,
+        To: cleanEmail,
+        Subject: 'Reset Your Password - Mind AI',
+        HtmlBody: `
+          <h1>Reset Your Password</h1>
+          <p>You requested a password reset for your Mind AI account. Click the link below to reset your password:</p>
+          <p><a href="${resetUrl}" style="display: inline-block; padding: 10px 20px; background-color: #DC2626; color: white; text-decoration: none; border-radius: 4px;">Reset Password</a></p>
+          <p>Or enter this code: <strong>${token.substring(0, 6)}</strong></p>
+          <p>This link will expire in 1 hour for security.</p>
+        `,
+        TextBody: `
+          Reset Your Password - Mind AI
+          
+          You requested a password reset for your Mind AI account. Please visit this link to reset your password:
+          ${resetUrl}
+          
+          Or enter this code: ${token.substring(0, 6)}
+          
+          This link will expire in 1 hour for security.
+        `,
+        MessageStream: 'outbound'
+      });
+      return response;
+    }
+  } catch (error: any) {
+    console.error('Failed to send password reset email:', error);
+    
+    // Handle specific Postmark errors
+    if (error.code === 406 || error.message?.includes('InactiveRecipientsError')) {
+      throw new Error(`Email address ${cleanEmail} is inactive in Postmark. Please contact support or try a different email address.`);
+    }
+    
+    if (error.code === 422) {
+      throw new Error(`Invalid email format or blocked recipient: ${cleanEmail}`);
+    }
+    
+    throw error;
+  }
+}
+
+/**
  * Send a test email to verify Postmark configuration
  */
 export async function sendTestEmail(to: string): Promise<boolean> {
