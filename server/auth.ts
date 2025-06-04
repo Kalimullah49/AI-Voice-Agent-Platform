@@ -101,7 +101,7 @@ export function setupAuth(app: Express) {
       });
       
       // Send verification email
-      const baseUrl = req.protocol + '://' + req.get('host');
+      const baseUrl = process.env.APP_URL || `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
       console.log("Attempting to send verification email to:", user.email);
       console.log("Base URL:", baseUrl);
       console.log("Verification token:", verificationToken);
@@ -341,7 +341,7 @@ export function setupAuth(app: Express) {
       await storage.createPasswordResetToken(user.id, resetToken, 1); // 1 hour expiry
       
       // Send password reset email  
-      const baseUrl = req.protocol + '://' + req.get('host');
+      const baseUrl = process.env.APP_URL || `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
       const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
       const emailSent = await sendPasswordResetEmail(user.email, resetToken, resetUrl);
       
