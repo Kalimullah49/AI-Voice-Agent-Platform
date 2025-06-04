@@ -1,5 +1,5 @@
 /**
- * Email Service using Postmark
+ * Clean Email Service using Postmark - No verification codes
  */
 import * as postmark from 'postmark';
 
@@ -10,14 +10,6 @@ const POSTMARK_SERVER_TOKEN = process.env.POSTMARK_SERVER_TOKEN;
 const client = POSTMARK_SERVER_TOKEN 
   ? new postmark.ServerClient(POSTMARK_SERVER_TOKEN)
   : null;
-
-// Email template IDs - these would be set up in your Postmark account
-// You can replace these with your actual template IDs or use dynamic templates
-const TEMPLATES = {
-  VERIFICATION: 'email-verification',
-  WELCOME: 'welcome-user',
-  PASSWORD_RESET: 'password-reset'
-};
 
 // Default sender email - using your verified sender address
 const DEFAULT_FROM = 'contact@callsinmotion.com';
@@ -30,7 +22,7 @@ export function isPostmarkConfigured(): boolean {
 }
 
 /**
- * Send an email verification message
+ * Send an email verification message - NO CODES
  */
 export async function sendVerificationEmail(to: string, token: string, verifyUrl: string) {
   if (!client) {
@@ -52,7 +44,7 @@ export async function sendVerificationEmail(to: string, token: string, verifyUrl
     // Construct the full verification URL
     const verificationUrl = `${baseUrl}/auth/verify-email?token=${token}`;
 
-    // Send direct email without template
+    // Send direct email without template or codes
     const response = await client.sendEmail({
       From: DEFAULT_FROM,
       To: cleanEmail,
@@ -110,36 +102,7 @@ export async function sendVerificationEmail(to: string, token: string, verifyUrl
 }
 
 /**
- * Send a welcome email after verification
- */
-export async function sendWelcomeEmail(to: string, firstName?: string) {
-  if (!client) {
-    throw new Error('Postmark is not configured. Please check your environment variables.');
-  }
-
-  try {
-    const name = firstName || to.split('@')[0];
-    
-    const response = await client.sendEmailWithTemplate({
-      From: DEFAULT_FROM,
-      To: to,
-      TemplateAlias: TEMPLATES.WELCOME,
-      TemplateModel: {
-        name: name,
-        login_url: process.env.APP_URL || `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}/auth`,
-        support_email: DEFAULT_FROM
-      }
-    });
-
-    return response;
-  } catch (error) {
-    console.error('Failed to send welcome email:', error);
-    throw error;
-  }
-}
-
-/**
- * Send a password reset email
+ * Send a password reset email - NO CODES
  */
 export async function sendPasswordResetEmail(to: string, token: string, resetUrl: string) {
   if (!client) {
@@ -155,48 +118,47 @@ export async function sendPasswordResetEmail(to: string, token: string, resetUrl
   console.log(`Sending password reset email to: ${cleanEmail}`);
 
   try {
-    // Send direct email without template
-      const response = await client.sendEmail({
-        From: DEFAULT_FROM,
-        To: cleanEmail,
-        Subject: 'Reset Your Password - Mind AI',
-        HtmlBody: `
-          <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
-            <h1 style="color: #333; text-align: center;">Reset Your Password</h1>
-            <p>You requested a password reset for your Mind AI account. Click the button below to create a new password:</p>
-            
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${resetUrl}" 
-                 style="background-color: #DC2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
-                Reset Password
-              </a>
-            </div>
-            
-            <p>If the button doesn't work, copy and paste this link into your browser:</p>
-            <p style="word-break: break-all; color: #666;">${resetUrl}</p>
-            
-            <p>This reset link will expire in 1 hour for security.</p>
-            
-            <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-            <p style="color: #666; font-size: 12px; text-align: center;">
-              This email was sent by Mind AI. If you didn't request a password reset, you can safely ignore this email.
-            </p>
+    // Send direct email without template or codes
+    const response = await client.sendEmail({
+      From: DEFAULT_FROM,
+      To: cleanEmail,
+      Subject: 'Reset Your Password - Mind AI',
+      HtmlBody: `
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
+          <h1 style="color: #333; text-align: center;">Reset Your Password</h1>
+          <p>You requested a password reset for your Mind AI account. Click the button below to create a new password:</p>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetUrl}" 
+               style="background-color: #DC2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+              Reset Password
+            </a>
           </div>
-        `,
-        TextBody: `
-          Reset Your Password - Mind AI
           
-          You requested a password reset for your Mind AI account. Please visit this link to reset your password:
-          ${resetUrl}
+          <p>If the button doesn't work, copy and paste this link into your browser:</p>
+          <p style="word-break: break-all; color: #666;">${resetUrl}</p>
           
-          This link will expire in 1 hour for security.
+          <p>This reset link will expire in 1 hour for security.</p>
           
-          If you didn't request a password reset, you can safely ignore this email.
-        `,
-        MessageStream: 'outbound'
-      });
-      return response;
-    }
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+          <p style="color: #666; font-size: 12px; text-align: center;">
+            This email was sent by Mind AI. If you didn't request a password reset, you can safely ignore this email.
+          </p>
+        </div>
+      `,
+      TextBody: `
+        Reset Your Password - Mind AI
+        
+        You requested a password reset for your Mind AI account. Please visit this link to reset your password:
+        ${resetUrl}
+        
+        This link will expire in 1 hour for security.
+        
+        If you didn't request a password reset, you can safely ignore this email.
+      `,
+      MessageStream: 'outbound'
+    });
+    return response;
   } catch (error: any) {
     console.error('Failed to send password reset email:', error);
     
@@ -223,6 +185,7 @@ export async function sendTestEmail(to: string): Promise<boolean> {
   }
 
   try {
+    console.log(`Testing email to: ${to}`);
     await client.sendEmail({
       From: DEFAULT_FROM,
       To: to,
