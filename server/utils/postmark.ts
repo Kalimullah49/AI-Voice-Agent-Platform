@@ -16,23 +16,38 @@ interface EmailParams {
 
 export async function sendEmail(params: EmailParams): Promise<boolean> {
   try {
-    await client.sendEmail({
+    console.log('Sending email with params:', {
+      from: params.from || 'contact@callsinmotion.com',
+      to: params.to,
+      subject: params.subject,
+      messageStream: 'outbound'
+    });
+    
+    const emailPayload = {
       From: params.from || 'contact@callsinmotion.com',
       To: params.to,
       Subject: params.subject,
       HtmlBody: params.htmlBody,
       TextBody: params.textBody || params.htmlBody.replace(/<[^>]*>/g, ''),
       MessageStream: 'outbound'
-    });
+    };
+    
+    console.log('Email payload TO field:', JSON.stringify(emailPayload.To));
+    
+    await client.sendEmail(emailPayload);
     return true;
   } catch (error) {
     console.error('Postmark email error:', error);
+    console.error('Email TO field that failed:', params.to);
     return false;
   }
 }
 
 export async function sendVerificationEmail(email: string, token: string, baseUrl: string): Promise<boolean> {
-  const verificationUrl = `${baseUrl}/verify?token=${token}`;
+  console.log('sendVerificationEmail called with:', { email, token: token.substring(0, 10) + '...', baseUrl });
+  
+  const verificationUrl = `${baseUrl}/auth/verify-email?token=${token}`;
+  console.log('Generated verification URL:', verificationUrl);
   
   const htmlBody = `
     <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
