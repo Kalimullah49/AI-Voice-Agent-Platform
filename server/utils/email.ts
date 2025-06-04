@@ -20,7 +20,7 @@ const TEMPLATES = {
 };
 
 // Default sender email - using your verified sender address
-const DEFAULT_FROM = 'toby@ashgrove.ai';
+const DEFAULT_FROM = 'contact@callsinmotion.com';
 
 /**
  * Verify Postmark connection is properly set up
