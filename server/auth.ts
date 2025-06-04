@@ -8,7 +8,7 @@ import session from "express-session";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
-import { sendVerificationEmail, sendTestEmail, sendPasswordResetEmail } from "./utils/email";
+import { sendVerificationEmail, sendTestEmail, sendPasswordResetEmail } from "./utils/postmark";
 
 const scryptAsync = promisify(scrypt);
 

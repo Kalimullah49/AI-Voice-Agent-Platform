@@ -104,7 +104,7 @@ export async function sendVerificationEmail(to: string, token: string, verifyUrl
 /**
  * Send a password reset email - NO CODES
  */
-export async function sendPasswordResetEmail(to: string, token: string, resetUrl: string) {
+export async function sendPasswordResetEmail(to: string, token: string, baseUrl: string) {
   if (!client) {
     throw new Error('Postmark is not configured. Please check your environment variables.');
   }
@@ -118,6 +118,10 @@ export async function sendPasswordResetEmail(to: string, token: string, resetUrl
   console.log(`Sending password reset email to: ${cleanEmail}`);
 
   try {
+    // Generate the reset URL using the provided base URL
+    const resetUrl = `${baseUrl}/reset-password?token=${token}`;
+    console.log(`Password reset URL being sent: ${resetUrl}`);
+    
     // Send direct email without template or codes
     const response = await client.sendEmail({
       From: DEFAULT_FROM,
