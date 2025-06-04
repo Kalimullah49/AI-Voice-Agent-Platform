@@ -34,10 +34,13 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
     
     console.log('Email payload TO field:', JSON.stringify(emailPayload.To));
     
-    await client.sendEmail(emailPayload);
+    const response = await client.sendEmail(emailPayload);
+    console.log('Postmark response:', response);
+    console.log('Email sent successfully. MessageID:', response.MessageID);
     return true;
   } catch (error) {
     console.error('Postmark email error:', error);
+    console.error('Error details:', JSON.stringify(error, null, 2));
     console.error('Email TO field that failed:', params.to);
     return false;
   }
