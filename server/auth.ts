@@ -8,7 +8,7 @@ import session from "express-session";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
-import { sendVerificationEmail, sendTestEmail, sendPasswordResetEmail } from "./utils/postmark";
+import { sendVerificationEmail, sendPasswordResetEmail } from "./utils/postmark";
 
 const scryptAsync = promisify(scrypt);
 
@@ -406,16 +406,17 @@ export function setupAuth(app: Express) {
       
       console.log("Testing email to:", email);
       
-      // Test Postmark configuration
-      const { sendTestEmail } = await import("./utils/email");
-      const testResult = await sendTestEmail(email);
+      // Test email functionality by sending a verification email
+      const testToken = randomBytes(16).toString('hex');
+      const baseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
       
-      if (testResult) {
+      try {
+        await sendVerificationEmail(email, testToken, baseUrl);
         return res.status(200).json({ 
           message: "Test email sent successfully",
           success: true 
         });
-      } else {
+      } catch (error) {
         return res.status(500).json({ 
           message: "Failed to send test email",
           success: false 
@@ -439,11 +440,13 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Email is required" });
       }
 
-      const success = await sendTestEmail(email);
+      const testToken = randomBytes(16).toString('hex');
+      const baseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
       
-      if (success) {
+      try {
+        await sendVerificationEmail(email, testToken, baseUrl);
         return res.status(200).json({ message: "Test email sent successfully" });
-      } else {
+      } catch (error) {
         return res.status(500).json({ message: "Failed to send test email" });
       }
     } catch (error) {
