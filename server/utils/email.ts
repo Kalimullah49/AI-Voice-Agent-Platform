@@ -61,7 +61,6 @@ export async function sendVerificationEmail(to: string, token: string, verifyUrl
         TemplateModel: {
           name: to.split('@')[0], // Use part before @ as the name if real name not available
           action_url: verificationUrl,
-          verification_code: token.substring(0, 6), // First 6 chars as a readable code option
           support_email: DEFAULT_FROM
         }
       });
@@ -75,11 +74,27 @@ export async function sendVerificationEmail(to: string, token: string, verifyUrl
         To: cleanEmail,
         Subject: 'Verify Your Email - Mind AI',
         HtmlBody: `
-          <h1>Verify Your Email</h1>
-          <p>Thank you for registering with Mind AI. Please verify your email by clicking the link below:</p>
-          <p><a href="${verificationUrl}" style="display: inline-block; padding: 10px 20px; background-color: #4F46E5; color: white; text-decoration: none; border-radius: 4px;">Verify Email</a></p>
-          <p>Or enter this code: <strong>${token.substring(0, 6)}</strong></p>
-          <p>This link will expire in 24 hours.</p>
+          <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
+            <h1 style="color: #333; text-align: center;">Verify Your Email</h1>
+            <p>Thank you for registering with Mind AI. Please verify your email by clicking the button below:</p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${verificationUrl}" 
+                 style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                Verify Email Address
+              </a>
+            </div>
+            
+            <p>If the button doesn't work, copy and paste this link into your browser:</p>
+            <p style="word-break: break-all; color: #666;">${verificationUrl}</p>
+            
+            <p>This verification link will expire in 24 hours.</p>
+            
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+            <p style="color: #666; font-size: 12px; text-align: center;">
+              This email was sent by Mind AI. If you didn't create an account, you can safely ignore this email.
+            </p>
+          </div>
         `,
         TextBody: `
           Verify Your Email - Mind AI
@@ -87,9 +102,9 @@ export async function sendVerificationEmail(to: string, token: string, verifyUrl
           Thank you for registering with Mind AI. Please verify your email by visiting this link:
           ${verificationUrl}
           
-          Or enter this code: ${token.substring(0, 6)}
-          
           This link will expire in 24 hours.
+          
+          If you didn't create an account, you can safely ignore this email.
         `,
         MessageStream: 'outbound'
       });
@@ -166,7 +181,6 @@ export async function sendPasswordResetEmail(to: string, token: string, resetUrl
         TemplateModel: {
           name: cleanEmail.split('@')[0],
           action_url: resetUrl,
-          reset_code: token.substring(0, 6),
           support_email: DEFAULT_FROM
         }
       });
@@ -180,11 +194,27 @@ export async function sendPasswordResetEmail(to: string, token: string, resetUrl
         To: cleanEmail,
         Subject: 'Reset Your Password - Mind AI',
         HtmlBody: `
-          <h1>Reset Your Password</h1>
-          <p>You requested a password reset for your Mind AI account. Click the link below to reset your password:</p>
-          <p><a href="${resetUrl}" style="display: inline-block; padding: 10px 20px; background-color: #DC2626; color: white; text-decoration: none; border-radius: 4px;">Reset Password</a></p>
-          <p>Or enter this code: <strong>${token.substring(0, 6)}</strong></p>
-          <p>This link will expire in 1 hour for security.</p>
+          <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
+            <h1 style="color: #333; text-align: center;">Reset Your Password</h1>
+            <p>You requested a password reset for your Mind AI account. Click the button below to create a new password:</p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${resetUrl}" 
+                 style="background-color: #DC2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                Reset Password
+              </a>
+            </div>
+            
+            <p>If the button doesn't work, copy and paste this link into your browser:</p>
+            <p style="word-break: break-all; color: #666;">${resetUrl}</p>
+            
+            <p>This reset link will expire in 1 hour for security.</p>
+            
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+            <p style="color: #666; font-size: 12px; text-align: center;">
+              This email was sent by Mind AI. If you didn't request a password reset, you can safely ignore this email.
+            </p>
+          </div>
         `,
         TextBody: `
           Reset Your Password - Mind AI
@@ -192,9 +222,9 @@ export async function sendPasswordResetEmail(to: string, token: string, resetUrl
           You requested a password reset for your Mind AI account. Please visit this link to reset your password:
           ${resetUrl}
           
-          Or enter this code: ${token.substring(0, 6)}
-          
           This link will expire in 1 hour for security.
+          
+          If you didn't request a password reset, you can safely ignore this email.
         `,
         MessageStream: 'outbound'
       });
