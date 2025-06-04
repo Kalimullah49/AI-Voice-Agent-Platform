@@ -8,7 +8,7 @@ import session from "express-session";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
-import { sendVerificationEmail } from "./utils/email";
+import { sendVerificationEmail, sendTestEmail, sendPasswordResetEmail } from "./utils/email";
 
 const scryptAsync = promisify(scrypt);
 
@@ -425,6 +425,28 @@ export function setupAuth(app: Express) {
         message: error instanceof Error ? error.message : "Failed to send test email",
         success: false 
       });
+    }
+  });
+
+  // Test email endpoint
+  app.post("/api/auth/test-email", async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      const success = await sendTestEmail(email);
+      
+      if (success) {
+        return res.status(200).json({ message: "Test email sent successfully" });
+      } else {
+        return res.status(500).json({ message: "Failed to send test email" });
+      }
+    } catch (error) {
+      console.error("Test email error:", error);
+      return res.status(500).json({ message: "Failed to send test email" });
     }
   });
 
