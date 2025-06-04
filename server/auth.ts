@@ -485,7 +485,7 @@ export function setupAuth(app: Express) {
       }
 
       // Send verification email
-      const baseUrl = req.protocol + '://' + req.get('host');
+      const baseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
       const emailSent = await sendVerificationEmail(user.email, verificationToken, baseUrl);
       
       if (!emailSent) {
