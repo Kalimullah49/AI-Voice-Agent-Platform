@@ -17,7 +17,7 @@ interface EmailParams {
 export async function sendEmail(params: EmailParams): Promise<boolean> {
   try {
     await client.sendEmail({
-      From: params.from || 'media@synergyhealthbh.com',
+      From: params.from || 'contact@callsinmotion.com',
       To: params.to,
       Subject: params.subject,
       HtmlBody: params.htmlBody,
