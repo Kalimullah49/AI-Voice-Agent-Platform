@@ -59,7 +59,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getEmailDeliveryLogs(email: string): Promise<any[]> {
+  async getEmailDeliveryLogs(email: string): Promise<any> {
     try {
       const [user] = await db.select({
         emailDeliveryLogs: users.emailDeliveryLogs,
@@ -68,7 +68,7 @@ export class DatabaseStorage implements IStorage {
         lastEmailAttempt: users.lastEmailAttempt
       }).from(users).where(eq(users.email, email));
       
-      if (!user) return [];
+      if (!user) return { logs: [], totalAttempts: 0, status: 'not_found', lastAttempt: null };
       
       return {
         logs: user.emailDeliveryLogs || [],
@@ -78,7 +78,7 @@ export class DatabaseStorage implements IStorage {
       };
     } catch (error) {
       console.error("Failed to get email delivery logs:", error);
-      return [];
+      return { logs: [], totalAttempts: 0, status: 'error', lastAttempt: null };
     }
   }
   

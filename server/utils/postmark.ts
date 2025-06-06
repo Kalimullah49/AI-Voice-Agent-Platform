@@ -4,7 +4,10 @@ if (!process.env.POSTMARK_SERVER_TOKEN) {
   throw new Error("POSTMARK_SERVER_TOKEN environment variable must be set");
 }
 
-const client = new postmark.ServerClient(process.env.POSTMARK_SERVER_TOKEN);
+// Configure Postmark client with timeout
+const client = new postmark.ServerClient(process.env.POSTMARK_SERVER_TOKEN, {
+  timeout: 30000, // 30 second timeout
+});
 
 interface EmailParams {
   to: string;
@@ -14,58 +17,101 @@ interface EmailParams {
   from?: string;
 }
 
-export async function sendEmailWithRetry(params: EmailParams, maxRetries: number = 3): Promise<{ success: boolean; messageId?: string; error?: string; attempts: number }> {
+export async function sendEmailWithPostmarkRetry(params: EmailParams): Promise<{ success: boolean; messageId?: string; error?: string; attempts: number; postmarkResponse?: any }> {
   let attempts = 0;
+  let lastError: any = null;
   
-  while (attempts < maxRetries) {
-    attempts++;
+  try {
+    console.log(`Sending email to ${params.to} using Postmark API with built-in retries`);
     
-    try {
-      console.log(`Email attempt ${attempts}/${maxRetries} for ${params.to}`);
-      
-      const emailPayload = {
-        From: params.from || 'contact@callsinmotion.com',
-        To: params.to,
-        Subject: params.subject,
-        HtmlBody: params.htmlBody,
-        TextBody: params.textBody || params.htmlBody.replace(/<[^>]*>/g, ''),
-        MessageStream: 'outbound'
-      };
-      
-      const response = await client.sendEmail(emailPayload);
-      console.log(`Email sent successfully on attempt ${attempts}. MessageID:`, response.MessageID);
-      
-      return {
-        success: true,
-        messageId: response.MessageID,
-        attempts
-      };
-      
-    } catch (error: any) {
-      console.error(`Email attempt ${attempts} failed for ${params.to}:`, error.message);
-      
-      if (attempts === maxRetries) {
-        return {
-          success: false,
-          error: error.message,
-          attempts
-        };
+    const emailPayload = {
+      From: params.from || 'contact@callsinmotion.com',
+      To: params.to,
+      Subject: params.subject,
+      HtmlBody: params.htmlBody,
+      TextBody: params.textBody || params.htmlBody.replace(/<[^>]*>/g, ''),
+      MessageStream: 'outbound'
+    };
+    
+    // Postmark client handles retries internally based on configuration
+    const response = await client.sendEmail(emailPayload);
+    
+    console.log(`Email sent successfully. Postmark response:`, {
+      MessageID: response.MessageID,
+      To: response.To,
+      SubmittedAt: response.SubmittedAt,
+      ErrorCode: response.ErrorCode,
+      Message: response.Message
+    });
+    
+    return {
+      success: true,
+      messageId: response.MessageID,
+      attempts: 1, // Postmark handles internal retries
+      postmarkResponse: {
+        MessageID: response.MessageID,
+        To: response.To,
+        SubmittedAt: response.SubmittedAt,
+        ErrorCode: response.ErrorCode,
+        Message: response.Message
       }
-      
-      // Wait before retry (exponential backoff)
-      await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempts) * 1000));
+    };
+    
+  } catch (error: any) {
+    lastError = error;
+    attempts = 1;
+    
+    // Log detailed Postmark error information
+    console.error(`Postmark API error for ${params.to}:`, {
+      message: error.message,
+      code: error.code,
+      errorCode: error.errorCode,
+      httpStatusCode: error.httpStatusCode,
+      postmarkApiErrorCode: error.postmarkApiErrorCode
+    });
+    
+    // Handle specific Postmark error codes
+    let errorMessage = error.message;
+    if (error.postmarkApiErrorCode) {
+      switch (error.postmarkApiErrorCode) {
+        case 300:
+          errorMessage = 'Invalid email address';
+          break;
+        case 406:
+          errorMessage = 'Inactive recipient - email address bounced previously';
+          break;
+        case 422:
+          errorMessage = 'Invalid JSON or missing required fields';
+          break;
+        case 429:
+          errorMessage = 'Rate limit exceeded';
+          break;
+        case 500:
+          errorMessage = 'Postmark server error';
+          break;
+        case 503:
+          errorMessage = 'Service temporarily unavailable';
+          break;
+        default:
+          errorMessage = `Postmark API error ${error.postmarkApiErrorCode}: ${error.message}`;
+      }
     }
+    
+    return {
+      success: false,
+      error: errorMessage,
+      attempts,
+      postmarkResponse: {
+        errorCode: error.postmarkApiErrorCode,
+        httpStatusCode: error.httpStatusCode,
+        message: error.message
+      }
+    };
   }
-  
-  return {
-    success: false,
-    error: 'Max retries exceeded',
-    attempts
-  };
 }
 
 export async function sendEmail(params: EmailParams): Promise<boolean> {
-  const result = await sendEmailWithRetry(params);
+  const result = await sendEmailWithPostmarkRetry(params);
   return result.success;
 }
 
@@ -99,7 +145,7 @@ export async function sendVerificationEmailWithLogging(email: string, token: str
     </div>
   `;
 
-  const result = await sendEmailWithRetry({
+  const result = await sendEmailWithPostmarkRetry({
     to: email,
     subject: 'Verify your Mind AI account',
     htmlBody
