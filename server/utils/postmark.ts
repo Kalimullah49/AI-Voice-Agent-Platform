@@ -14,40 +14,63 @@ interface EmailParams {
   from?: string;
 }
 
-export async function sendEmail(params: EmailParams): Promise<boolean> {
-  try {
-    console.log('Sending email with params:', {
-      from: params.from || 'contact@callsinmotion.com',
-      to: params.to,
-      subject: params.subject,
-      messageStream: 'outbound'
-    });
+export async function sendEmailWithRetry(params: EmailParams, maxRetries: number = 3): Promise<{ success: boolean; messageId?: string; error?: string; attempts: number }> {
+  let attempts = 0;
+  
+  while (attempts < maxRetries) {
+    attempts++;
     
-    const emailPayload = {
-      From: params.from || 'contact@callsinmotion.com',
-      To: params.to,
-      Subject: params.subject,
-      HtmlBody: params.htmlBody,
-      TextBody: params.textBody || params.htmlBody.replace(/<[^>]*>/g, ''),
-      MessageStream: 'outbound'
-    };
-    
-    console.log('Email payload TO field:', JSON.stringify(emailPayload.To));
-    
-    const response = await client.sendEmail(emailPayload);
-    console.log('Postmark response:', response);
-    console.log('Email sent successfully. MessageID:', response.MessageID);
-    return true;
-  } catch (error) {
-    console.error('Postmark email error:', error);
-    console.error('Error details:', JSON.stringify(error, null, 2));
-    console.error('Email TO field that failed:', params.to);
-    return false;
+    try {
+      console.log(`Email attempt ${attempts}/${maxRetries} for ${params.to}`);
+      
+      const emailPayload = {
+        From: params.from || 'contact@callsinmotion.com',
+        To: params.to,
+        Subject: params.subject,
+        HtmlBody: params.htmlBody,
+        TextBody: params.textBody || params.htmlBody.replace(/<[^>]*>/g, ''),
+        MessageStream: 'outbound'
+      };
+      
+      const response = await client.sendEmail(emailPayload);
+      console.log(`Email sent successfully on attempt ${attempts}. MessageID:`, response.MessageID);
+      
+      return {
+        success: true,
+        messageId: response.MessageID,
+        attempts
+      };
+      
+    } catch (error: any) {
+      console.error(`Email attempt ${attempts} failed for ${params.to}:`, error.message);
+      
+      if (attempts === maxRetries) {
+        return {
+          success: false,
+          error: error.message,
+          attempts
+        };
+      }
+      
+      // Wait before retry (exponential backoff)
+      await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempts) * 1000));
+    }
   }
+  
+  return {
+    success: false,
+    error: 'Max retries exceeded',
+    attempts
+  };
 }
 
-export async function sendVerificationEmail(email: string, token: string, baseUrl: string): Promise<boolean> {
-  console.log('sendVerificationEmail called with:', { email, token: token.substring(0, 10) + '...', baseUrl });
+export async function sendEmail(params: EmailParams): Promise<boolean> {
+  const result = await sendEmailWithRetry(params);
+  return result.success;
+}
+
+export async function sendVerificationEmailWithLogging(email: string, token: string, baseUrl: string, userId?: string): Promise<{ success: boolean; messageId?: string; error?: string; attempts: number }> {
+  console.log('sendVerificationEmailWithLogging called with:', { email, token: token.substring(0, 10) + '...', baseUrl, userId });
   
   const verificationUrl = `${baseUrl}/auth/verify-email?token=${token}`;
   console.log('Generated verification URL:', verificationUrl);
@@ -76,11 +99,31 @@ export async function sendVerificationEmail(email: string, token: string, baseUr
     </div>
   `;
 
-  return await sendEmail({
+  const result = await sendEmailWithRetry({
     to: email,
     subject: 'Verify your Mind AI account',
     htmlBody
   });
+
+  // Log the email attempt
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    type: 'verification',
+    attempts: result.attempts,
+    success: result.success,
+    messageId: result.messageId,
+    error: result.error,
+    email: email
+  };
+
+  console.log('Email delivery log:', logEntry);
+  
+  return result;
+}
+
+export async function sendVerificationEmail(email: string, token: string, baseUrl: string): Promise<boolean> {
+  const result = await sendVerificationEmailWithLogging(email, token, baseUrl);
+  return result.success;
 }
 
 export async function sendPasswordResetEmail(email: string, token: string, baseUrl: string): Promise<boolean> {

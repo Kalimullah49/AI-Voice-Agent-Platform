@@ -29,6 +29,58 @@ export class DatabaseStorage implements IStorage {
     
     return user;
   }
+
+  async logEmailDelivery(userId: string, logEntry: any): Promise<boolean> {
+    try {
+      // Get current logs
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      
+      if (!user) return false;
+      
+      const currentLogs: any[] = user.emailDeliveryLogs ? (Array.isArray(user.emailDeliveryLogs) ? user.emailDeliveryLogs : []) : [];
+      const updatedLogs = [...currentLogs, logEntry];
+      
+      // Update user with new log entry
+      await db
+        .update(users)
+        .set({
+          emailDeliveryLogs: updatedLogs,
+          emailDeliveryAttempts: (user.emailDeliveryAttempts || 0) + logEntry.attempts,
+          lastEmailAttempt: new Date(),
+          emailDeliveryStatus: logEntry.success ? 'sent' : 'failed',
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, userId));
+      
+      return true;
+    } catch (error) {
+      console.error("Failed to log email delivery:", error);
+      return false;
+    }
+  }
+
+  async getEmailDeliveryLogs(email: string): Promise<any[]> {
+    try {
+      const [user] = await db.select({
+        emailDeliveryLogs: users.emailDeliveryLogs,
+        emailDeliveryAttempts: users.emailDeliveryAttempts,
+        emailDeliveryStatus: users.emailDeliveryStatus,
+        lastEmailAttempt: users.lastEmailAttempt
+      }).from(users).where(eq(users.email, email));
+      
+      if (!user) return [];
+      
+      return {
+        logs: user.emailDeliveryLogs || [],
+        totalAttempts: user.emailDeliveryAttempts || 0,
+        status: user.emailDeliveryStatus,
+        lastAttempt: user.lastEmailAttempt
+      };
+    } catch (error) {
+      console.error("Failed to get email delivery logs:", error);
+      return [];
+    }
+  }
   
   async verifyEmail(token: string): Promise<User | undefined> {
     // Find user with this verification token

@@ -100,23 +100,32 @@ export function setupAuth(app: Express) {
         emailVerificationTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
       });
       
-      // Send verification email
+      // Send verification email with retry mechanism
       const baseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
       console.log("Attempting to send verification email to:", user.email);
       console.log("Base URL:", baseUrl);
       console.log("Verification token:", verificationToken);
       
-      let emailSent = false;
-      try {
-        emailSent = await sendVerificationEmail(user.email, verificationToken, baseUrl);
-        if (!emailSent) {
-          console.error("Failed to send verification email to:", user.email);
-        } else {
-          console.log("Verification email sent successfully to:", user.email);
-        }
-      } catch (emailError) {
-        console.error("Error sending verification email to:", user.email);
-        console.error("Email error details:", emailError);
+      // Import the enhanced email function
+      const { sendVerificationEmailWithLogging } = await import('./utils/postmark');
+      
+      const emailResult = await sendVerificationEmailWithLogging(user.email, verificationToken, baseUrl, user.id);
+      
+      // Log the email delivery attempt to database
+      await storage.logEmailDelivery(user.id, {
+        timestamp: new Date().toISOString(),
+        type: 'verification',
+        attempts: emailResult.attempts,
+        success: emailResult.success,
+        messageId: emailResult.messageId,
+        error: emailResult.error,
+        email: user.email
+      });
+      
+      if (!emailResult.success) {
+        console.error(`Failed to send verification email to ${user.email} after ${emailResult.attempts} attempts:`, emailResult.error);
+      } else {
+        console.log(`Verification email sent successfully to ${user.email} on attempt ${emailResult.attempts}. MessageID: ${emailResult.messageId}`);
       }
       
       // Don't auto-login - user must verify email first
