@@ -42,6 +42,10 @@ export const users = pgTable("users", {
   emailVerificationTokenExpiry: timestamp("email_verification_token_expiry"),
   passwordResetToken: varchar("password_reset_token"),
   passwordResetTokenExpiry: timestamp("password_reset_token_expiry"),
+  emailDeliveryAttempts: integer("email_delivery_attempts").default(0),
+  emailDeliveryLogs: jsonb("email_delivery_logs").default([]),
+  lastEmailAttempt: timestamp("last_email_attempt"),
+  emailDeliveryStatus: varchar("email_delivery_status").default("pending"), // pending, sent, failed, bounced
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
