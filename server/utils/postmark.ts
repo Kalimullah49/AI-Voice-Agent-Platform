@@ -18,96 +18,144 @@ interface EmailParams {
 }
 
 export async function sendEmailWithPostmarkRetry(params: EmailParams): Promise<{ success: boolean; messageId?: string; error?: string; attempts: number; postmarkResponse?: any }> {
+  const maxRetries = 5;
+  const baseDelayMs = 1000; // 1 second
   let attempts = 0;
   let lastError: any = null;
   
-  try {
-    console.log(`Sending email to ${params.to} using Postmark API with built-in retries`);
+  const emailPayload = {
+    From: params.from || 'contact@callsinmotion.com',
+    To: params.to,
+    Subject: params.subject,
+    HtmlBody: params.htmlBody,
+    TextBody: params.textBody || params.htmlBody.replace(/<[^>]*>/g, ''),
+    MessageStream: 'outbound'
+  };
+  
+  console.log(`Sending email to ${params.to} using Postmark API with ${maxRetries} retry attempts`);
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    attempts = attempt;
     
-    const emailPayload = {
-      From: params.from || 'contact@callsinmotion.com',
-      To: params.to,
-      Subject: params.subject,
-      HtmlBody: params.htmlBody,
-      TextBody: params.textBody || params.htmlBody.replace(/<[^>]*>/g, ''),
-      MessageStream: 'outbound'
-    };
-    
-    // Postmark client handles retries internally based on configuration
-    const response = await client.sendEmail(emailPayload);
-    
-    console.log(`Email sent successfully. Postmark response:`, {
-      MessageID: response.MessageID,
-      To: response.To,
-      SubmittedAt: response.SubmittedAt,
-      ErrorCode: response.ErrorCode,
-      Message: response.Message
-    });
-    
-    return {
-      success: true,
-      messageId: response.MessageID,
-      attempts: 1, // Postmark handles internal retries
-      postmarkResponse: {
+    try {
+      console.log(`Attempt ${attempt}/${maxRetries} for ${params.to}`);
+      
+      const response = await client.sendEmail(emailPayload);
+      
+      console.log(`Email sent successfully on attempt ${attempt}. Postmark response:`, {
         MessageID: response.MessageID,
         To: response.To,
         SubmittedAt: response.SubmittedAt,
         ErrorCode: response.ErrorCode,
         Message: response.Message
-      }
-    };
-    
-  } catch (error: any) {
-    lastError = error;
-    attempts = 1;
-    
-    // Log detailed Postmark error information
-    console.error(`Postmark API error for ${params.to}:`, {
-      message: error.message,
-      code: error.code,
-      errorCode: error.errorCode,
-      httpStatusCode: error.httpStatusCode,
-      postmarkApiErrorCode: error.postmarkApiErrorCode
-    });
-    
-    // Handle specific Postmark error codes
-    let errorMessage = error.message;
-    if (error.postmarkApiErrorCode) {
-      switch (error.postmarkApiErrorCode) {
-        case 300:
-          errorMessage = 'Invalid email address';
-          break;
-        case 406:
-          errorMessage = 'Inactive recipient - email address bounced previously';
-          break;
-        case 422:
-          errorMessage = 'Invalid JSON or missing required fields';
-          break;
-        case 429:
-          errorMessage = 'Rate limit exceeded';
-          break;
-        case 500:
-          errorMessage = 'Postmark server error';
-          break;
-        case 503:
-          errorMessage = 'Service temporarily unavailable';
-          break;
-        default:
-          errorMessage = `Postmark API error ${error.postmarkApiErrorCode}: ${error.message}`;
-      }
-    }
-    
-    return {
-      success: false,
-      error: errorMessage,
-      attempts,
-      postmarkResponse: {
-        errorCode: error.postmarkApiErrorCode,
+      });
+      
+      return {
+        success: true,
+        messageId: response.MessageID,
+        attempts,
+        postmarkResponse: {
+          MessageID: response.MessageID,
+          To: response.To,
+          SubmittedAt: response.SubmittedAt,
+          ErrorCode: response.ErrorCode,
+          Message: response.Message
+        }
+      };
+      
+    } catch (error: any) {
+      lastError = error;
+      
+      console.error(`Attempt ${attempt}/${maxRetries} failed for ${params.to}:`, {
+        message: error.message,
+        code: error.code,
+        errorCode: error.errorCode,
         httpStatusCode: error.httpStatusCode,
-        message: error.message
+        postmarkApiErrorCode: error.postmarkApiErrorCode
+      });
+      
+      // Check if this is a retryable error
+      const isRetryable = isRetryableError(error);
+      
+      if (!isRetryable || attempt === maxRetries) {
+        console.error(`Non-retryable error or max retries reached for ${params.to}`);
+        break;
       }
-    };
+      
+      // Exponential backoff with jitter
+      const delayMs = baseDelayMs * Math.pow(2, attempt - 1) + Math.random() * 1000;
+      console.log(`Retrying in ${Math.round(delayMs)}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
   }
+  
+  // All attempts failed
+  let errorMessage = lastError?.message || 'Unknown error';
+  if (lastError?.postmarkApiErrorCode) {
+    switch (lastError.postmarkApiErrorCode) {
+      case 300:
+        errorMessage = 'Invalid email address';
+        break;
+      case 406:
+        errorMessage = 'Inactive recipient - email address bounced previously';
+        break;
+      case 422:
+        errorMessage = 'Invalid JSON or missing required fields';
+        break;
+      case 429:
+        errorMessage = 'Rate limit exceeded';
+        break;
+      case 500:
+        errorMessage = 'Postmark server error';
+        break;
+      case 503:
+        errorMessage = 'Service temporarily unavailable';
+        break;
+      default:
+        errorMessage = `Postmark API error ${lastError.postmarkApiErrorCode}: ${lastError.message}`;
+    }
+  }
+  
+  console.error(`Failed to send email to ${params.to} after ${attempts} attempts. Final error: ${errorMessage}`);
+  
+  return {
+    success: false,
+    error: errorMessage,
+    attempts,
+    postmarkResponse: {
+      errorCode: lastError?.postmarkApiErrorCode,
+      httpStatusCode: lastError?.httpStatusCode,
+      message: lastError?.message
+    }
+  };
+}
+
+function isRetryableError(error: any): boolean {
+  // Permanent failures that should not be retried
+  const nonRetryableCodes = [300, 406, 422]; // Invalid email, bounced, malformed request
+  
+  if (error.postmarkApiErrorCode && nonRetryableCodes.includes(error.postmarkApiErrorCode)) {
+    return false;
+  }
+  
+  // Network/temporary errors that should be retried
+  const retryableCodes = [429, 500, 503]; // Rate limit, server error, service unavailable
+  if (error.postmarkApiErrorCode && retryableCodes.includes(error.postmarkApiErrorCode)) {
+    return true;
+  }
+  
+  // Network timeouts and connection errors
+  if (error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND') {
+    return true;
+  }
+  
+  // HTTP 5xx errors are generally retryable
+  if (error.httpStatusCode >= 500) {
+    return true;
+  }
+  
+  // Default to non-retryable for unknown errors
+  return false;
 }
 
 export async function sendEmail(params: EmailParams): Promise<boolean> {
