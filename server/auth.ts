@@ -81,13 +81,33 @@ export function setupAuth(app: Express) {
       // Hash password
       const hashedPassword = await hashPassword(validatedData.password);
       
-      // Simple registration without verification
-      
-      // Create user with a UUID as ID - auto-verified
+      // Generate user ID and verification token first
       const userId = uuidv4();
-      // Generate verification token
       const verificationToken = randomBytes(32).toString('hex');
       
+      // Send verification email BEFORE creating user account
+      const baseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
+      console.log("Attempting to send verification email to:", validatedData.email);
+      console.log("Base URL:", baseUrl);
+      console.log("Verification token:", verificationToken);
+      
+      // Import the enhanced email function
+      const { sendVerificationEmailWithLogging } = await import('./utils/postmark');
+      
+      // Test email delivery first with temporary user ID
+      const emailResult = await sendVerificationEmailWithLogging(validatedData.email, verificationToken, baseUrl, userId);
+      
+      if (!emailResult.success) {
+        console.error("Failed to send verification email, aborting registration");
+        return res.status(500).json({ 
+          message: "Failed to send verification email. Please try again or contact support.",
+          emailError: emailResult.error 
+        });
+      }
+      
+      console.log("Verification email sent successfully, proceeding with user creation");
+      
+      // Only create user account if email was sent successfully
       const user = await storage.createUser({
         id: userId,
         email: validatedData.email,
@@ -99,17 +119,6 @@ export function setupAuth(app: Express) {
         emailVerificationToken: verificationToken,
         emailVerificationTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
       });
-      
-      // Send verification email with retry mechanism
-      const baseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
-      console.log("Attempting to send verification email to:", user.email);
-      console.log("Base URL:", baseUrl);
-      console.log("Verification token:", verificationToken);
-      
-      // Import the enhanced email function
-      const { sendVerificationEmailWithLogging } = await import('./utils/postmark');
-      
-      const emailResult = await sendVerificationEmailWithLogging(user.email, verificationToken, baseUrl, user.id);
       
       // Log the email delivery attempt to database
       await storage.logEmailDelivery(user.id, {
