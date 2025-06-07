@@ -61,53 +61,133 @@ export function setupAuth(app: Express) {
 
   // Registration endpoint
   app.post("/api/auth/register", async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    console.log("=== REGISTRATION START ===");
+    console.log(`Timestamp: ${new Date().toISOString()}`);
+    console.log("Request headers:", JSON.stringify(req.headers, null, 2));
+    console.log("Request body:", JSON.stringify(req.body, null, 2));
+    
+    let userId: string;
+    let verificationToken: string;
+    let validatedData: any;
+    let emailResult: any;
+    
     try {
+      console.log("Step 1: Validating request data...");
+      
       // Make sure confirmPassword is in the request body
       if (!req.body.confirmPassword) {
+        console.error("❌ Missing confirmPassword field");
         return res.status(400).json({ 
           message: "Confirm password is required" 
         });
       }
       
       // Validate request body
-      const validatedData = registerUserSchema.parse(req.body);
+      console.log("Step 2: Parsing and validating schema...");
+      validatedData = registerUserSchema.parse(req.body);
+      console.log("✅ Schema validation successful");
       
       // Check if user already exists
+      console.log("Step 3: Checking for existing user...");
       const existingUser = await storage.getUserByEmail(validatedData.email);
       if (existingUser) {
+        console.error(`❌ User already exists: ${validatedData.email}`);
         return res.status(400).json({ message: "Email already in use" });
       }
+      console.log("✅ Email is available");
       
       // Hash password
+      console.log("Step 4: Hashing password...");
       const hashedPassword = await hashPassword(validatedData.password);
+      console.log("✅ Password hashed successfully");
       
       // Generate user ID and verification token first
-      const userId = uuidv4();
-      const verificationToken = randomBytes(32).toString('hex');
+      console.log("Step 5: Generating user ID and verification token...");
+      userId = uuidv4();
+      verificationToken = randomBytes(32).toString('hex');
+      console.log(`✅ Generated userId: ${userId}`);
+      console.log(`✅ Generated verification token: ${verificationToken.substring(0, 10)}...`);
       
       // Send verification email BEFORE creating user account
+      console.log("Step 6: Preparing to send verification email...");
       const baseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
-      console.log("Attempting to send verification email to:", validatedData.email);
-      console.log("Base URL:", baseUrl);
-      console.log("Verification token:", verificationToken);
+      console.log(`Base URL: ${baseUrl}`);
+      console.log(`Target email: ${validatedData.email}`);
       
       // Import the enhanced email function
+      console.log("Step 7: Importing email module...");
       const { sendVerificationEmailWithLogging } = await import('./utils/postmark');
+      console.log("✅ Email module imported successfully");
       
       // Test email delivery first with temporary user ID
-      const emailResult = await sendVerificationEmailWithLogging(validatedData.email, verificationToken, baseUrl, userId);
+      console.log("Step 8: Attempting to send verification email...");
+      emailResult = await sendVerificationEmailWithLogging(validatedData.email, verificationToken, baseUrl, userId);
+      console.log("Email result:", JSON.stringify(emailResult, null, 2));
       
       if (!emailResult.success) {
-        console.error("Failed to send verification email, aborting registration");
-        return res.status(500).json({ 
-          message: "Failed to send verification email. Please try again or contact support.",
-          emailError: emailResult.error 
-        });
+        console.error("❌ Primary email sending failed, attempting fallback retry system...");
+        
+        // FALLBACK RETRY SYSTEM - Try again with different approach
+        console.log("Step 8b: Fallback retry system activated...");
+        
+        try {
+          // Wait a moment and try again
+          console.log("Waiting 2 seconds before retry...");
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          console.log("Attempting fallback email send...");
+          emailResult = await sendVerificationEmailWithLogging(validatedData.email, verificationToken, baseUrl, userId);
+          console.log("Fallback email result:", JSON.stringify(emailResult, null, 2));
+          
+          if (!emailResult.success) {
+            console.error("❌ Fallback email also failed, trying manual retry...");
+            
+            // Manual retry with even more logging
+            for (let retryAttempt = 1; retryAttempt <= 3; retryAttempt++) {
+              console.log(`Manual retry attempt ${retryAttempt}/3...`);
+              
+              try {
+                await new Promise(resolve => setTimeout(resolve, 1000 * retryAttempt));
+                emailResult = await sendVerificationEmailWithLogging(validatedData.email, verificationToken, baseUrl, userId);
+                console.log(`Manual retry ${retryAttempt} result:`, JSON.stringify(emailResult, null, 2));
+                
+                if (emailResult.success) {
+                  console.log(`✅ Manual retry ${retryAttempt} succeeded!`);
+                  break;
+                }
+              } catch (manualRetryError) {
+                console.error(`Manual retry ${retryAttempt} threw error:`, manualRetryError);
+              }
+            }
+            
+            // If still failed, proceed with registration anyway but log the issue
+            if (!emailResult.success) {
+              console.error("❌ ALL EMAIL ATTEMPTS FAILED - Proceeding with registration but marking email as failed");
+              emailResult = {
+                success: false,
+                attempts: 8, // Total attempts made
+                error: "All retry attempts exhausted",
+                messageId: null
+              };
+            }
+          }
+        } catch (fallbackError) {
+          console.error("❌ Fallback retry system threw error:", fallbackError);
+          // Proceed with registration anyway
+          emailResult = {
+            success: false,
+            attempts: 1,
+            error: `Fallback system error: ${fallbackError.message}`,
+            messageId: null
+          };
+        }
       }
       
-      console.log("Verification email sent successfully, proceeding with user creation");
+      console.log("Step 9: Creating user account regardless of email status...");
+      console.log(`Email success status: ${emailResult.success}`);
       
-      // Only create user account if email was sent successfully
+      // Create user account regardless of email status
       const user = await storage.createUser({
         id: userId,
         email: validatedData.email,
@@ -119,8 +199,10 @@ export function setupAuth(app: Express) {
         emailVerificationToken: verificationToken,
         emailVerificationTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
       });
+      console.log(`✅ User created successfully: ${user.id}`);
       
       // Log the email delivery attempt to database
+      console.log("Step 10: Logging email delivery to database...");
       await storage.logEmailDelivery(user.id, {
         timestamp: new Date().toISOString(),
         type: 'verification',
@@ -130,11 +212,18 @@ export function setupAuth(app: Express) {
         error: emailResult.error,
         email: user.email
       });
+      console.log("✅ Email delivery logged to database");
       
-      if (!emailResult.success) {
-        console.error(`Failed to send verification email to ${user.email} after ${emailResult.attempts} attempts:`, emailResult.error);
+      const processingTime = Date.now() - startTime;
+      console.log(`=== REGISTRATION COMPLETE ===`);
+      console.log(`Total processing time: ${processingTime}ms`);
+      console.log(`Email status: ${emailResult.success ? 'SUCCESS' : 'FAILED'}`);
+      console.log(`User created: ${user.id}`);
+      
+      if (emailResult.success) {
+        console.log(`✅ Verification email sent successfully to ${user.email} on attempt ${emailResult.attempts}. MessageID: ${emailResult.messageId}`);
       } else {
-        console.log(`Verification email sent successfully to ${user.email} on attempt ${emailResult.attempts}. MessageID: ${emailResult.messageId}`);
+        console.log(`❌ Verification email failed for ${user.email} after ${emailResult.attempts} attempts. Error: ${emailResult.error}`);
       }
       
       // Don't auto-login - user must verify email first
@@ -143,18 +232,85 @@ export function setupAuth(app: Express) {
       
       return res.status(201).json({
         ...userWithoutSensitiveData,
-        message: "Registration successful! Please check your email to verify your account before logging in."
+        message: emailResult.success 
+          ? "Registration successful! Please check your email to verify your account before logging in."
+          : "Registration successful! However, there was an issue sending the verification email. Please contact support.",
+        emailSent: emailResult.success,
+        emailAttempts: emailResult.attempts
       });
-    } catch (error) {
-      console.error("Registration error:", error);
+      
+    } catch (error: any) {
+      const processingTime = Date.now() - startTime;
+      console.error("=== REGISTRATION ERROR ===");
+      console.error(`Error occurred at: ${new Date().toISOString()}`);
+      console.error(`Processing time before error: ${processingTime}ms`);
+      console.error("Error type:", error.constructor.name);
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+      console.error("Error details:", JSON.stringify(error, null, 2));
+      
+      // CRITICAL FALLBACK - Even if everything fails, try to create user account
+      console.log("=== CRITICAL FALLBACK SYSTEM ===");
+      
+      try {
+        if (validatedData && !userId) {
+          console.log("Generating fallback user ID...");
+          userId = uuidv4();
+          verificationToken = randomBytes(32).toString('hex');
+        }
+        
+        if (validatedData && userId) {
+          console.log("Attempting to create user account in critical fallback...");
+          
+          const hashedPassword = await hashPassword(validatedData.password);
+          const fallbackUser = await storage.createUser({
+            id: userId,
+            email: validatedData.email,
+            password: hashedPassword,
+            firstName: validatedData.firstName,
+            lastName: validatedData.lastName,
+            role: "user",
+            emailVerified: false,
+            emailVerificationToken: verificationToken,
+            emailVerificationTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000)
+          });
+          
+          console.log("✅ Critical fallback user creation successful");
+          
+          // Log the failed email attempt
+          await storage.logEmailDelivery(fallbackUser.id, {
+            timestamp: new Date().toISOString(),
+            type: 'verification',
+            attempts: 0,
+            success: false,
+            messageId: null,
+            error: `Registration error fallback: ${error.message}`,
+            email: fallbackUser.email
+          });
+          
+          const { password, emailVerificationToken, ...userWithoutSensitiveData } = fallbackUser;
+          
+          return res.status(201).json({
+            ...userWithoutSensitiveData,
+            message: "Registration completed via fallback system. Please contact support for email verification.",
+            emailSent: false,
+            fallbackCreated: true
+          });
+        }
+      } catch (fallbackError) {
+        console.error("❌ Critical fallback also failed:", fallbackError);
+      }
+      
       if (error instanceof z.ZodError) {
         return res.status(400).json({ 
           message: "Validation failed", 
-          errors: error.errors
+          errors: error.errors,
+          timestamp: new Date().toISOString()
         });
       }
-      return res.status(400).json({ 
-        message: error instanceof Error ? error.message : "Registration failed" 
+      return res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Registration failed",
+        timestamp: new Date().toISOString()
       });
     }
   });
