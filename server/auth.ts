@@ -44,6 +44,9 @@ export function isAuthenticated(req: Request, res: Response, next: NextFunction)
 }
 
 export function setupAuth(app: Express) {
+  console.log("🔐 LOADING ENHANCED AUTH SYSTEM WITH COMPREHENSIVE LOGGING");
+  console.log("🔐 Registration endpoint includes multi-tier fallback retry system");
+  
   // Configure session
   app.use(
     session({
