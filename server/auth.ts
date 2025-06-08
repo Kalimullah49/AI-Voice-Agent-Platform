@@ -164,33 +164,29 @@ export function setupAuth(app: Express) {
               }
             }
             
-            // If still failed, proceed with registration anyway but log the issue
+            // If still failed, abort registration
             if (!emailResult.success) {
-              console.error("❌ ALL EMAIL ATTEMPTS FAILED - Proceeding with registration but marking email as failed");
-              emailResult = {
-                success: false,
-                attempts: 8, // Total attempts made
-                error: "All retry attempts exhausted",
-                messageId: null
-              };
+              console.error("❌ ALL EMAIL ATTEMPTS FAILED - Aborting registration");
+              return res.status(500).json({ 
+                message: "Failed to send verification email after multiple attempts. Please check your email address and try again.",
+                emailError: "All retry attempts exhausted" 
+              });
             }
           }
-        } catch (fallbackError) {
+        } catch (fallbackError: any) {
           console.error("❌ Fallback retry system threw error:", fallbackError);
-          // Proceed with registration anyway
-          emailResult = {
-            success: false,
-            attempts: 1,
-            error: `Fallback system error: ${fallbackError.message}`,
-            messageId: null
-          };
+          // Abort registration if fallback also fails
+          return res.status(500).json({ 
+            message: "Failed to send verification email. Please check your email address and try again.",
+            emailError: `Fallback system error: ${fallbackError.message || 'Unknown error'}` 
+          });
         }
       }
       
-      console.log("Step 9: Creating user account regardless of email status...");
+      console.log("Step 9: Creating user account - email verified successful...");
       console.log(`Email success status: ${emailResult.success}`);
       
-      // Create user account regardless of email status
+      // Only create user account if email was sent successfully
       const user = await storage.createUser({
         id: userId,
         email: validatedData.email,
@@ -251,58 +247,6 @@ export function setupAuth(app: Express) {
       console.error("Error message:", error.message);
       console.error("Error stack:", error.stack);
       console.error("Error details:", JSON.stringify(error, null, 2));
-      
-      // CRITICAL FALLBACK - Even if everything fails, try to create user account
-      console.log("=== CRITICAL FALLBACK SYSTEM ===");
-      
-      try {
-        if (validatedData && !userId) {
-          console.log("Generating fallback user ID...");
-          userId = uuidv4();
-          verificationToken = randomBytes(32).toString('hex');
-        }
-        
-        if (validatedData && userId) {
-          console.log("Attempting to create user account in critical fallback...");
-          
-          const hashedPassword = await hashPassword(validatedData.password);
-          const fallbackUser = await storage.createUser({
-            id: userId,
-            email: validatedData.email,
-            password: hashedPassword,
-            firstName: validatedData.firstName,
-            lastName: validatedData.lastName,
-            role: "user",
-            emailVerified: false,
-            emailVerificationToken: verificationToken,
-            emailVerificationTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000)
-          });
-          
-          console.log("✅ Critical fallback user creation successful");
-          
-          // Log the failed email attempt
-          await storage.logEmailDelivery(fallbackUser.id, {
-            timestamp: new Date().toISOString(),
-            type: 'verification',
-            attempts: 0,
-            success: false,
-            messageId: null,
-            error: `Registration error fallback: ${error.message}`,
-            email: fallbackUser.email
-          });
-          
-          const { password, emailVerificationToken, ...userWithoutSensitiveData } = fallbackUser;
-          
-          return res.status(201).json({
-            ...userWithoutSensitiveData,
-            message: "Registration completed via fallback system. Please contact support for email verification.",
-            emailSent: false,
-            fallbackCreated: true
-          });
-        }
-      } catch (fallbackError) {
-        console.error("❌ Critical fallback also failed:", fallbackError);
-      }
       
       if (error instanceof z.ZodError) {
         return res.status(400).json({ 
