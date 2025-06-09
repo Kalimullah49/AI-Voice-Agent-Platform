@@ -21,7 +21,9 @@ interface EmailParams {
 async function logPostmarkAttemptToDatabase(logData: any): Promise<void> {
   try {
     const { storage } = await import('../storage');
-    await storage.createPostmarkLog({
+    
+    // Enhanced logging with all step details
+    const enhancedLogData = {
       email: logData.email,
       userId: logData.userId || null,
       attemptNumber: logData.attemptNumber,
@@ -41,10 +43,21 @@ async function logPostmarkAttemptToDatabase(logData: any): Promise<void> {
       registrationAttemptId: logData.registrationAttemptId || null,
       finalAttempt: logData.finalAttempt,
       retryable: logData.retryable
-    });
+    };
+    
+    await storage.createPostmarkLog(enhancedLogData);
+    
     console.log(`🔥 DATABASE LOG: Saved Postmark attempt ${logData.attemptNumber} for ${logData.email}`);
+    console.log(`🔥 DATABASE LOG DETAILS:`, JSON.stringify({
+      email: logData.email,
+      attempt: logData.attemptNumber,
+      success: logData.success,
+      messageId: logData.messageId,
+      registrationId: logData.registrationAttemptId
+    }, null, 2));
   } catch (error) {
     console.error('🔥 DATABASE LOG ERROR: Failed to save Postmark log to database:', error);
+    console.error('🔥 DATABASE LOG ERROR DETAILS:', error);
   }
 }
 
@@ -92,29 +105,19 @@ export async function sendEmailWithComprehensiveLogging(
   let lastError: any = null;
   
   const emailPayload = {
-    From: params.from || 'Mind AI <noreply@callsinmotion.com>',
+    From: params.from || 'contact@callsinmotion.com',
     To: params.to,
     Subject: params.subject,
     HtmlBody: params.htmlBody,
     TextBody: params.textBody || params.htmlBody.replace(/<[^>]*>/g, ''),
-    MessageStream: 'outbound',
-    ReplyTo: 'support@callsinmotion.com',
-    Headers: [
-      {
-        Name: 'X-Priority',
-        Value: '1'
-      },
-      {
-        Name: 'Importance',
-        Value: 'high'
-      }
-    ]
+    MessageStream: 'outbound'
   };
   
   const environment = process.env.NODE_ENV || 'production';
   
   console.log(`🔥 POSTMARK COMPREHENSIVE: Starting email to ${params.to} with ${maxRetries} retries`);
   console.log(`🔥 REGISTRATION ID: ${options.registrationAttemptId}`);
+  console.log(`🔥 EMAIL PAYLOAD BEING SENT:`, JSON.stringify(emailPayload, null, 2));
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     attempts = attempt;
@@ -122,6 +125,7 @@ export async function sendEmailWithComprehensiveLogging(
     
     try {
       console.log(`🔥 ATTEMPT ${attempt}/${maxRetries} for ${params.to}`);
+      console.log(`🔥 POSTMARK REQUEST:`, JSON.stringify(emailPayload, null, 2));
       
       const startTime = Date.now();
       const response = await client.sendEmail(emailPayload);
