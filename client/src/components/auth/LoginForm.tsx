@@ -17,49 +17,7 @@ export default function LoginForm() {
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
 
   const { toast } = useToast();
-  const loginMutation = useMutation({
-    mutationFn: async (credentials: LoginUser) => {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify(credentials),
-      });
-      
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to log in");
-      }
-      
-      return await res.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Login successful",
-        description: "Welcome back!",
-      });
-      window.location.href = "/";
-    },
-    onError: (error: any) => {
-      if (error.message.includes("verify your email")) {
-        const email = form.getValues("email");
-        setUnverifiedEmail(email);
-        toast({
-          title: "Email verification required",
-          description: "Please verify your email address before logging in.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Login failed",
-          description: error.message,
-          variant: "destructive",
-        });
-      }
-    },
-  });
+  const { login, isLoginPending } = useAuth();
 
 
   
@@ -72,7 +30,22 @@ export default function LoginForm() {
   });
 
   function onSubmit(data: LoginUser) {
-    loginMutation.mutate(data);
+    login(data, {
+      onSuccess: () => {
+        window.location.href = "/";
+      },
+      onError: (error: any) => {
+        if (error.message.includes("verify your email")) {
+          const email = form.getValues("email");
+          setUnverifiedEmail(email);
+          toast({
+            title: "Email verification required",
+            description: "Please verify your email address before logging in.",
+            variant: "destructive",
+          });
+        }
+      }
+    });
   }
 
   const handleResendVerification = async () => {
@@ -148,9 +121,9 @@ export default function LoginForm() {
         <Button 
           type="submit" 
           className="w-full" 
-          disabled={loginMutation.isPending}
+          disabled={isLoginPending}
         >
-          {loginMutation.isPending ? (
+          {isLoginPending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Signing in...
