@@ -110,7 +110,7 @@ export async function sendDirectPasswordResetEmail(
   resetToken: string,
   baseUrl: string
 ): Promise<DirectEmailResult> {
-  const resetLink = `${baseUrl}/auth/reset-password?token=${resetToken}`;
+  const resetLink = `${baseUrl}/reset-password?token=${resetToken}`;
   
   const htmlBody = `
     <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
