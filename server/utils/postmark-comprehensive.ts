@@ -4,7 +4,8 @@ if (!process.env.POSTMARK_SERVER_TOKEN) {
   throw new Error("POSTMARK_SERVER_TOKEN environment variable must be set");
 }
 
-// Configure Postmark client with timeout
+// Configure Postmark client with timeout and logging
+console.log(`🔥 POSTMARK CLIENT: Initializing with token ${process.env.POSTMARK_SERVER_TOKEN?.substring(0, 8)}...`);
 const client = new postmark.ServerClient(process.env.POSTMARK_SERVER_TOKEN, {
   timeout: 30000, // 30 second timeout
 });
@@ -191,6 +192,15 @@ export async function sendEmailWithComprehensiveLogging(
         retryable: isRetryable,
         finalAttempt: isFinalAttempt
       });
+      
+      // Log token validation failures specifically
+      if (error.message?.includes('valid Server token') || error.code === 10) {
+        console.error(`🔥 TOKEN VALIDATION FAILURE:`, {
+          tokenPrefix: process.env.POSTMARK_SERVER_TOKEN?.substring(0, 8),
+          environment: process.env.NODE_ENV,
+          errorDetails: error
+        });
+      }
       
       // Log failed attempt to database
       await logPostmarkAttemptToDatabase({

@@ -444,8 +444,17 @@ export function setupAuth(app: Express) {
         res.status(500).json({ message: "Failed to send verification email" });
       }
     } catch (error) {
-      console.error("Send verification email error:", error);
-      res.status(500).json({ message: "Failed to send verification email" });
+      console.error("🔥 SEND VERIFICATION ERROR:", error);
+      console.error("🔥 ERROR STACK:", error instanceof Error ? error.stack : 'No stack trace');
+      console.error("🔥 ERROR DETAILS:", {
+        message: error instanceof Error ? error.message : String(error),
+        name: error instanceof Error ? error.name : 'Unknown',
+        requestBody: req.body
+      });
+      res.status(500).json({ 
+        message: "Failed to send verification email",
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 }
