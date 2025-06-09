@@ -302,8 +302,18 @@ export function setupAuth(app: Express) {
       const resetToken = randomBytes(32).toString('hex');
       await storage.createPasswordResetToken(user.id, resetToken, 1);
 
-      const baseUrl = `https://${req.get('host')}`;
-      const { sendPasswordResetEmail } = await import('./utils/postmark');
+      // Determine the correct base URL for password reset links
+      let baseUrl: string;
+      if (process.env.REPLIT_DOMAINS) {
+        // In Replit environment, always use the Replit domain
+        baseUrl = `https://${process.env.REPLIT_DOMAINS}`;
+      } else {
+        // Fallback to request host detection for other environments
+        const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+        baseUrl = `${protocol}://${req.get('host')}`;
+      }
+      
+      const { sendPasswordResetEmail } = await import('./utils/postmark-comprehensive');
       await sendPasswordResetEmail(email, resetToken, baseUrl);
 
       res.json({ message: "If the email exists, a reset link has been sent" });

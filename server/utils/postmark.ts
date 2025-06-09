@@ -3,5 +3,6 @@ export {
   sendEmailWithComprehensiveLogging as sendEmailWithPostmarkRetry,
   sendVerificationEmailWithComprehensiveLogging as sendVerificationEmailWithLogging,
   sendVerificationEmailWithComprehensiveLogging as sendVerificationEmail,
-  sendEmailWithComprehensiveLogging as sendPasswordResetEmail
+  sendEmailWithComprehensiveLogging as sendPasswordResetEmail,
+  sendEmailWithComprehensiveLogging as sendEmail
 } from './postmark-comprehensive';

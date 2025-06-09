@@ -355,3 +355,62 @@ export async function sendVerificationEmailWithComprehensiveLogging(
   
   return result;
 }
+
+// Password reset email function for backward compatibility
+export async function sendPasswordResetEmail(email: string, resetToken: string, baseUrl: string): Promise<boolean> {
+  try {
+    const result = await sendEmailWithComprehensiveLogging({
+      to: email,
+      subject: "Reset Your Mind AI Password",
+      htmlBody: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Reset Your Password</h2>
+          <p>You've requested to reset your password for your Mind AI account.</p>
+          <p>Click the button below to reset your password:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${baseUrl}/auth/reset-password?token=${resetToken}" 
+               style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+              Reset Password
+            </a>
+          </div>
+          <p>If the button doesn't work, copy and paste this link into your browser:</p>
+          <p style="word-break: break-all;">${baseUrl}/auth/reset-password?token=${resetToken}</p>
+          <p>This link will expire in 1 hour for security reasons.</p>
+          <p>If you didn't request this reset, you can safely ignore this email.</p>
+        </div>
+      `,
+      textBody: `
+        Reset Your Password
+        
+        You've requested to reset your password for your Mind AI account.
+        
+        Visit this link to reset your password: ${baseUrl}/auth/reset-password?token=${resetToken}
+        
+        This link will expire in 1 hour for security reasons.
+        
+        If you didn't request this reset, you can safely ignore this email.
+      `
+    });
+    
+    return result.success;
+  } catch (error) {
+    console.error('Password reset email error:', error);
+    return false;
+  }
+}
+
+// Generic sendEmail function for backward compatibility
+export async function sendEmail(params: {
+  to: string;
+  subject: string;
+  htmlBody?: string;
+  textBody?: string;
+}): Promise<boolean> {
+  try {
+    const result = await sendEmailWithComprehensiveLogging(params);
+    return result.success;
+  } catch (error) {
+    console.error('Send email error:', error);
+    return false;
+  }
+}
