@@ -416,11 +416,29 @@ export function setupAuth(app: Express) {
       const verificationToken = randomBytes(32).toString('hex');
       await storage.createVerificationToken(user.id, verificationToken, 24);
 
-      const baseUrl = `https://${req.get('host')}`;
-      const { sendVerificationEmail } = await import('./utils/postmark');
-      const result = await sendVerificationEmail(email, verificationToken, baseUrl);
+      // Generate proper base URL using same logic as registration
+      let baseUrl: string;
+      if (process.env.REPLIT_DOMAINS) {
+        baseUrl = `https://${process.env.REPLIT_DOMAINS}`;
+      } else {
+        const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+        baseUrl = `${protocol}://${req.get('host')}`;
+      }
+      
+      const { sendVerificationEmailWithComprehensiveLogging } = await import('./utils/postmark-comprehensive');
+      const result = await sendVerificationEmailWithComprehensiveLogging(
+        email, 
+        verificationToken, 
+        baseUrl, 
+        user.id,
+        {
+          userAgent: req.headers['user-agent'],
+          ipAddress: req.ip || req.connection.remoteAddress,
+          registrationAttemptId: `manual_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        }
+      );
 
-      if (result) {
+      if (result.success) {
         res.json({ message: "Verification email sent successfully" });
       } else {
         res.status(500).json({ message: "Failed to send verification email" });
