@@ -51,6 +51,8 @@ async function sendDirectPostmarkEmail(
       status: response.status,
       success: response.ok,
       messageId: responseData.MessageID,
+      error: responseData.Message || responseData.ErrorCode,
+      fullResponse: JSON.stringify(responseData, null, 2),
       timestamp: new Date().toISOString()
     });
 
