@@ -372,6 +372,12 @@ export function setupAuth(app: Express) {
 
   // Test email endpoint
   app.post("/api/auth/test-email", async (req: Request, res: Response) => {
+    console.log("🔥 TEST EMAIL REQUEST:", {
+      body: req.body,
+      environment: process.env.NODE_ENV,
+      timestamp: new Date().toISOString()
+    });
+    
     try {
       const { email } = req.body;
       
@@ -379,19 +385,64 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Email is required" });
       }
 
-      const testToken = randomBytes(16).toString('hex');
-      const baseUrl = `https://${req.get('host')}`;
+      const { sendVerificationEmailWithComprehensiveLogging } = await import('./utils/postmark-comprehensive');
       
-      const { sendVerificationEmail } = await import('./utils/postmark');
-      const result = await sendVerificationEmail(email, testToken, baseUrl);
+      // Generate proper base URL using same logic as registration
+      let baseUrl: string;
+      if (process.env.REPLIT_DOMAINS) {
+        baseUrl = `https://${process.env.REPLIT_DOMAINS}`;
+      } else {
+        const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+        baseUrl = `${protocol}://${req.get('host')}`;
+      }
       
-      res.json({ 
-        message: result ? "Test email sent successfully" : "Failed to send test email",
-        success: result
+      console.log("🔥 TEST EMAIL CONFIG:", {
+        email,
+        baseUrl,
+        environment: process.env.NODE_ENV,
+        tokenPrefix: process.env.POSTMARK_SERVER_TOKEN?.substring(0, 8)
       });
+      
+      const result = await sendVerificationEmailWithComprehensiveLogging(
+        email, 
+        "test-token-12345", 
+        baseUrl, 
+        "test-user-id",
+        {
+          userAgent: req.headers['user-agent'],
+          ipAddress: req.ip || req.connection.remoteAddress,
+          registrationAttemptId: `test_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        }
+      );
+
+      console.log("🔥 TEST EMAIL RESULT:", result);
+
+      if (result.success) {
+        res.json({ 
+          message: "Test email sent successfully",
+          environment: process.env.NODE_ENV,
+          baseUrl: baseUrl,
+          messageId: result.messageId,
+          tokenPrefix: process.env.POSTMARK_SERVER_TOKEN?.substring(0, 8),
+          success: true
+        });
+      } else {
+        res.status(500).json({ 
+          message: "Failed to send test email",
+          error: result.error,
+          environment: process.env.NODE_ENV,
+          tokenPrefix: process.env.POSTMARK_SERVER_TOKEN?.substring(0, 8),
+          success: false
+        });
+      }
     } catch (error) {
-      console.error("Test email error:", error);
-      res.status(500).json({ message: "Failed to send test email" });
+      console.error("🔥 TEST EMAIL ERROR:", error);
+      res.status(500).json({ 
+        message: "Failed to send test email",
+        error: error instanceof Error ? error.message : String(error),
+        environment: process.env.NODE_ENV,
+        success: false
+      });
     }
   });
 
