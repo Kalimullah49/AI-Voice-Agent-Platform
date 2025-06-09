@@ -2000,5 +2000,236 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
+  // Email failure debugging endpoints
+  app.get("/api/debug/email-failures", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { email, limit } = req.query;
+      
+      if (email && typeof email === 'string') {
+        // Get failures for specific email
+        const failures = await storage.getEmailDeliveryLogs(email);
+        res.json({
+          email,
+          failures,
+          totalFailures: failures ? failures.length : 0
+        });
+      } else {
+        // Get all recent email failures
+        const users = await storage.getAllUsers();
+        const failureData = [];
+        
+        const limitNum = limit ? parseInt(limit as string) : 50;
+        let processed = 0;
+        
+        for (const user of users) {
+          if (processed >= limitNum) break;
+          
+          if (user.emailDeliveryStatus === 'failed' && user.emailDeliveryLogs) {
+            try {
+              const logs = Array.isArray(user.emailDeliveryLogs) 
+                ? user.emailDeliveryLogs 
+                : JSON.parse(user.emailDeliveryLogs as string);
+              
+              failureData.push({
+                userId: user.id,
+                email: user.email,
+                attempts: user.emailDeliveryAttempts || 0,
+                lastAttempt: user.lastEmailAttempt,
+                status: user.emailDeliveryStatus,
+                logs: logs
+              });
+              processed++;
+            } catch (parseError) {
+              console.error('Error parsing email logs for user:', user.id, parseError);
+            }
+          }
+        }
+        
+        res.json({
+          totalFailures: failureData.length,
+          failures: failureData
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching email failure data:", error);
+      res.status(500).json({ message: "Failed to fetch email failure data" });
+    }
+  });
+
+  app.get("/api/debug/email-failures/:email", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const email = req.params.email;
+      
+      // Get user by email
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ message: "User not found for email" });
+      }
+      
+      // Parse email delivery logs
+      let detailedLogs = [];
+      if (user.emailDeliveryLogs) {
+        try {
+          detailedLogs = Array.isArray(user.emailDeliveryLogs) 
+            ? user.emailDeliveryLogs 
+            : JSON.parse(user.emailDeliveryLogs as string);
+        } catch (parseError) {
+          console.error('Error parsing email logs:', parseError);
+        }
+      }
+      
+      res.json({
+        user: {
+          id: user.id,
+          email: user.email,
+          emailVerified: user.emailVerified,
+          emailDeliveryStatus: user.emailDeliveryStatus,
+          emailDeliveryAttempts: user.emailDeliveryAttempts,
+          lastEmailAttempt: user.lastEmailAttempt,
+          createdAt: user.createdAt
+        },
+        emailFailureAnalysis: {
+          totalAttempts: user.emailDeliveryAttempts || 0,
+          lastAttemptTime: user.lastEmailAttempt,
+          currentStatus: user.emailDeliveryStatus,
+          detailedLogs: detailedLogs,
+          failurePatterns: analyzeEmailFailurePattern(detailedLogs)
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching detailed email failure data:", error);
+      res.status(500).json({ message: "Failed to fetch detailed email failure data" });
+    }
+  });
+
+  app.post("/api/debug/retry-email", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+      
+      // Get user by email
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      if (user.emailVerified) {
+        return res.status(400).json({ message: "Email is already verified" });
+      }
+      
+      // Import email utilities
+      const { sendVerificationEmailWithLogging } = await import('./utils/postmark');
+      
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      
+      console.log(`🔧 DEBUG: Manual retry for ${email} initiated by admin`);
+      
+      // Attempt to send verification email
+      const result = await sendVerificationEmailWithLogging(
+        email, 
+        user.emailVerificationToken || '', 
+        baseUrl, 
+        user.id
+      );
+      
+      // Update user record with new attempt
+      const currentAttempts = (user.emailDeliveryAttempts || 0) + 1;
+      const newStatus = result.success ? 'sent' : 'failed';
+      
+      // Create log entry for manual retry
+      const manualRetryLog = {
+        timestamp: new Date().toISOString(),
+        type: 'manual_retry',
+        success: result.success,
+        attempts: 1,
+        messageId: result.messageId || null,
+        error: result.error || null,
+        adminInitiated: true,
+        email: email
+      };
+      
+      // Update user record
+      const existingLogs = Array.isArray(user.emailDeliveryLogs) 
+        ? user.emailDeliveryLogs 
+        : (user.emailDeliveryLogs ? JSON.parse(user.emailDeliveryLogs as string) : []);
+      
+      existingLogs.push(manualRetryLog);
+      
+      await storage.logEmailDelivery(user.id, manualRetryLog);
+      
+      res.json({
+        success: result.success,
+        message: result.success 
+          ? `Verification email sent successfully to ${email}` 
+          : `Failed to send email to ${email}: ${result.error}`,
+        result: {
+          messageId: result.messageId,
+          attempts: result.attempts,
+          error: result.error,
+          totalUserAttempts: currentAttempts
+        }
+      });
+    } catch (error) {
+      console.error("Error in manual email retry:", error);
+      res.status(500).json({ 
+        message: "Failed to retry email", 
+        error: error.message 
+      });
+    }
+  });
+
   return httpServer;
+}
+
+// Helper function to analyze email failure patterns
+function analyzeEmailFailurePattern(logs: any[]) {
+  if (!Array.isArray(logs) || logs.length === 0) {
+    return { pattern: 'no_logs', description: 'No email delivery logs found' };
+  }
+  
+  const failures = logs.filter(log => !log.success);
+  if (failures.length === 0) {
+    return { pattern: 'no_failures', description: 'No failed attempts found' };
+  }
+  
+  const errors = failures.map(f => f.error).filter(Boolean);
+  const uniqueErrors = [...new Set(errors)];
+  
+  if (uniqueErrors.length === 1) {
+    const error = uniqueErrors[0];
+    if (error.includes('inactive')) {
+      return { 
+        pattern: 'inactive_recipient', 
+        description: 'Email address is marked as inactive (bounced previously)',
+        recommendation: 'Email address has been blocked by Postmark due to previous bounces or spam complaints'
+      };
+    } else if (error.includes('Invalid email')) {
+      return { 
+        pattern: 'invalid_email', 
+        description: 'Email address format is invalid',
+        recommendation: 'Check email address format and spelling'
+      };
+    } else if (error.includes('Rate limit')) {
+      return { 
+        pattern: 'rate_limited', 
+        description: 'Too many emails sent too quickly',
+        recommendation: 'Wait before retrying or upgrade Postmark plan'
+      };
+    } else if (error.includes('timeout') || error.includes('ETIMEDOUT')) {
+      return { 
+        pattern: 'network_timeout', 
+        description: 'Network connection timeout',
+        recommendation: 'Check network connectivity and try again'
+      };
+    }
+  }
+  
+  return { 
+    pattern: 'mixed_errors', 
+    description: `Multiple different errors encountered: ${uniqueErrors.join(', ')}`,
+    recommendation: 'Review individual error messages for specific issues'
+  };
 }

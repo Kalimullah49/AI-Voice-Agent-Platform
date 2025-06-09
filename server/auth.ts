@@ -197,7 +197,7 @@ export function setupAuth(app: Express) {
                   networkError: emailResult.postmarkResponse?.networkError || null,
                   userAgent: req.headers['user-agent'] || null,
                   ipAddress: req.ip || req.connection.remoteAddress || null,
-                  emailType: 'verification',
+                  emailType: 'verification' as 'verification',
                   detailedLog: emailResult.detailedError || failureLog,
                   registrationAborted: true
                 };
@@ -253,7 +253,7 @@ export function setupAuth(app: Express) {
               failureReason: 'Fallback retry system threw exception',
               userAgent: req.headers['user-agent'] || null,
               ipAddress: req.ip || req.connection.remoteAddress || null,
-              emailType: 'verification',
+              emailType: 'verification' as 'verification',
               detailedLog: fallbackFailureLog,
               registrationAborted: true
             };
