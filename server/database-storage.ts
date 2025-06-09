@@ -1,9 +1,9 @@
 import { eq, and, isNull, desc } from 'drizzle-orm';
 import {
-  User, Agent, Call, Action, PhoneNumber, ContactGroup, Contact, Campaign, TwilioAccount, WebhookLog, EmailFailureLog,
+  User, Agent, Call, Action, PhoneNumber, ContactGroup, Contact, Campaign, TwilioAccount, WebhookLog, EmailFailureLog, PostmarkLog,
   InsertUser, InsertAgent, InsertCall, InsertAction, InsertPhoneNumber, InsertTwilioAccount,
-  InsertContactGroup, InsertContact, InsertCampaign, InsertWebhookLog, InsertEmailFailureLog,
-  users, agents, calls, actions, phoneNumbers, contactGroups, contacts, campaigns, twilioAccounts, webhookLogs, emailFailureLogs,
+  InsertContactGroup, InsertContact, InsertCampaign, InsertWebhookLog, InsertEmailFailureLog, InsertPostmarkLog,
+  users, agents, calls, actions, phoneNumbers, contactGroups, contacts, campaigns, twilioAccounts, webhookLogs, emailFailureLogs, postmarkLogs,
 } from "@shared/schema";
 import { IStorage } from './storage';
 import { db } from './db';
@@ -619,6 +619,47 @@ export class DatabaseStorage implements IStorage {
       .from(emailFailureLogs)
       .where(eq(emailFailureLogs.userId, userId))
       .orderBy(desc(emailFailureLogs.timestamp));
+  }
+
+  // Postmark logging operations - logs EVERY API call and response
+  async createPostmarkLog(logData: InsertPostmarkLog): Promise<PostmarkLog> {
+    const [result] = await db
+      .insert(postmarkLogs)
+      .values(logData)
+      .returning();
+    return result;
+  }
+
+  async getPostmarkLogs(limit: number = 100): Promise<PostmarkLog[]> {
+    return await db
+      .select()
+      .from(postmarkLogs)
+      .orderBy(desc(postmarkLogs.timestamp))
+      .limit(limit);
+  }
+
+  async getPostmarkLogsByEmail(email: string): Promise<PostmarkLog[]> {
+    return await db
+      .select()
+      .from(postmarkLogs)
+      .where(eq(postmarkLogs.email, email))
+      .orderBy(desc(postmarkLogs.timestamp));
+  }
+
+  async getPostmarkLogsByRegistrationAttempt(registrationAttemptId: string): Promise<PostmarkLog[]> {
+    return await db
+      .select()
+      .from(postmarkLogs)
+      .where(eq(postmarkLogs.registrationAttemptId, registrationAttemptId))
+      .orderBy(desc(postmarkLogs.timestamp));
+  }
+
+  async getPostmarkLogsByUserId(userId: string): Promise<PostmarkLog[]> {
+    return await db
+      .select()
+      .from(postmarkLogs)
+      .where(eq(postmarkLogs.userId, userId))
+      .orderBy(desc(postmarkLogs.timestamp));
   }
 
   // Clear all data

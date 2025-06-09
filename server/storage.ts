@@ -8,7 +8,8 @@ import {
   contactGroups, type ContactGroup, type InsertContactGroup,
   contacts, type Contact, type InsertContact,
   campaigns, type Campaign, type InsertCampaign,
-  type EmailFailureLog, type InsertEmailFailureLog
+  type EmailFailureLog, type InsertEmailFailureLog,
+  type PostmarkLog, type InsertPostmarkLog
 } from "@shared/schema";
 
 // Interface for storage operations
@@ -89,6 +90,13 @@ export interface IStorage {
   getEmailFailureLogs(limit?: number): Promise<EmailFailureLog[]>;
   getEmailFailureLogsByEmail(email: string): Promise<EmailFailureLog[]>;
   getEmailFailureLogsByUserId(userId: string): Promise<EmailFailureLog[]>;
+  
+  // Postmark logging operations - logs EVERY API call and response
+  createPostmarkLog(logData: InsertPostmarkLog): Promise<PostmarkLog>;
+  getPostmarkLogs(limit?: number): Promise<PostmarkLog[]>;
+  getPostmarkLogsByEmail(email: string): Promise<PostmarkLog[]>;
+  getPostmarkLogsByRegistrationAttempt(registrationAttemptId: string): Promise<PostmarkLog[]>;
+  getPostmarkLogsByUserId(userId: string): Promise<PostmarkLog[]>;
   
   // Clear all data
   clearAllData(): Promise<void>;

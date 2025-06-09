@@ -349,6 +349,31 @@ export type InsertWebhookLog = z.infer<typeof insertWebhookLogSchema>;
 export type Campaign = typeof campaigns.$inferSelect;
 export type InsertCampaign = z.infer<typeof insertCampaignSchema>;
 
+// Comprehensive email logging table - logs EVERY Postmark API call and response
+export const postmarkLogs = pgTable("postmark_logs", {
+  id: serial("id").primaryKey(),
+  email: varchar("email").notNull(),
+  userId: varchar("user_id"), // Can be null if user creation failed
+  attemptNumber: integer("attempt_number").notNull(), // Which retry attempt (1, 2, 3, etc.)
+  success: boolean("success").notNull(), // Whether this specific attempt succeeded
+  messageId: varchar("message_id"), // Postmark MessageID if successful
+  postmarkResponse: jsonb("postmark_response").notNull(), // Full Postmark API response
+  requestPayload: jsonb("request_payload").notNull(), // What we sent to Postmark
+  errorCode: varchar("error_code"), // Postmark error code (300, 406, 422, etc.)
+  httpStatusCode: integer("http_status_code"), // HTTP status code
+  errorMessage: text("error_message"), // Error message from Postmark
+  networkError: varchar("network_error"), // Network errors (ETIMEDOUT, ECONNRESET, etc.)
+  postmarkSubmittedAt: timestamp("postmark_submitted_at"), // When Postmark accepted the email
+  emailType: varchar("email_type").notNull().default("verification"), // verification, password_reset, welcome
+  environment: varchar("environment").notNull().default("production"), // development, production
+  userAgent: text("user_agent"),
+  ipAddress: varchar("ip_address"),
+  registrationAttemptId: varchar("registration_attempt_id"), // Link multiple email attempts to same registration
+  finalAttempt: boolean("final_attempt").default(false), // Whether this was the last retry
+  retryable: boolean("retryable").default(false), // Whether the error was retryable
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+});
+
 // Email failure tracking table for comprehensive debugging
 export const emailFailureLogs = pgTable("email_failure_logs", {
   id: serial("id").primaryKey(),
@@ -375,6 +400,17 @@ export const insertEmailFailureLogSchema = createInsertSchema(emailFailureLogs, 
   failureReason: z.string().optional(),
   emailType: z.enum(["verification", "password_reset", "welcome"]).optional(),
 });
+
+export const insertPostmarkLogSchema = createInsertSchema(postmarkLogs, {
+  email: z.string().email(),
+  attemptNumber: z.number().min(1),
+  success: z.boolean(),
+  emailType: z.enum(["verification", "password_reset", "welcome"]).optional(),
+  environment: z.enum(["development", "production"]).optional(),
+});
+
+export type PostmarkLog = typeof postmarkLogs.$inferSelect;
+export type InsertPostmarkLog = z.infer<typeof insertPostmarkLogSchema>;
 
 export type EmailFailureLog = typeof emailFailureLogs.$inferSelect;
 export type InsertEmailFailureLog = z.infer<typeof insertEmailFailureLogSchema>;
