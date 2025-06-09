@@ -112,21 +112,15 @@ export function setupAuth(app: Express) {
       
       console.log(`Step 7: Starting comprehensive email delivery with database logging (ID: ${registrationAttemptId})`);
       
-      const emailResult = await sendVerificationEmailWithComprehensiveLogging(
-        validatedData.email, 
-        verificationToken, 
-        baseUrl, 
-        userId,
-        {
-          userAgent: req.headers['user-agent'],
-          ipAddress: req.ip || req.connection.remoteAddress,
-          registrationAttemptId
-        }
+      const { sendDirectVerificationEmail } = await import('./utils/direct-postmark');
+      const emailResult = await sendDirectVerificationEmail(
+        validatedData.email,
+        verificationToken,
+        baseUrl
       );
       
       console.log(`📧 Email delivery completed for ${validatedData.email}:`, {
         success: emailResult.success,
-        attempts: emailResult.attempts,
         messageId: emailResult.messageId,
         error: emailResult.error
       });
@@ -172,7 +166,7 @@ export function setupAuth(app: Express) {
         ...userWithoutSensitiveData,
         message: userMessage,
         emailSent: emailResult.success,
-        emailAttempts: emailResult.attempts,
+        emailAttempts: emailResult.success ? 1 : 0,
         canRetryEmail: emailResult.success || canRetryEmail
       });
       
@@ -332,8 +326,14 @@ export function setupAuth(app: Express) {
         baseUrl = `${protocol}://${req.get('host')}`;
       }
       
-      const { sendPasswordResetEmail } = await import('./utils/postmark-comprehensive');
-      await sendPasswordResetEmail(email, resetToken, baseUrl);
+      const { sendDirectPasswordResetEmail } = await import('./utils/direct-postmark');
+      const result = await sendDirectPasswordResetEmail(email, resetToken, baseUrl);
+      
+      console.log(`📧 Password reset email result for ${email}:`, {
+        success: result.success,
+        messageId: result.messageId,
+        error: result.error
+      });
 
       res.json({ message: "If the email exists, a reset link has been sent" });
     } catch (error) {
@@ -566,17 +566,11 @@ export function setupAuth(app: Express) {
         baseUrl = `${protocol}://${req.get('host')}`;
       }
       
-      const { sendVerificationEmailWithComprehensiveLogging } = await import('./utils/postmark-comprehensive');
-      const result = await sendVerificationEmailWithComprehensiveLogging(
-        email, 
-        verificationToken, 
-        baseUrl, 
-        user.id,
-        {
-          userAgent: req.headers['user-agent'],
-          ipAddress: req.ip || req.connection.remoteAddress,
-          registrationAttemptId: `manual_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-        }
+      const { sendDirectVerificationEmail } = await import('./utils/direct-postmark');
+      const result = await sendDirectVerificationEmail(
+        email,
+        verificationToken,
+        baseUrl
       );
 
       if (result.success) {
