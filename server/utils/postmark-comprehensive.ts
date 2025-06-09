@@ -92,12 +92,23 @@ export async function sendEmailWithComprehensiveLogging(
   let lastError: any = null;
   
   const emailPayload = {
-    From: params.from || 'contact@callsinmotion.com',
+    From: params.from || 'Mind AI <noreply@callsinmotion.com>',
     To: params.to,
     Subject: params.subject,
     HtmlBody: params.htmlBody,
     TextBody: params.textBody || params.htmlBody.replace(/<[^>]*>/g, ''),
-    MessageStream: 'outbound'
+    MessageStream: 'outbound',
+    ReplyTo: 'support@callsinmotion.com',
+    Headers: [
+      {
+        Name: 'X-Priority',
+        Value: '1'
+      },
+      {
+        Name: 'Importance',
+        Value: 'high'
+      }
+    ]
   };
   
   const environment = process.env.NODE_ENV || 'production';
