@@ -11,7 +11,14 @@ interface ProtectedRouteProps {
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, isLoading, refetchUser } = useAuth();
   
+  console.log("🛡️ ProtectedRoute check:", {
+    user: user ? { id: user.id, email: user.email, emailVerified: user.emailVerified } : null,
+    isLoading,
+    willRedirect: !user && !isLoading
+  });
+  
   if (isLoading) {
+    console.log("🛡️ ProtectedRoute: Showing loading spinner");
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -20,6 +27,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
   
   if (!user) {
+    console.log("🛡️ ProtectedRoute: No user found, redirecting to /auth");
     return <Redirect to="/auth" />;
   }
 

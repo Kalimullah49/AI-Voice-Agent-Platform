@@ -31,10 +31,15 @@ export default function LoginForm() {
 
   function onSubmit(data: LoginUser) {
     login(data, {
-      onSuccess: () => {
-        window.location.href = "/";
+      onSuccess: (response) => {
+        console.log("🎯 Login form success callback triggered:", response);
+        // Small delay to ensure state updates are processed
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 100);
       },
       onError: (error: any) => {
+        console.log("❌ Login form error callback:", error);
         if (error.message.includes("verify your email")) {
           const email = form.getValues("email");
           setUnverifiedEmail(email);

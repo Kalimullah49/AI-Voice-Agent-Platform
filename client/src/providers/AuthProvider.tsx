@@ -53,14 +53,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refetchOnWindowFocus: false,
     refetchOnMount: true,
     retry: (failureCount, error: any) => {
-      // Don't retry on 401 (Unauthorized) or 403 (Email not verified)
-      if (error?.response?.status === 401 || error?.response?.status === 403) {
+      // Don't retry on 401 (Unauthorized) - this means user is not logged in
+      if (error?.message?.includes('401') || error?.message?.includes('Unauthorized')) {
         return false;
       }
-      return failureCount < 3;
+      return failureCount < 2;
     },
     gcTime: 0,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 2, // 2 minutes
   });
 
   // Login mutation
@@ -74,7 +74,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return await response.json();
     },
     onSuccess: (data) => {
+      console.log("🎯 Login mutation success, setting user data:", data);
       queryClient.setQueryData(["/api/auth/user"], data);
+      // Force a refetch to ensure the query cache is updated
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       toast({
         title: "Login successful",
         description: "Welcome back!",
@@ -211,6 +214,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
   };
+
+  // Debug authentication state
+  useEffect(() => {
+    console.log("🔍 AuthProvider state update:", {
+      user: user ? { id: user.id, email: user.email, emailVerified: user.emailVerified } : null,
+      isLoading,
+      isAuthenticated: !!user,
+      queryError: queryError?.message
+    });
+  }, [user, isLoading, queryError]);
 
   // Provide auth context
   return (
