@@ -6,6 +6,10 @@ if (!process.env.POSTMARK_SERVER_TOKEN) {
 
 // Configure Postmark client with timeout and logging
 console.log(`🔥 POSTMARK CLIENT: Initializing with token ${process.env.POSTMARK_SERVER_TOKEN?.substring(0, 8)}...`);
+console.log(`🔥 ENVIRONMENT: ${process.env.NODE_ENV}`);
+console.log(`🔥 TOKEN EXISTS: ${!!process.env.POSTMARK_SERVER_TOKEN}`);
+console.log(`🔥 TOKEN LENGTH: ${process.env.POSTMARK_SERVER_TOKEN?.length || 0}`);
+
 const client = new postmark.ServerClient(process.env.POSTMARK_SERVER_TOKEN, {
   timeout: 30000, // 30 second timeout
 });

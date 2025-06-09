@@ -397,6 +397,13 @@ export function setupAuth(app: Express) {
 
   // Send verification email
   app.post("/api/auth/send-verification", async (req: Request, res: Response) => {
+    console.log("🔥 SEND VERIFICATION REQUEST:", {
+      body: req.body,
+      headers: req.headers,
+      environment: process.env.NODE_ENV,
+      timestamp: new Date().toISOString()
+    });
+    
     try {
       const { email } = req.body;
       
