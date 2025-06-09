@@ -92,7 +92,18 @@ export function setupAuth(app: Express) {
       console.log(`✅ Generated verification token: ${verificationToken.substring(0, 10)}...`);
 
       console.log("Step 6: Preparing to send verification email...");
-      const baseUrl = `https://${req.get('host')}`;
+      
+      // Determine the correct base URL for verification links
+      let baseUrl: string;
+      if (process.env.REPLIT_DOMAINS) {
+        // In Replit environment, always use the Replit domain
+        baseUrl = `https://${process.env.REPLIT_DOMAINS}`;
+      } else {
+        // Fallback to request host detection for other environments
+        const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+        baseUrl = `${protocol}://${req.get('host')}`;
+      }
+      
       console.log(`Base URL: ${baseUrl}`);
       console.log(`Target email: ${validatedData.email}`);
 
