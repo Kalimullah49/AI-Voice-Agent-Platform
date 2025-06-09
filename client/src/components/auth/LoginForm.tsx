@@ -9,14 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/providers/AuthProvider";
-import { Eye, EyeOff, Loader2, Mail, TestTube } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [_, setLocation] = useLocation();
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
-  const [showTestSection, setShowTestSection] = useState(false);
-  const [testEmail, setTestEmail] = useState("");
+
   const { toast } = useToast();
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginUser) => {
@@ -62,38 +61,7 @@ export default function LoginForm() {
     },
   });
 
-  const testEmailMutation = useMutation({
-    mutationFn: async (email: string) => {
-      const res = await fetch("/api/auth/test-email", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({ email }),
-      });
-      
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to send test email");
-      }
-      
-      return await res.json();
-    },
-    onSuccess: (data) => {
-      toast({
-        title: "Test email sent successfully",
-        description: `Environment: ${data.environment} | Message ID: ${data.messageId?.substring(0, 8)}...`,
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Test email failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+
   
   const form = useForm<LoginUser>({
     resolver: zodResolver(loginUserSchema),
@@ -208,60 +176,7 @@ export default function LoginForm() {
           </div>
         )}
 
-        {/* Test Email Section */}
-        <div className="mt-6 border-t pt-4">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowTestSection(!showTestSection)}
-            className="text-xs text-gray-500 hover:text-gray-700"
-          >
-            <TestTube className="mr-1 h-3 w-3" />
-            {showTestSection ? "Hide" : "Show"} Email Test
-          </Button>
-          
-          {showTestSection && (
-            <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-center mb-2">
-                <Mail className="mr-2 h-4 w-4 text-blue-600" />
-                <span className="text-sm font-medium text-blue-700">Test Email Delivery</span>
-              </div>
-              <p className="text-xs text-blue-600 mb-3">
-                Send a test verification email to any address to verify Postmark configuration in both development and production environments.
-              </p>
-              <div className="space-y-3">
-                <Input
-                  type="email"
-                  placeholder="Enter test email address"
-                  value={testEmail}
-                  onChange={(e) => setTestEmail(e.target.value)}
-                  className="text-sm"
-                />
-                <Button
-                  type="button"
-                  onClick={() => testEmail && testEmailMutation.mutate(testEmail)}
-                  disabled={!testEmail || testEmailMutation.isPending}
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                >
-                  {testEmailMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                      Sending Test Email...
-                    </>
-                  ) : (
-                    <>
-                      <Mail className="mr-2 h-3 w-3" />
-                      Send Test Email
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
+
       </form>
     </Form>
   );
