@@ -372,10 +372,21 @@ export function setupAuth(app: Express) {
 
   // Test email endpoint
   app.post("/api/auth/test-email", async (req: Request, res: Response) => {
-    console.log("🔥 TEST EMAIL REQUEST:", {
+    console.log("🚨 PRODUCTION TEST EMAIL REQUEST:", {
       body: req.body,
       environment: process.env.NODE_ENV,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      host: req.get('host'),
+      userAgent: req.headers['user-agent']
+    });
+    
+    // Log token details for production debugging
+    console.log("🚨 PRODUCTION TOKEN DEBUG:", {
+      tokenExists: !!process.env.POSTMARK_SERVER_TOKEN,
+      tokenLength: process.env.POSTMARK_SERVER_TOKEN?.length || 0,
+      tokenPrefix: process.env.POSTMARK_SERVER_TOKEN?.substring(0, 8),
+      tokenFirst12: process.env.POSTMARK_SERVER_TOKEN?.substring(0, 12),
+      replitDomains: process.env.REPLIT_DOMAINS
     });
     
     try {
@@ -396,11 +407,13 @@ export function setupAuth(app: Express) {
         baseUrl = `${protocol}://${req.get('host')}`;
       }
       
-      console.log("🔥 TEST EMAIL CONFIG:", {
+      console.log("🚨 PRODUCTION EMAIL CONFIG:", {
         email,
         baseUrl,
         environment: process.env.NODE_ENV,
-        tokenPrefix: process.env.POSTMARK_SERVER_TOKEN?.substring(0, 8)
+        tokenPrefix: process.env.POSTMARK_SERVER_TOKEN?.substring(0, 8),
+        actualHost: req.get('host'),
+        protocol: req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http'
       });
       
       const result = await sendVerificationEmailWithComprehensiveLogging(
@@ -444,6 +457,38 @@ export function setupAuth(app: Express) {
         success: false
       });
     }
+  });
+
+  // Production token debug endpoint
+  app.get("/api/auth/debug-token", async (req: Request, res: Response) => {
+    console.log("🚨 PRODUCTION TOKEN DEBUG ENDPOINT CALLED");
+    console.log("🚨 REQUEST INFO:", {
+      host: req.get('host'),
+      environment: process.env.NODE_ENV,
+      timestamp: new Date().toISOString(),
+      userAgent: req.headers['user-agent'],
+      ip: req.ip || req.connection.remoteAddress
+    });
+    
+    const tokenInfo = {
+      exists: !!process.env.POSTMARK_SERVER_TOKEN,
+      length: process.env.POSTMARK_SERVER_TOKEN?.length || 0,
+      prefix: process.env.POSTMARK_SERVER_TOKEN?.substring(0, 8) || 'none',
+      first12: process.env.POSTMARK_SERVER_TOKEN?.substring(0, 12) || 'none',
+      environment: process.env.NODE_ENV,
+      replitDomains: process.env.REPLIT_DOMAINS || 'not set',
+      databaseExists: !!process.env.DATABASE_URL,
+      host: req.get('host'),
+      protocol: req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http'
+    };
+    
+    console.log("🚨 PRODUCTION TOKEN INFO:", tokenInfo);
+    
+    res.json({
+      message: "Token debug information",
+      ...tokenInfo,
+      timestamp: new Date().toISOString()
+    });
   });
 
   // Send verification email

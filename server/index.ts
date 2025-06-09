@@ -6,10 +6,16 @@ import { setupAuth } from "./auth";
 
 const app = express();
 
-// Log server token for debugging
-console.log(`🔥 SERVER STARTUP - POSTMARK_SERVER_TOKEN: ${process.env.POSTMARK_SERVER_TOKEN?.substring(0, 8)}...`);
-console.log(`🔥 SERVER STARTUP - NODE_ENV: ${process.env.NODE_ENV}`);
-console.log(`🔥 SERVER STARTUP - DATABASE_URL exists: ${!!process.env.DATABASE_URL}`);
+// Log server token for debugging - PRODUCTION CHECK
+console.log(`🚨🚨🚨 PRODUCTION STARTUP TOKEN CHECK 🚨🚨🚨`);
+console.log(`🚨 POSTMARK_SERVER_TOKEN: ${process.env.POSTMARK_SERVER_TOKEN?.substring(0, 8)}...`);
+console.log(`🚨 TOKEN LENGTH: ${process.env.POSTMARK_SERVER_TOKEN?.length || 0}`);
+console.log(`🚨 TOKEN FIRST 12: ${process.env.POSTMARK_SERVER_TOKEN?.substring(0, 12)}...`);
+console.log(`🚨 NODE_ENV: ${process.env.NODE_ENV}`);
+console.log(`🚨 DATABASE_URL exists: ${!!process.env.DATABASE_URL}`);
+console.log(`🚨 REPLIT_DOMAINS: ${process.env.REPLIT_DOMAINS || 'not set'}`);
+console.log(`🚨 STARTUP TIME: ${new Date().toISOString()}`);
+console.log(`🚨🚨🚨 END PRODUCTION STARTUP CHECK 🚨🚨🚨`);
 
 // Configure CORS to allow cookies from frontend
 app.use(cors({
