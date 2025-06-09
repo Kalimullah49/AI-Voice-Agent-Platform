@@ -2000,6 +2000,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
+  // Comprehensive Postmark logging endpoints - shows EVERY API call and response
+  app.get("/api/debug/postmark-logs", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { email, registrationAttemptId, limit } = req.query;
+      
+      if (email && typeof email === 'string') {
+        // Get all Postmark logs for specific email
+        const logs = await storage.getPostmarkLogsByEmail(email);
+        res.json({
+          email,
+          totalLogs: logs.length,
+          logs: logs.map(log => ({
+            id: log.id,
+            attemptNumber: log.attemptNumber,
+            success: log.success,
+            messageId: log.messageId,
+            errorCode: log.errorCode,
+            httpStatusCode: log.httpStatusCode,
+            errorMessage: log.errorMessage,
+            networkError: log.networkError,
+            emailType: log.emailType,
+            environment: log.environment,
+            registrationAttemptId: log.registrationAttemptId,
+            finalAttempt: log.finalAttempt,
+            retryable: log.retryable,
+            timestamp: log.timestamp,
+            postmarkResponse: log.postmarkResponse,
+            requestPayload: log.requestPayload
+          }))
+        });
+      } else if (registrationAttemptId && typeof registrationAttemptId === 'string') {
+        // Get all attempts for a specific registration
+        const logs = await storage.getPostmarkLogsByRegistrationAttempt(registrationAttemptId);
+        res.json({
+          registrationAttemptId,
+          totalAttempts: logs.length,
+          logs: logs.map(log => ({
+            id: log.id,
+            email: log.email,
+            attemptNumber: log.attemptNumber,
+            success: log.success,
+            messageId: log.messageId,
+            errorCode: log.errorCode,
+            httpStatusCode: log.httpStatusCode,
+            errorMessage: log.errorMessage,
+            networkError: log.networkError,
+            timestamp: log.timestamp,
+            postmarkResponse: log.postmarkResponse
+          }))
+        });
+      } else {
+        // Get recent Postmark logs
+        const limitNum = limit ? parseInt(limit as string) : 100;
+        const logs = await storage.getPostmarkLogs(limitNum);
+        res.json({
+          totalLogs: logs.length,
+          logs: logs.map(log => ({
+            id: log.id,
+            email: log.email,
+            attemptNumber: log.attemptNumber,
+            success: log.success,
+            messageId: log.messageId,
+            errorCode: log.errorCode,
+            httpStatusCode: log.httpStatusCode,
+            errorMessage: log.errorMessage,
+            registrationAttemptId: log.registrationAttemptId,
+            timestamp: log.timestamp
+          }))
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching Postmark logs:", error);
+      res.status(500).json({ message: "Failed to fetch Postmark logs" });
+    }
+  });
+
   // Email failure debugging endpoints
   app.get("/api/debug/email-failures", isAuthenticated, async (req: Request, res: Response) => {
     try {

@@ -139,30 +139,29 @@ export function setupAuth(app: Express) {
           console.log("Waiting 2 seconds before retry...");
           await new Promise(resolve => setTimeout(resolve, 2000));
           
-          console.log("Attempting fallback email send...");
-          emailResult = await sendVerificationEmailWithLogging(validatedData.email, verificationToken, baseUrl, userId);
-          console.log("Fallback email result:", JSON.stringify(emailResult, null, 2));
+          // Generate unique registration attempt ID for tracking all email attempts
+          const registrationAttemptId = `reg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
           
-          if (!emailResult.success) {
-            console.error("❌ Fallback email also failed, trying manual retry...");
-            
-            // Manual retry with even more logging
-            for (let retryAttempt = 1; retryAttempt <= 3; retryAttempt++) {
-              console.log(`Manual retry attempt ${retryAttempt}/3...`);
-              
-              try {
-                await new Promise(resolve => setTimeout(resolve, 1000 * retryAttempt));
-                emailResult = await sendVerificationEmailWithLogging(validatedData.email, verificationToken, baseUrl, userId);
-                console.log(`Manual retry ${retryAttempt} result:`, JSON.stringify(emailResult, null, 2));
-                
-                if (emailResult.success) {
-                  console.log(`✅ Manual retry ${retryAttempt} succeeded!`);
-                  break;
-                }
-              } catch (manualRetryError) {
-                console.error(`Manual retry ${retryAttempt} threw error:`, manualRetryError);
-              }
+          console.log(`Starting comprehensive email delivery with database logging (ID: ${registrationAttemptId})`);
+          
+          emailResult = await sendVerificationEmailWithComprehensiveLogging(
+            validatedData.email, 
+            verificationToken, 
+            baseUrl, 
+            userId,
+            {
+              userAgent: req.headers['user-agent'],
+              ipAddress: req.ip || req.connection.remoteAddress,
+              registrationAttemptId
             }
+          );
+          
+          console.log(`Email delivery completed for ${validatedData.email}:`, {
+            success: emailResult.success,
+            attempts: emailResult.attempts,
+            messageId: emailResult.messageId,
+            error: emailResult.error
+          });
             
             // If still failed, log detailed failure and abort registration
             if (!emailResult.success) {
