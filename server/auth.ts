@@ -345,14 +345,14 @@ export function setupAuth(app: Express) {
   // Password reset
   app.post("/api/auth/reset-password", async (req: Request, res: Response) => {
     try {
-      const { token, password, confirmPassword } = req.body;
+      const { token, password } = req.body;
       
-      if (!token || !password || !confirmPassword) {
-        return res.status(400).json({ message: "All fields are required" });
+      if (!token || !password) {
+        return res.status(400).json({ message: "Token and password are required" });
       }
 
-      if (password !== confirmPassword) {
-        return res.status(400).json({ message: "Passwords do not match" });
+      if (password.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters long" });
       }
 
       const user = await storage.verifyPasswordResetToken(token);
@@ -363,6 +363,7 @@ export function setupAuth(app: Express) {
       const hashedPassword = await hashPassword(password);
       await storage.updatePassword(user.id, hashedPassword);
 
+      console.log(`✅ Password reset successful for user: ${user.email}`);
       res.json({ message: "Password reset successfully" });
     } catch (error) {
       console.error("Password reset error:", error);
