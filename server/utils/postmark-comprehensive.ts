@@ -48,7 +48,35 @@ async function logPostmarkAttemptToDatabase(logData: any): Promise<void> {
   }
 }
 
-export async function sendEmailWithPostmarkRetryAndDatabaseLogging(
+function isRetryableError(error: any): boolean {
+  // Permanent failures that should not be retried
+  const nonRetryableCodes = [300, 406, 422]; // Invalid email, bounced, malformed request
+  
+  if (error.postmarkApiErrorCode && nonRetryableCodes.includes(error.postmarkApiErrorCode)) {
+    return false;
+  }
+  
+  // Network/temporary errors that should be retried
+  const retryableCodes = [429, 500, 503]; // Rate limit, server error, service unavailable
+  if (error.postmarkApiErrorCode && retryableCodes.includes(error.postmarkApiErrorCode)) {
+    return true;
+  }
+  
+  // Network timeouts and connection errors
+  if (error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND') {
+    return true;
+  }
+  
+  // HTTP 5xx errors are generally retryable
+  if (error.httpStatusCode >= 500) {
+    return true;
+  }
+  
+  // Default to non-retryable for unknown errors
+  return false;
+}
+
+export async function sendEmailWithComprehensiveLogging(
   params: EmailParams, 
   options: {
     userId?: string;
@@ -58,7 +86,7 @@ export async function sendEmailWithPostmarkRetryAndDatabaseLogging(
     ipAddress?: string;
   } = {}
 ): Promise<{ success: boolean; messageId?: string; error?: string; attempts: number; postmarkResponse?: any; detailedError?: any }> {
-  const maxRetries = 8; // Increased to 8 retries as requested
+  const maxRetries = 8; // 8 retries as requested
   const baseDelayMs = 1000;
   let attempts = 0;
   let lastError: any = null;
@@ -74,25 +102,25 @@ export async function sendEmailWithPostmarkRetryAndDatabaseLogging(
   
   const environment = process.env.NODE_ENV || 'production';
   
-  console.log(`🔥 POSTMARK LOGGING: Starting email delivery to ${params.to} with ${maxRetries} retry attempts`);
-  console.log(`🔥 POSTMARK LOGGING: Registration attempt ID: ${options.registrationAttemptId}`);
+  console.log(`🔥 POSTMARK COMPREHENSIVE: Starting email to ${params.to} with ${maxRetries} retries`);
+  console.log(`🔥 REGISTRATION ID: ${options.registrationAttemptId}`);
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     attempts = attempt;
     const isFinalAttempt = attempt === maxRetries;
     
     try {
-      console.log(`🔥 POSTMARK ATTEMPT ${attempt}/${maxRetries} for ${params.to}`);
+      console.log(`🔥 ATTEMPT ${attempt}/${maxRetries} for ${params.to}`);
       
       const startTime = Date.now();
       const response = await client.sendEmail(emailPayload);
       const responseTime = Date.now() - startTime;
       
-      console.log(`🔥 POSTMARK SUCCESS on attempt ${attempt}:`, {
+      console.log(`🔥 SUCCESS attempt ${attempt}:`, {
         MessageID: response.MessageID,
         To: response.To,
         SubmittedAt: response.SubmittedAt,
-        responseTimeMs: responseTime
+        responseTime
       });
       
       // Log successful attempt to database
@@ -108,7 +136,7 @@ export async function sendEmailWithPostmarkRetryAndDatabaseLogging(
           SubmittedAt: response.SubmittedAt,
           ErrorCode: response.ErrorCode,
           Message: response.Message,
-          responseTimeMs: responseTime
+          responseTime
         },
         requestPayload: emailPayload,
         emailType: options.emailType || 'verification',
@@ -131,7 +159,7 @@ export async function sendEmailWithPostmarkRetryAndDatabaseLogging(
           SubmittedAt: response.SubmittedAt,
           ErrorCode: response.ErrorCode,
           Message: response.Message,
-          responseTimeMs: responseTime
+          responseTime
         }
       };
       
@@ -139,7 +167,7 @@ export async function sendEmailWithPostmarkRetryAndDatabaseLogging(
       lastError = error;
       const isRetryable = isRetryableError(error);
       
-      console.error(`🔥 POSTMARK FAILURE attempt ${attempt}/${maxRetries} for ${params.to}:`, {
+      console.error(`🔥 FAILURE attempt ${attempt}/${maxRetries} for ${params.to}:`, {
         message: error.message,
         code: error.code,
         errorCode: error.errorCode,
@@ -178,13 +206,13 @@ export async function sendEmailWithPostmarkRetryAndDatabaseLogging(
       });
       
       if (!isRetryable || isFinalAttempt) {
-        console.error(`🔥 POSTMARK STOPPING: Non-retryable error or max retries reached for ${params.to}`);
+        console.error(`🔥 STOPPING: Non-retryable error or max retries reached for ${params.to}`);
         break;
       }
       
       // Exponential backoff with jitter
       const delayMs = baseDelayMs * Math.pow(2, attempt - 1) + Math.random() * 1000;
-      console.log(`🔥 POSTMARK RETRY: Waiting ${Math.round(delayMs)}ms before next attempt...`);
+      console.log(`🔥 RETRY: Waiting ${Math.round(delayMs)}ms before next attempt...`);
       await new Promise(resolve => setTimeout(resolve, delayMs));
     }
   }
@@ -246,7 +274,7 @@ export async function sendEmailWithPostmarkRetryAndDatabaseLogging(
     }
   };
   
-  console.error(`🔥 POSTMARK FINAL FAILURE - ${params.to}:`);
+  console.error(`🔥 FINAL FAILURE - ${params.to}:`);
   console.error(`🔥 Total Attempts: ${attempts}/${maxRetries}`);
   console.error(`🔥 Final Error: ${errorMessage}`);
   console.error(`🔥 Postmark Error Code: ${lastError?.postmarkApiErrorCode || 'None'}`);
@@ -269,76 +297,7 @@ export async function sendEmailWithPostmarkRetryAndDatabaseLogging(
   };
 }
 
-// Legacy function for backward compatibility
-export async function sendEmailWithPostmarkRetry(params: EmailParams): Promise<{ success: boolean; messageId?: string; error?: string; attempts: number; postmarkResponse?: any; detailedError?: any }> {
-  return sendEmailWithPostmarkRetryAndDatabaseLogging(params);
-}
-
-function isRetryableError(error: any): boolean {
-  // Permanent failures that should not be retried
-  const nonRetryableCodes = [300, 406, 422]; // Invalid email, bounced, malformed request
-  
-  if (error.postmarkApiErrorCode && nonRetryableCodes.includes(error.postmarkApiErrorCode)) {
-    return false;
-  }
-  
-  // Network/temporary errors that should be retried
-  const retryableCodes = [429, 500, 503]; // Rate limit, server error, service unavailable
-  if (error.postmarkApiErrorCode && retryableCodes.includes(error.postmarkApiErrorCode)) {
-    return true;
-  }
-  
-  // Network timeouts and connection errors
-  if (error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND') {
-    return true;
-  }
-  
-  // HTTP 5xx errors are generally retryable
-  if (error.httpStatusCode >= 500) {
-    return true;
-  }
-  
-  // Default to non-retryable for unknown errors
-  return false;
-}
-
-export async function sendEmail(params: EmailParams): Promise<boolean> {
-  const result = await sendEmailWithPostmarkRetry(params);
-  return result.success;
-}
-
-// Database logging function for Postmark attempts
-async function logPostmarkAttemptToDatabase(logData: any): Promise<void> {
-  try {
-    const { storage } = await import('../storage');
-    await storage.createPostmarkLog({
-      email: logData.email,
-      userId: logData.userId || null,
-      attemptNumber: logData.attemptNumber,
-      success: logData.success,
-      messageId: logData.messageId || null,
-      postmarkResponse: logData.postmarkResponse,
-      requestPayload: logData.requestPayload,
-      errorCode: logData.errorCode || null,
-      httpStatusCode: logData.httpStatusCode || null,
-      errorMessage: logData.errorMessage || null,
-      networkError: logData.networkError || null,
-      postmarkSubmittedAt: logData.postmarkSubmittedAt || null,
-      emailType: logData.emailType,
-      environment: logData.environment,
-      userAgent: logData.userAgent || null,
-      ipAddress: logData.ipAddress || null,
-      registrationAttemptId: logData.registrationAttemptId || null,
-      finalAttempt: logData.finalAttempt,
-      retryable: logData.retryable
-    });
-    console.log(`🔥 DATABASE LOG: Saved Postmark attempt ${logData.attemptNumber} for ${logData.email}`);
-  } catch (error) {
-    console.error('🔥 DATABASE LOG ERROR: Failed to save Postmark log to database:', error);
-  }
-}
-
-export async function sendVerificationEmailWithLogging(
+export async function sendVerificationEmailWithComprehensiveLogging(
   email: string, 
   token: string, 
   baseUrl: string, 
@@ -380,7 +339,7 @@ export async function sendVerificationEmailWithLogging(
     </div>
   `;
 
-  const result = await sendEmailWithPostmarkRetryAndDatabaseLogging({
+  const result = await sendEmailWithComprehensiveLogging({
     to: email,
     subject: 'Verify your Mind AI account',
     htmlBody
@@ -395,43 +354,4 @@ export async function sendVerificationEmailWithLogging(
   console.log(`🔥 VERIFICATION EMAIL RESULT: ${result.success ? 'SUCCESS' : 'FAILED'} for ${email} after ${result.attempts} attempts`);
   
   return result;
-}
-
-export async function sendVerificationEmail(email: string, token: string, baseUrl: string): Promise<boolean> {
-  const result = await sendVerificationEmailWithLogging(email, token, baseUrl);
-  return result.success;
-}
-
-export async function sendPasswordResetEmail(email: string, token: string, baseUrl: string): Promise<boolean> {
-  const resetUrl = `${baseUrl}/reset-password?token=${token}`;
-  
-  const htmlBody = `
-    <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
-      <h1 style="color: #333; text-align: center;">Reset Your Password</h1>
-      <p>You requested a password reset for your Mind AI account. Click the button below to create a new password:</p>
-      
-      <div style="text-align: center; margin: 30px 0;">
-        <a href="${resetUrl}" 
-           style="background-color: #dc3545; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
-          Reset Password
-        </a>
-      </div>
-      
-      <p>If the button doesn't work, copy and paste this link into your browser:</p>
-      <p style="word-break: break-all; color: #666;">${resetUrl}</p>
-      
-      <p>This reset link will expire in 1 hour for security.</p>
-      
-      <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-      <p style="color: #666; font-size: 12px; text-align: center;">
-        This email was sent by Mind AI. If you didn't request a password reset, you can safely ignore this email.
-      </p>
-    </div>
-  `;
-
-  return await sendEmail({
-    to: email,
-    subject: 'Reset your Mind AI password',
-    htmlBody
-  });
 }
