@@ -5,6 +5,7 @@ import { loginUserSchema, registerUserSchema, emailVerificationSchema, users } f
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import session from "express-session";
+import createMemoryStore from "memorystore";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
@@ -47,6 +48,25 @@ export function isAuthenticated(req: Request, res: Response, next: NextFunction)
 export function setupAuth(app: Express) {
   console.log("🔐 LOADING ENHANCED AUTH SYSTEM WITH COMPREHENSIVE LOGGING");
   console.log("🔐 Registration endpoint includes multi-tier fallback retry system");
+
+  // Configure session middleware
+  const MemoryStore = createMemoryStore(session);
+  
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'fallback-secret-for-development',
+    resave: false,
+    saveUninitialized: false,
+    store: new MemoryStore({
+      checkPeriod: 86400000 // prune expired entries every 24h
+    }),
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+  }));
+
+  console.log("✅ Session middleware configured");
 
   // Registration endpoint with comprehensive email logging
   app.post("/api/auth/register", async (req: Request, res: Response) => {
@@ -208,6 +228,13 @@ export function setupAuth(app: Express) {
           message: "Please verify your email before logging in",
           requiresVerification: true 
         });
+      }
+      
+      console.log("🔧 Session object:", req.session);
+      console.log("🔧 Session exists:", !!req.session);
+      
+      if (!req.session) {
+        throw new Error("Session middleware not properly configured");
       }
       
       req.session.userId = user.id;
