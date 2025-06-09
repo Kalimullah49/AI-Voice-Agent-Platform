@@ -6,6 +6,8 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import session from "express-session";
 import createMemoryStore from "memorystore";
+import connectPg from "connect-pg-simple";
+import { pgPool } from "./db";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
@@ -39,10 +41,12 @@ export function isAuthenticated(req: Request, res: Response, next: NextFunction)
   console.log("🔍 Auth check - sessionId:", req.session?.id);
   console.log("🔍 Auth check - userId:", req.session?.userId);
   console.log("🔍 Auth check - cookie:", req.headers.cookie);
+  console.log("🔍 Auth check - session object:", req.session);
   
   if (req.session?.userId) {
     next();
   } else {
+    console.log("❌ Authentication failed - no valid session");
     res.status(401).json({ message: "Unauthorized" });
   }
 }
@@ -52,6 +56,7 @@ export function setupAuth(app: Express) {
   console.log("🔐 Registration endpoint includes multi-tier fallback retry system");
 
   // Configure session middleware
+  // Use memory store for reliability
   const MemoryStore = createMemoryStore(session);
   
   app.use(session({
@@ -62,12 +67,14 @@ export function setupAuth(app: Express) {
       checkPeriod: 86400000 // prune expired entries every 24h
     }),
     cookie: {
-      secure: process.env.NODE_ENV === 'production',
+      secure: false, // Keep false for Replit environment
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      domain: undefined
-    }
+      sameSite: 'lax', // Use lax for better compatibility
+      domain: undefined,
+      path: '/'
+    },
+    name: 'sessionId' // Custom session name
   }));
 
   console.log("✅ Session middleware configured");
