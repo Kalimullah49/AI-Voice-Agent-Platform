@@ -18,11 +18,26 @@ console.log(`🚨 STARTUP TIME: ${new Date().toISOString()}`);
 console.log(`🚨🚨🚨 END PRODUCTION STARTUP CHECK 🚨🚨🚨`);
 
 // Configure CORS to allow cookies from frontend
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5000',
+  'https://173e1ada-855e-4b53-9e50-236ecc4df680-00-3ov1hfeow6pec.spock.replit.dev'
+];
+
 app.use(cors({
-  origin: true, // Allow all origins in development
-  credentials: true, // Allow cookies to be sent
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin) || origin.includes('.replit.dev')) {
+      return callback(null, true);
+    }
+    
+    return callback(null, true); // Allow all for now
+  },
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
 }));
 
 app.use(express.json());
