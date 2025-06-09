@@ -164,21 +164,78 @@ export function setupAuth(app: Express) {
               }
             }
             
-            // If still failed, abort registration
+            // If still failed, log detailed failure and abort registration
             if (!emailResult.success) {
               console.error("❌ ALL EMAIL ATTEMPTS FAILED - Aborting registration");
+              
+              // Create comprehensive failure log
+              const failureLog = {
+                timestamp: new Date().toISOString(),
+                email: validatedData.email,
+                userId: userId,
+                totalAttempts: emailResult.attempts || 0,
+                finalError: emailResult.error || 'Unknown error',
+                postmarkResponse: emailResult.postmarkResponse || null,
+                registrationAborted: true,
+                failureReason: 'Email delivery failed after all retry attempts',
+                userAgent: req.headers['user-agent'] || 'Unknown',
+                ipAddress: req.ip || req.connection.remoteAddress || 'Unknown'
+              };
+              
+              console.error("📋 DETAILED FAILURE LOG:", JSON.stringify(failureLog, null, 2));
+              
+              // Log to database for persistent tracking
+              try {
+                await storage.logEmailDelivery(userId, failureLog);
+                console.log("✅ Failure details logged to database");
+              } catch (dbError) {
+                console.error("❌ Failed to log failure to database:", dbError);
+              }
+              
               return res.status(500).json({ 
                 message: "Failed to send verification email after multiple attempts. Please check your email address and try again.",
-                emailError: "All retry attempts exhausted" 
+                emailError: "All retry attempts exhausted",
+                failureId: userId // Allow user to reference this specific failure
               });
             }
           }
         } catch (fallbackError: any) {
           console.error("❌ Fallback retry system threw error:", fallbackError);
+          
+          // Create comprehensive failure log for fallback system errors
+          const fallbackFailureLog = {
+            timestamp: new Date().toISOString(),
+            email: validatedData.email,
+            userId: userId,
+            totalAttempts: 0,
+            finalError: fallbackError.message || 'Fallback system error',
+            postmarkResponse: null,
+            registrationAborted: true,
+            failureReason: 'Fallback retry system threw exception',
+            systemError: {
+              name: fallbackError.name,
+              message: fallbackError.message,
+              stack: fallbackError.stack
+            },
+            userAgent: req.headers['user-agent'] || 'Unknown',
+            ipAddress: req.ip || req.connection.remoteAddress || 'Unknown'
+          };
+          
+          console.error("📋 FALLBACK SYSTEM FAILURE LOG:", JSON.stringify(fallbackFailureLog, null, 2));
+          
+          // Log fallback failure to database
+          try {
+            await storage.logEmailDelivery(userId, fallbackFailureLog);
+            console.log("✅ Fallback failure details logged to database");
+          } catch (dbError) {
+            console.error("❌ Failed to log fallback failure to database:", dbError);
+          }
+          
           // Abort registration if fallback also fails
           return res.status(500).json({ 
             message: "Failed to send verification email. Please check your email address and try again.",
-            emailError: `Fallback system error: ${fallbackError.message || 'Unknown error'}` 
+            emailError: `Fallback system error: ${fallbackError.message || 'Unknown error'}`,
+            failureId: userId
           });
         }
       }

@@ -17,7 +17,7 @@ interface EmailParams {
   from?: string;
 }
 
-export async function sendEmailWithPostmarkRetry(params: EmailParams): Promise<{ success: boolean; messageId?: string; error?: string; attempts: number; postmarkResponse?: any }> {
+export async function sendEmailWithPostmarkRetry(params: EmailParams): Promise<{ success: boolean; messageId?: string; error?: string; attempts: number; postmarkResponse?: any; detailedError?: any }> {
   const maxRetries = 5;
   const baseDelayMs = 1000; // 1 second
   let attempts = 0;
@@ -116,16 +116,50 @@ export async function sendEmailWithPostmarkRetry(params: EmailParams): Promise<{
     }
   }
   
-  console.error(`Failed to send email to ${params.to} after ${attempts} attempts. Final error: ${errorMessage}`);
+  // Enhanced error logging with comprehensive details
+  const detailedErrorLog = {
+    timestamp: new Date().toISOString(),
+    emailAddress: params.to,
+    totalAttempts: attempts,
+    finalErrorMessage: errorMessage,
+    originalError: lastError?.message,
+    postmarkDetails: {
+      apiErrorCode: lastError?.postmarkApiErrorCode,
+      httpStatusCode: lastError?.httpStatusCode,
+      errorCode: lastError?.errorCode,
+      code: lastError?.code
+    },
+    networkDetails: {
+      timeout: lastError?.code === 'ETIMEDOUT',
+      connectionReset: lastError?.code === 'ECONNRESET',
+      notFound: lastError?.code === 'ENOTFOUND'
+    },
+    emailPayload: {
+      from: params.from || 'contact@callsinmotion.com',
+      subject: params.subject,
+      messageStream: 'outbound'
+    }
+  };
+  
+  console.error(`📧 EMAIL DELIVERY FAILURE - ${params.to}:`);
+  console.error(`Attempts: ${attempts}/${5}`);
+  console.error(`Final Error: ${errorMessage}`);
+  console.error(`Postmark Error Code: ${lastError?.postmarkApiErrorCode || 'None'}`);
+  console.error(`HTTP Status: ${lastError?.httpStatusCode || 'None'}`);
+  console.error(`Network Error: ${lastError?.code || 'None'}`);
+  console.error("📋 DETAILED EMAIL FAILURE LOG:", JSON.stringify(detailedErrorLog, null, 2));
   
   return {
     success: false,
     error: errorMessage,
     attempts,
+    detailedError: detailedErrorLog,
     postmarkResponse: {
       errorCode: lastError?.postmarkApiErrorCode,
       httpStatusCode: lastError?.httpStatusCode,
-      message: lastError?.message
+      message: lastError?.message,
+      networkError: lastError?.code,
+      fullError: lastError
     }
   };
 }

@@ -348,3 +348,33 @@ export type InsertWebhookLog = z.infer<typeof insertWebhookLogSchema>;
 
 export type Campaign = typeof campaigns.$inferSelect;
 export type InsertCampaign = z.infer<typeof insertCampaignSchema>;
+
+// Email failure tracking table for comprehensive debugging
+export const emailFailureLogs = pgTable("email_failure_logs", {
+  id: serial("id").primaryKey(),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  email: varchar("email").notNull(),
+  userId: varchar("user_id"),
+  totalAttempts: integer("total_attempts").default(0),
+  finalError: text("final_error"),
+  failureReason: varchar("failure_reason"),
+  postmarkErrorCode: integer("postmark_error_code"),
+  httpStatusCode: integer("http_status_code"),
+  networkError: varchar("network_error"),
+  userAgent: text("user_agent"),
+  ipAddress: varchar("ip_address"),
+  emailType: varchar("email_type"), // verification, password_reset, welcome
+  detailedLog: jsonb("detailed_log"),
+  registrationAborted: boolean("registration_aborted").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertEmailFailureLogSchema = createInsertSchema(emailFailureLogs, {
+  email: z.string().email(),
+  totalAttempts: z.number().min(0),
+  failureReason: z.string().optional(),
+  emailType: z.enum(["verification", "password_reset", "welcome"]).optional(),
+});
+
+export type EmailFailureLog = typeof emailFailureLogs.$inferSelect;
+export type InsertEmailFailureLog = z.infer<typeof insertEmailFailureLogSchema>;
