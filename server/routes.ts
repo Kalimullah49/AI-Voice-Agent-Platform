@@ -2000,6 +2000,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
+  // Temporary public endpoint to view Postmark logs (for testing)
+  app.get("/api/debug/postmark-logs-public", async (req: Request, res: Response) => {
+    try {
+      const { email, registrationAttemptId, limit } = req.query;
+      
+      if (email && typeof email === 'string') {
+        const logs = await storage.getPostmarkLogsByEmail(email);
+        res.json({
+          email,
+          totalLogs: logs.length,
+          logs: logs.map(log => ({
+            id: log.id,
+            attemptNumber: log.attemptNumber,
+            success: log.success,
+            messageId: log.messageId,
+            errorCode: log.errorCode,
+            httpStatusCode: log.httpStatusCode,
+            errorMessage: log.errorMessage,
+            networkError: log.networkError,
+            emailType: log.emailType,
+            environment: log.environment,
+            registrationAttemptId: log.registrationAttemptId,
+            finalAttempt: log.finalAttempt,
+            retryable: log.retryable,
+            timestamp: log.timestamp,
+            postmarkResponse: log.postmarkResponse,
+            requestPayload: log.requestPayload
+          }))
+        });
+      } else {
+        const limitNum = limit ? parseInt(limit as string) : 10;
+        const logs = await storage.getPostmarkLogs(limitNum);
+        res.json({
+          totalLogs: logs.length,
+          logs: logs.map(log => ({
+            id: log.id,
+            email: log.email,
+            attemptNumber: log.attemptNumber,
+            success: log.success,
+            messageId: log.messageId,
+            errorCode: log.errorCode,
+            httpStatusCode: log.httpStatusCode,
+            errorMessage: log.errorMessage,
+            registrationAttemptId: log.registrationAttemptId,
+            timestamp: log.timestamp,
+            postmarkResponse: log.postmarkResponse ? JSON.stringify(log.postmarkResponse) : null
+          }))
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching Postmark logs:", error);
+      res.status(500).json({ message: "Failed to fetch Postmark logs" });
+    }
+  });
+
   // Comprehensive Postmark logging endpoints - shows EVERY API call and response
   app.get("/api/debug/postmark-logs", isAuthenticated, async (req: Request, res: Response) => {
     try {
