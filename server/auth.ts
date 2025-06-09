@@ -36,7 +36,9 @@ declare module "express-session" {
 
 // Middleware to check if user is authenticated
 export function isAuthenticated(req: Request, res: Response, next: NextFunction) {
-  console.log("Get user - session:", req.session?.userId);
+  console.log("🔍 Auth check - sessionId:", req.session?.id);
+  console.log("🔍 Auth check - userId:", req.session?.userId);
+  console.log("🔍 Auth check - cookie:", req.headers.cookie);
   
   if (req.session?.userId) {
     next();
@@ -232,14 +234,19 @@ export function setupAuth(app: Express) {
         });
       }
       
-      console.log("🔧 Session object:", req.session);
+      console.log("🔧 Pre-login session:", req.session);
       console.log("🔧 Session exists:", !!req.session);
+      console.log("🔧 Session ID before:", req.session?.id);
       
       if (!req.session) {
         throw new Error("Session middleware not properly configured");
       }
       
       req.session.userId = user.id;
+      
+      console.log("🔧 Post-login session ID:", req.session.id);
+      console.log("🔧 Post-login userId:", req.session.userId);
+      console.log("🔧 Response headers will include:", res.getHeaders());
       const { password, ...userWithoutPassword } = user;
       res.json(userWithoutPassword);
     } catch (error) {
