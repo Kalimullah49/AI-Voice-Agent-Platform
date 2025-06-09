@@ -148,13 +148,32 @@ export function setupAuth(app: Express) {
       // Remove password from response
       const { password, emailVerificationToken, ...userWithoutSensitiveData } = user;
       
+      // Provide specific error messages based on email delivery failure type
+      let userMessage = "Registration successful! Please check your email to verify your account before logging in.";
+      let canRetryEmail = true;
+      
+      if (!emailResult.success) {
+        if (emailResult.error?.includes("inactive")) {
+          userMessage = "Registration successful! This email address cannot receive verification emails due to previous delivery issues. Please try a different email address or contact support.";
+          canRetryEmail = false;
+        } else if (emailResult.error?.includes("bounce")) {
+          userMessage = "Registration successful! This email address has bounced previously. Please verify your email address or try a different one.";
+          canRetryEmail = false;
+        } else if (emailResult.error?.includes("spam")) {
+          userMessage = "Registration successful! This email address has been flagged for spam issues. Please try a different email address.";
+          canRetryEmail = false;
+        } else {
+          userMessage = "Registration successful! However, there was a temporary issue sending the verification email. You can request a new verification email from your account settings.";
+          canRetryEmail = true;
+        }
+      }
+      
       return res.status(201).json({
         ...userWithoutSensitiveData,
-        message: emailResult.success 
-          ? "Registration successful! Please check your email to verify your account before logging in."
-          : "Registration successful! However, there was an issue sending the verification email. Please contact support.",
+        message: userMessage,
         emailSent: emailResult.success,
-        emailAttempts: emailResult.attempts
+        emailAttempts: emailResult.attempts,
+        canRetryEmail: emailResult.success || canRetryEmail
       });
       
     } catch (error: any) {

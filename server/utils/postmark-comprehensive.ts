@@ -407,7 +407,13 @@ export async function sendEmail(params: {
   textBody?: string;
 }): Promise<boolean> {
   try {
-    const result = await sendEmailWithComprehensiveLogging(params);
+    const emailParams: EmailParams = {
+      to: params.to,
+      subject: params.subject,
+      htmlBody: params.htmlBody || '',
+      textBody: params.textBody
+    };
+    const result = await sendEmailWithComprehensiveLogging(emailParams);
     return result.success;
   } catch (error) {
     console.error('Send email error:', error);
