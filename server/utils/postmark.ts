@@ -197,7 +197,7 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
   return result.success;
 }
 
-export async function sendVerificationEmailWithLogging(email: string, token: string, baseUrl: string, userId?: string): Promise<{ success: boolean; messageId?: string; error?: string; attempts: number }> {
+export async function sendVerificationEmailWithLogging(email: string, token: string, baseUrl: string, userId?: string): Promise<{ success: boolean; messageId?: string; error?: string; attempts: number; detailedError?: any; postmarkResponse?: any }> {
   console.log('sendVerificationEmailWithLogging called with:', { email, token: token.substring(0, 10) + '...', baseUrl, userId });
   
   const verificationUrl = `${baseUrl}/auth/verify-email?token=${token}`;

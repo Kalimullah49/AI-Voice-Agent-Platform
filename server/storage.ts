@@ -7,7 +7,8 @@ import {
   twilioAccounts, type TwilioAccount, type InsertTwilioAccount,
   contactGroups, type ContactGroup, type InsertContactGroup,
   contacts, type Contact, type InsertContact,
-  campaigns, type Campaign, type InsertCampaign
+  campaigns, type Campaign, type InsertCampaign,
+  type EmailFailureLog, type InsertEmailFailureLog
 } from "@shared/schema";
 
 // Interface for storage operations
@@ -82,6 +83,12 @@ export interface IStorage {
   updateCampaign(id: number, campaign: Partial<InsertCampaign>): Promise<Campaign | undefined>;
   getAllCampaigns(): Promise<Campaign[]>;
   deleteCampaign(id: number): Promise<boolean>;
+  
+  // Email failure logging operations
+  createEmailFailureLog(failureData: InsertEmailFailureLog): Promise<EmailFailureLog>;
+  getEmailFailureLogs(limit?: number): Promise<EmailFailureLog[]>;
+  getEmailFailureLogsByEmail(email: string): Promise<EmailFailureLog[]>;
+  getEmailFailureLogsByUserId(userId: string): Promise<EmailFailureLog[]>;
   
   // Clear all data
   clearAllData(): Promise<void>;

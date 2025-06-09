@@ -184,12 +184,32 @@ export function setupAuth(app: Express) {
               
               console.error("📋 DETAILED FAILURE LOG:", JSON.stringify(failureLog, null, 2));
               
-              // Log to database for persistent tracking
+              // Log to dedicated email failure tracking table
               try {
+                const emailFailureData = {
+                  email: validatedData.email,
+                  userId: userId,
+                  totalAttempts: emailResult.attempts || 0,
+                  finalError: emailResult.error || 'Unknown error',
+                  failureReason: 'Email delivery failed after all retry attempts',
+                  postmarkErrorCode: emailResult.postmarkResponse?.errorCode || null,
+                  httpStatusCode: emailResult.postmarkResponse?.httpStatusCode || null,
+                  networkError: emailResult.postmarkResponse?.networkError || null,
+                  userAgent: req.headers['user-agent'] || null,
+                  ipAddress: req.ip || req.connection.remoteAddress || null,
+                  emailType: 'verification',
+                  detailedLog: emailResult.detailedError || failureLog,
+                  registrationAborted: true
+                };
+                
+                await storage.createEmailFailureLog(emailFailureData);
+                console.log("✅ Email failure details logged to dedicated tracking table");
+                
+                // Also log to user record for immediate access
                 await storage.logEmailDelivery(userId, failureLog);
-                console.log("✅ Failure details logged to database");
+                console.log("✅ Failure summary logged to user record");
               } catch (dbError) {
-                console.error("❌ Failed to log failure to database:", dbError);
+                console.error("❌ Failed to log failure details:", dbError);
               }
               
               return res.status(500).json({ 
@@ -223,12 +243,29 @@ export function setupAuth(app: Express) {
           
           console.error("📋 FALLBACK SYSTEM FAILURE LOG:", JSON.stringify(fallbackFailureLog, null, 2));
           
-          // Log fallback failure to database
+          // Log fallback failure to dedicated tracking table
           try {
+            const fallbackEmailFailureData = {
+              email: validatedData.email,
+              userId: userId,
+              totalAttempts: 0,
+              finalError: fallbackError.message || 'Fallback system error',
+              failureReason: 'Fallback retry system threw exception',
+              userAgent: req.headers['user-agent'] || null,
+              ipAddress: req.ip || req.connection.remoteAddress || null,
+              emailType: 'verification',
+              detailedLog: fallbackFailureLog,
+              registrationAborted: true
+            };
+            
+            await storage.createEmailFailureLog(fallbackEmailFailureData);
+            console.log("✅ Fallback failure details logged to dedicated tracking table");
+            
+            // Also log to user record
             await storage.logEmailDelivery(userId, fallbackFailureLog);
-            console.log("✅ Fallback failure details logged to database");
+            console.log("✅ Fallback failure summary logged to user record");
           } catch (dbError) {
-            console.error("❌ Failed to log fallback failure to database:", dbError);
+            console.error("❌ Failed to log fallback failure details:", dbError);
           }
           
           // Abort registration if fallback also fails

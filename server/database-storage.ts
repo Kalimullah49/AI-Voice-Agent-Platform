@@ -1,9 +1,9 @@
 import { eq, and, isNull, desc } from 'drizzle-orm';
 import {
-  User, Agent, Call, Action, PhoneNumber, ContactGroup, Contact, Campaign, TwilioAccount, WebhookLog,
+  User, Agent, Call, Action, PhoneNumber, ContactGroup, Contact, Campaign, TwilioAccount, WebhookLog, EmailFailureLog,
   InsertUser, InsertAgent, InsertCall, InsertAction, InsertPhoneNumber, InsertTwilioAccount,
-  InsertContactGroup, InsertContact, InsertCampaign, InsertWebhookLog,
-  users, agents, calls, actions, phoneNumbers, contactGroups, contacts, campaigns, twilioAccounts, webhookLogs,
+  InsertContactGroup, InsertContact, InsertCampaign, InsertWebhookLog, InsertEmailFailureLog,
+  users, agents, calls, actions, phoneNumbers, contactGroups, contacts, campaigns, twilioAccounts, webhookLogs, emailFailureLogs,
 } from "@shared/schema";
 import { IStorage } from './storage';
 import { db } from './db';
@@ -588,6 +588,39 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
   
+  // Email failure logging operations
+  async createEmailFailureLog(failureData: InsertEmailFailureLog): Promise<EmailFailureLog> {
+    const [log] = await db
+      .insert(emailFailureLogs)
+      .values(failureData)
+      .returning();
+    return log;
+  }
+
+  async getEmailFailureLogs(limit: number = 50): Promise<EmailFailureLog[]> {
+    return await db
+      .select()
+      .from(emailFailureLogs)
+      .orderBy(desc(emailFailureLogs.timestamp))
+      .limit(limit);
+  }
+
+  async getEmailFailureLogsByEmail(email: string): Promise<EmailFailureLog[]> {
+    return await db
+      .select()
+      .from(emailFailureLogs)
+      .where(eq(emailFailureLogs.email, email))
+      .orderBy(desc(emailFailureLogs.timestamp));
+  }
+
+  async getEmailFailureLogsByUserId(userId: string): Promise<EmailFailureLog[]> {
+    return await db
+      .select()
+      .from(emailFailureLogs)
+      .where(eq(emailFailureLogs.userId, userId))
+      .orderBy(desc(emailFailureLogs.timestamp));
+  }
+
   // Clear all data
   async clearAllData(): Promise<void> {
     await db.delete(calls);
