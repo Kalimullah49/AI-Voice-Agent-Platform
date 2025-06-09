@@ -6,7 +6,7 @@ if (!process.env.POSTMARK_SERVER_TOKEN) {
 
 // Configure Postmark client with timeout and logging
 const serverToken = process.env.POSTMARK_SERVER_TOKEN;
-console.log('🚨 PRODUCTION TOKEN CHECK:', serverToken?.substring(0, 8) + '...');
+console.log('🚨 PRODUCTION TOKEN CHECK:', serverToken);
 console.log(`🚨 POSTMARK_SERVER_TOKEN: ${process.env.POSTMARK_SERVER_TOKEN?.substring(0, 8)}...`);
 console.log(`🚨 FULL TOKEN LENGTH: ${process.env.POSTMARK_SERVER_TOKEN?.length || 0}`);
 console.log(`🚨 TOKEN FIRST 12 CHARS: ${process.env.POSTMARK_SERVER_TOKEN?.substring(0, 12)}...`);

@@ -416,17 +416,55 @@ export function setupAuth(app: Express) {
         protocol: req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http'
       });
       
-      const result = await sendVerificationEmailWithComprehensiveLogging(
-        email, 
-        "test-token-12345", 
-        baseUrl, 
-        "test-user-id",
-        {
-          userAgent: req.headers['user-agent'],
-          ipAddress: req.ip || req.connection.remoteAddress,
-          registrationAttemptId: `test_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-        }
-      );
+      // Direct Postmark API call with hardcoded credentials
+      const postmarkUrl = "https://api.postmarkapp.com/email";
+      const postmarkHeaders = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "X-Postmark-Server-Token": "e1d083a2-62f2-484a-9fea-12ee9e37c763"
+      };
+      
+      const emailData = {
+        "From": "contact@callsinmotion.com",
+        "To": email,
+        "Subject": "Test Email from Mind AI",
+        "HtmlBody": `
+          <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
+            <h1 style="color: #333; text-align: center;">Test Email Successful</h1>
+            <p>This is a test email from Mind AI using direct Postmark API.</p>
+            <p><strong>Environment:</strong> ${process.env.NODE_ENV}</p>
+            <p><strong>Base URL:</strong> ${baseUrl}</p>
+            <p><strong>Timestamp:</strong> ${new Date().toISOString()}</p>
+          </div>
+        `,
+        "MessageStream": "outbound"
+      };
+
+      console.log("🚨 DIRECT POSTMARK API REQUEST:", {
+        url: postmarkUrl,
+        headers: { ...postmarkHeaders, "X-Postmark-Server-Token": "e1d083a2..." },
+        data: emailData
+      });
+
+      const fetch = (await import('node-fetch')).default;
+      const postmarkResponse = await fetch(postmarkUrl, {
+        method: 'POST',
+        headers: postmarkHeaders,
+        body: JSON.stringify(emailData)
+      });
+
+      const responseData = await postmarkResponse.json();
+      console.log("🚨 DIRECT POSTMARK RESPONSE:", {
+        status: postmarkResponse.status,
+        statusText: postmarkResponse.statusText,
+        data: responseData
+      });
+
+      const result = {
+        success: postmarkResponse.ok,
+        messageId: responseData.MessageID,
+        error: postmarkResponse.ok ? undefined : responseData.Message || 'Unknown error'
+      };
 
       console.log("🔥 TEST EMAIL RESULT:", result);
 
