@@ -5,6 +5,9 @@ if (!process.env.POSTMARK_SERVER_TOKEN) {
 }
 
 // Configure Postmark client with timeout and logging
+const serverToken = process.env.POSTMARK_SERVER_TOKEN;
+console.log('Using token:', serverToken?.substring(0, 8) + '...');
+console.log(`POSTMARK_SERVER_TOKEN: ${process.env.POSTMARK_SERVER_TOKEN?.substring(0, 8)}...`);
 console.log(`🔥 POSTMARK CLIENT: Initializing with token ${process.env.POSTMARK_SERVER_TOKEN?.substring(0, 8)}...`);
 console.log(`🔥 ENVIRONMENT: ${process.env.NODE_ENV}`);
 console.log(`🔥 TOKEN EXISTS: ${!!process.env.POSTMARK_SERVER_TOKEN}`);

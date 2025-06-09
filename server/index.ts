@@ -6,6 +6,11 @@ import { setupAuth } from "./auth";
 
 const app = express();
 
+// Log server token for debugging
+console.log(`🔥 SERVER STARTUP - POSTMARK_SERVER_TOKEN: ${process.env.POSTMARK_SERVER_TOKEN?.substring(0, 8)}...`);
+console.log(`🔥 SERVER STARTUP - NODE_ENV: ${process.env.NODE_ENV}`);
+console.log(`🔥 SERVER STARTUP - DATABASE_URL exists: ${!!process.env.DATABASE_URL}`);
+
 // Configure CORS to allow cookies from frontend
 app.use(cors({
   origin: true, // Allow all origins in development
