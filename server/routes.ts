@@ -1213,7 +1213,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!assistantParams.voice) {
         assistantParams.voice = {
           provider: "11labs",
-          voiceId: "pNInz6obpgDQGcFmaJgB" // Use Adam voice as default
+          voiceId: "EXAVITQu4vr4xnSDxMaL" // Use Bella voice as default (similar to Savannah)
         };
       }
       

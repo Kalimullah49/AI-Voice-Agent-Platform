@@ -626,7 +626,7 @@ export default function AgentDetailPage() {
                 },
                 voice: {
                   provider: "11labs",
-                  voiceId: agentData.voiceId || agentData.selectedVoice?.voice_id || "pNInz6obpgDQGcFmaJgB", // Use selected ElevenLabs voice or fallback to "Adam"
+                  voiceId: agentData.voiceId || agentData.selectedVoice?.voice_id || "EXAVITQu4vr4xnSDxMaL", // Use selected ElevenLabs voice or fallback to "Bella" (female voice similar to Savannah)
                   speed: Math.min(1.2, (agentData.speed || 10) / 10), // Scale down from 0-10 to 0-1.2
                   stability: agentData.temperature || 0.4
                   // Note: Removed similarity_boost and background_noise as they're not supported by Vapi API

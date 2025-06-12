@@ -39,7 +39,7 @@ interface VoiceSynthesisOptions {
  * Default voice options
  */
 const DEFAULT_VOICE_OPTIONS = {
-  voiceId: 'pNInz6obpgDQGcFmaJgB', // Adam voice - valid ElevenLabs voice ID
+  voiceId: 'EXAVITQu4vr4xnSDxMaL', // Bella voice - valid ElevenLabs voice ID (similar to Savannah)
   speed: 1.0,
   temperature: 0.4,
   textGuidance: 0.8,
