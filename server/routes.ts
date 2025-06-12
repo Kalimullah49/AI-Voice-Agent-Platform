@@ -1261,7 +1261,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/vapi/token", isAuthenticated, (req, res) => {
     res.json({ 
       success: true,
-      token: "fb797cfa-b827-4c00-a7ae-e7e481b27e73"
+      token: "49c87404-6985-4e57-9fe3-4bbe4cd5d7f5"
     });
   });
 
@@ -1269,7 +1269,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/vapi/public-key", isAuthenticated, (req, res) => {
     res.json({ 
       success: true,
-      publicKey: "fb797cfa-b827-4c00-a7ae-e7e481b27e73"
+      publicKey: "49c87404-6985-4e57-9fe3-4bbe4cd5d7f5"
     });
   });
   
