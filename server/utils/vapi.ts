@@ -5,15 +5,15 @@
 
 import fetch from 'node-fetch';
 
-// Get Vapi.ai API keys from environment variables
-const VAPI_PRIVATE_KEY = process.env.VAPI_PRIVATE_KEY || '';
-const VAPI_PUBLIC_KEY = process.env.VAPI_PUBLIC_KEY || '';
+// Hardcoded API keys for production reliability
+const VAPI_PRIVATE_KEY = 'fe19bb22-6b68-4faa-8eb4-b5dd34e63d1c';
+const VAPI_PUBLIC_KEY = 'fb797cfa-b827-4c00-a7ae-e7e481b27e73';
 
 // ElevenLabs API token for voice synthesis
-const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || '';
+const ELEVENLABS_API_KEY = 'sk_79cdafccb37a2aa17529e3c7d6c4e6de0c4936e1b07f06bb';
 
-// Debug environment variables on startup
-console.log('🔍 Vapi.ts Environment Variables Check:');
+// Debug hardcoded keys on startup
+console.log('🔍 Hardcoded API Keys Check:');
 console.log('VAPI_PRIVATE_KEY exists:', !!VAPI_PRIVATE_KEY);
 console.log('VAPI_PUBLIC_KEY exists:', !!VAPI_PUBLIC_KEY);
 console.log('ELEVENLABS_API_KEY exists:', !!ELEVENLABS_API_KEY);
@@ -155,13 +155,6 @@ export async function synthesizeSpeech(options: VoiceSynthesisOptions): Promise<
  */
 export async function deleteVapiAssistant(assistantId: string): Promise<{ success: boolean; message?: string; }> {
   try {
-    // Check if Vapi private key is available
-    if (!VAPI_PRIVATE_KEY) {
-      return {
-        success: false,
-        message: "Vapi.ai private key is not defined. Please set VAPI_PRIVATE_KEY in your environment variables."
-      };
-    }
     
     // Make API request to Vapi.ai to delete the assistant
     const response = await fetch(`${VAPI_API_BASE_URL}/assistant/${assistantId}`, {
@@ -199,11 +192,6 @@ export async function deleteVapiAssistant(assistantId: string): Promise<{ succes
  * @returns Boolean indicating if the connection was successful
  */
 export async function testApiConnection(): Promise<boolean> {
-  if (!ELEVENLABS_API_KEY) {
-    console.error('ELEVENLABS_API_KEY is not defined. Please set it in your environment variables.');
-    return false;
-  }
-
   try {
     // Simple test request to validate the ElevenLabs API key
     const response = await fetch('https://api.elevenlabs.io/v1/voices', {
@@ -309,13 +297,6 @@ export interface VapiAssistantParams {
  */
 export async function getVapiAssistants(): Promise<{ success: boolean; assistants?: any[]; message?: string; }> {
   try {
-    // Check if Vapi private key is available
-    if (!VAPI_PRIVATE_KEY) {
-      return {
-        success: false,
-        message: "Vapi.ai private key is not defined. Please set VAPI_PRIVATE_KEY in your environment variables."
-      };
-    }
     
     // Make API request to Vapi.ai to get assistants
     const response = await fetch(`${VAPI_API_BASE_URL}/assistant`, {
@@ -382,25 +363,6 @@ export async function findVapiAssistantByAgentId(agentId: string | number): Prom
  */
 export async function createVapiAssistant(params: VapiAssistantParams): Promise<{ success: boolean; assistant?: any; message?: string; updated?: boolean }> {
   try {
-    // Runtime check for environment variables
-    const runtimePrivateKey = process.env.VAPI_PRIVATE_KEY;
-    console.log('🔍 Runtime VAPI_PRIVATE_KEY check:', {
-      staticExists: !!VAPI_PRIVATE_KEY,
-      runtimeExists: !!runtimePrivateKey,
-      staticLength: VAPI_PRIVATE_KEY?.length || 0,
-      runtimeLength: runtimePrivateKey?.length || 0
-    });
-    
-    // Check if Vapi private key is available
-    if (!VAPI_PRIVATE_KEY && !runtimePrivateKey) {
-      return {
-        success: false,
-        message: "Vapi.ai private key is not defined. Please set VAPI_PRIVATE_KEY in your environment variables."
-      };
-    }
-    
-    // Use runtime key if static key is not available
-    const activeKey = VAPI_PRIVATE_KEY || runtimePrivateKey;
     
     // Check if assistant already exists for this agent
     const existingAssistantId = params.metadata?.agentId 
@@ -427,7 +389,7 @@ export async function createVapiAssistant(params: VapiAssistantParams): Promise<
       method,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${activeKey}`
+        'Authorization': `Bearer ${VAPI_PRIVATE_KEY}`
       },
       body: JSON.stringify(params)
     });
@@ -609,14 +571,6 @@ export async function registerPhoneNumberWithVapi(
  */
 export async function getAvailableVoices(): Promise<{ success: boolean; voices: VoiceInfo[]; message?: string }> {
   try {
-    // Check if API key is available
-    if (!ELEVENLABS_API_KEY || ELEVENLABS_API_KEY === 'your_elevenlabs_key_here') {
-      return { 
-        success: false, 
-        voices: [],
-        message: "ElevenLabs API key is not set. Please add your API key to the .env file."
-      };
-    }
 
     // Use ElevenLabs API to get available voices
     const response = await fetch('https://api.elevenlabs.io/v1/voices', {
