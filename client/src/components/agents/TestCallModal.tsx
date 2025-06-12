@@ -37,19 +37,18 @@ export function TestCallModal({ open, onClose, assistantId }: TestCallModalProps
       // Initialize Vapi once the script is loaded
       if (window.vapiSDK) {
         // First fetch the Vapi token from our backend
-        fetch('/api/vapi/public-key')
+        fetch('/api/vapi/token')
           .then(response => response.json())
           .then(data => {
-            if (data.publicKey) {
-              console.log('Initializing Vapi SDK with assistant:', assistantId);
+            if (data.token) {
               window.vapiSDK.run({
-                apiKey: data.publicKey,
+                apiKey: data.token,
                 assistant: assistantId,
                 config: {
-                  position: 'bottom-right',
-                  offset: '20px',
-                  width: '50px',
-                  height: '50px'
+                  position: 'center', // Show the call button in the center
+                  size: 'large',    // Use a large button
+                  chatWidget: true,  // Enable chat widget
+                  customText: 'Test Vapi Call' // Custom button text
                 },
               });
               setCallActive(true);
