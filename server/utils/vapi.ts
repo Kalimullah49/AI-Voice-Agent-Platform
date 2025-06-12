@@ -39,7 +39,7 @@ interface VoiceSynthesisOptions {
  * Default voice options
  */
 const DEFAULT_VOICE_OPTIONS = {
-  voiceId: 'man-1', // Default voice ID
+  voiceId: 'pNInz6obpgDQGcFmaJgB', // Adam voice - valid ElevenLabs voice ID
   speed: 1.0,
   temperature: 0.4,
   textGuidance: 0.8,
