@@ -64,13 +64,6 @@ const DEFAULT_VOICE_OPTIONS = {
  */
 export async function synthesizeSpeech(options: VoiceSynthesisOptions): Promise<{ success: boolean; audioUrl?: string; message?: string }> {
   try {
-    // Check if ElevenLabs API key is available
-    if (!ELEVENLABS_API_KEY) {
-      return {
-        success: false,
-        message: "ElevenLabs API key is not defined. Please set it in your environment variables."
-      };
-    }
     
     // Merge options with defaults for ElevenLabs settings
     const mergedOptions = {

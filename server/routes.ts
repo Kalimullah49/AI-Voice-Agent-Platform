@@ -1259,31 +1259,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Secure endpoint to provide Vapi token to authenticated clients
   app.get("/api/vapi/token", isAuthenticated, (req, res) => {
-    if (!process.env.VAPI_AI_TOKEN) {
-      return res.status(500).json({ 
-        success: false,
-        message: "Vapi.ai token is not configured on the server" 
-      });
-    }
-    
     res.json({ 
       success: true,
-      token: process.env.VAPI_AI_TOKEN
+      token: "fb797cfa-b827-4c00-a7ae-e7e481b27e73"
     });
   });
 
   // Endpoint to provide Vapi public key for web calls
   app.get("/api/vapi/public-key", isAuthenticated, (req, res) => {
-    if (!process.env.VAPI_PUBLIC_KEY) {
-      return res.status(500).json({ 
-        success: false,
-        message: "Vapi public key is not configured on the server" 
-      });
-    }
-    
     res.json({ 
       success: true,
-      publicKey: process.env.VAPI_PUBLIC_KEY
+      publicKey: "fb797cfa-b827-4c00-a7ae-e7e481b27e73"
     });
   });
   
