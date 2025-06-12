@@ -12,6 +12,12 @@ const VAPI_PUBLIC_KEY = process.env.VAPI_PUBLIC_KEY || '';
 // ElevenLabs API token for voice synthesis
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || '';
 
+// Debug environment variables on startup
+console.log('🔍 Vapi.ts Environment Variables Check:');
+console.log('VAPI_PRIVATE_KEY exists:', !!VAPI_PRIVATE_KEY);
+console.log('VAPI_PUBLIC_KEY exists:', !!VAPI_PUBLIC_KEY);
+console.log('ELEVENLABS_API_KEY exists:', !!ELEVENLABS_API_KEY);
+
 // Flag to enable detailed debugging
 const DEBUG_MODE = true;
 
@@ -376,13 +382,25 @@ export async function findVapiAssistantByAgentId(agentId: string | number): Prom
  */
 export async function createVapiAssistant(params: VapiAssistantParams): Promise<{ success: boolean; assistant?: any; message?: string; updated?: boolean }> {
   try {
+    // Runtime check for environment variables
+    const runtimePrivateKey = process.env.VAPI_PRIVATE_KEY;
+    console.log('🔍 Runtime VAPI_PRIVATE_KEY check:', {
+      staticExists: !!VAPI_PRIVATE_KEY,
+      runtimeExists: !!runtimePrivateKey,
+      staticLength: VAPI_PRIVATE_KEY?.length || 0,
+      runtimeLength: runtimePrivateKey?.length || 0
+    });
+    
     // Check if Vapi private key is available
-    if (!VAPI_PRIVATE_KEY) {
+    if (!VAPI_PRIVATE_KEY && !runtimePrivateKey) {
       return {
         success: false,
         message: "Vapi.ai private key is not defined. Please set VAPI_PRIVATE_KEY in your environment variables."
       };
     }
+    
+    // Use runtime key if static key is not available
+    const activeKey = VAPI_PRIVATE_KEY || runtimePrivateKey;
     
     // Check if assistant already exists for this agent
     const existingAssistantId = params.metadata?.agentId 
@@ -409,7 +427,7 @@ export async function createVapiAssistant(params: VapiAssistantParams): Promise<
       method,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${VAPI_PRIVATE_KEY}`
+        'Authorization': `Bearer ${activeKey}`
       },
       body: JSON.stringify(params)
     });
