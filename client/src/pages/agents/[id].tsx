@@ -245,24 +245,38 @@ export default function AgentDetailPage() {
         callButton.innerHTML = '📞';
         
         try {
-          // Load Vapi SDK using the official script method
-          if (!window.Vapi) {
-            const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/@vapi-ai/web@latest/dist/index.js';
-            script.onload = () => {
-              console.log('Vapi SDK loaded successfully');
-              setTimeout(() => startVapiCall(), 500);
-            };
-            script.onerror = () => {
-              console.error('Failed to load Vapi SDK');
-              statusText.textContent = 'Failed to load voice SDK';
-              callButton.style.background = '#22c55e';
-              callButton.innerHTML = '📞';
-            };
-            document.head.appendChild(script);
-          } else {
-            startVapiCall();
-          }
+          // Simple iframe approach for Vapi web calls
+          statusText.textContent = 'Loading voice interface...';
+          
+          // Create iframe for Vapi web call
+          const iframe = document.createElement('iframe');
+          iframe.src = `https://vapi.ai/call?assistant=${agentData.vapiAssistantId}&publicKey=49c87404-6985-4e57-9fe3-4bbe4cd5d7f5`;
+          iframe.style.cssText = `
+            width: 100%;
+            height: 300px;
+            border: none;
+            border-radius: 8px;
+          `;
+          iframe.id = 'vapi-call-iframe';
+          
+          // Clear content and add iframe
+          content.innerHTML = '';
+          content.appendChild(iframe);
+          
+          statusText.textContent = 'Voice call ready';
+          callButton.innerHTML = '🔴';
+          callButton.style.background = '#ef4444';
+          isCallActive = true;
+          
+          const stopText = document.createElement('div');
+          stopText.style.cssText = `
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 12px;
+            text-align: center;
+          `;
+          stopText.textContent = 'Use the interface above to test your AI agent';
+          content.appendChild(stopText);
         } catch (error) {
           console.error('Error starting call:', error);
           statusText.textContent = 'Error connecting';
@@ -270,14 +284,18 @@ export default function AgentDetailPage() {
           callButton.innerHTML = '📞';
         }
       } else {
-        // End call
-        if (currentVapiInstance) {
-          try {
-            currentVapiInstance.stop();
-          } catch (e) {
-            console.warn('Error stopping call:', e);
-          }
+        // End call - remove iframe and reset UI
+        const iframe = document.getElementById('vapi-call-iframe');
+        if (iframe) {
+          iframe.remove();
         }
+        
+        // Reset content to original state
+        content.innerHTML = '';
+        content.appendChild(callButton);
+        content.appendChild(statusText);
+        content.appendChild(instructionText);
+        
         statusText.textContent = 'Call ended';
         callButton.style.background = '#22c55e';
         callButton.innerHTML = '📞';
@@ -291,64 +309,30 @@ export default function AgentDetailPage() {
     });
 
     const startVapiCall = () => {
-      if (window.Vapi && agentData.vapiAssistantId) {
+      if (window.vapiSDK && agentData.vapiAssistantId) {
         try {
-          // Create a new Vapi instance with proper configuration
-          const vapi = new window.Vapi('49c87404-6985-4e57-9fe3-4bbe4cd5d7f5');
-          currentVapiInstance = vapi;
+          console.log('Starting Vapi call with assistant ID:', agentData.vapiAssistantId);
           
-          // Set up event listeners before starting
-          vapi.on('call-start', () => {
-            console.log('Call started');
-            statusText.textContent = 'Call active - Speak now!';
-            callButton.innerHTML = '🔴';
-            callButton.style.background = '#ef4444';
-            isCallActive = true;
-          });
-          
-          vapi.on('call-end', () => {
-            console.log('Call ended');
-            statusText.textContent = 'Call ended';
-            callButton.style.background = '#22c55e';
-            callButton.innerHTML = '📞';
-            isCallActive = false;
-            currentVapiInstance = null;
-            
-            setTimeout(() => {
-              statusText.textContent = 'Ready to start call';
-            }, 2000);
-          });
-          
-          vapi.on('error', (error) => {
-            console.error('Vapi error:', error);
-            statusText.textContent = 'Call error occurred';
-            callButton.style.background = '#22c55e';
-            callButton.innerHTML = '📞';
-            isCallActive = false;
-            currentVapiInstance = null;
-          });
-          
-          vapi.on('speech-start', () => {
-            console.log('User started speaking');
-            statusText.textContent = 'Listening...';
-          });
-          
-          vapi.on('speech-end', () => {
-            console.log('User stopped speaking');
-            statusText.textContent = 'Processing...';
-          });
-          
-          vapi.on('volume-level', (level) => {
-            // Visual feedback for volume level
-            if (level > 0.1) {
-              callButton.style.transform = `scale(${1 + level * 0.2})`;
-            } else {
-              callButton.style.transform = 'scale(1)';
+          // Use the correct Vapi SDK API
+          window.vapiSDK.run({
+            apiKey: '49c87404-6985-4e57-9fe3-4bbe4cd5d7f5', // Public key
+            assistant: agentData.vapiAssistantId,
+            config: {
+              position: 'bottom-right',
+              offset: '20px',
+              width: '60px',
+              height: '60px',
             }
           });
           
-          // Start the call
-          vapi.start(agentData.vapiAssistantId);
+          // Update UI to show call is active
+          statusText.textContent = 'Call active - Speak now!';
+          callButton.innerHTML = '🔴';
+          callButton.style.background = '#ef4444';
+          isCallActive = true;
+          
+          // Store reference for cleanup
+          currentVapiInstance = window.vapiSDK;
           
         } catch (error) {
           console.error('Error initializing Vapi:', error);
@@ -357,7 +341,10 @@ export default function AgentDetailPage() {
           callButton.innerHTML = '📞';
         }
       } else {
-        console.error('Vapi SDK not loaded or no assistant ID');
+        console.error('Vapi SDK not loaded or no assistant ID:', {
+          vapiSDK: !!window.vapiSDK,
+          assistantId: agentData.vapiAssistantId
+        });
         statusText.textContent = 'SDK not ready';
         callButton.style.background = '#22c55e';
         callButton.innerHTML = '📞';
