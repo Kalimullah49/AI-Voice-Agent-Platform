@@ -10,7 +10,7 @@ const VAPI_PRIVATE_KEY = 'fe19bb22-6b68-4faa-8eb4-b5dd34e63d1c';
 const VAPI_PUBLIC_KEY = 'fb797cfa-b827-4c00-a7ae-e7e481b27e73';
 
 // ElevenLabs API token for voice synthesis
-const ELEVENLABS_API_KEY = 'sk_79cdafccb37a2aa17529e3c7d6c4e6de0c4936e1b07f06bb';
+const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 
 // Debug hardcoded keys on startup
 console.log('🔍 Hardcoded API Keys Check:');
