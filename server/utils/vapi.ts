@@ -5,12 +5,12 @@
 
 import fetch from 'node-fetch';
 
-// Use environment API keys for Vapi.ai
-const VAPI_PRIVATE_KEY = process.env.VAPI_PRIVATE_KEY;
-const VAPI_PUBLIC_KEY = process.env.VAPI_PUBLIC_KEY;
+// Hardcoded API keys for production reliability
+const VAPI_PRIVATE_KEY = '2291104d-93d4-4292-9d18-6f3af2e420e0';
+const VAPI_PUBLIC_KEY = '49c87404-6985-4e57-9fe3-4bbe4cd5d7f5';
 
 // ElevenLabs API token for voice synthesis
-const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
+const ELEVENLABS_API_KEY = 'sk_4337a989be76c7288b9d1815c3cd6d851d6cdee452da1898';
 
 // Debug hardcoded keys on startup
 console.log('🔍 Hardcoded API Keys Check:');

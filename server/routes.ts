@@ -73,7 +73,7 @@ async function makeNextCall(execution: CampaignExecution) {
     const vapiResponse = await fetch('https://api.vapi.ai/call', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.VAPI_PRIVATE_KEY}`,
+        'Authorization': `Bearer 2291104d-93d4-4292-9d18-6f3af2e420e0`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
@@ -1889,8 +1889,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Use environment VAPI configuration
-      const VAPI_PRIVATE_KEY = process.env.VAPI_PRIVATE_KEY;
+      // Use hardcoded VAPI configuration
+      const VAPI_PRIVATE_KEY = '2291104d-93d4-4292-9d18-6f3af2e420e0';
       
       console.log(`Initiating outbound call from ${fromNumber} to ${toNumber} with agent ${agent.name} (${agent.vapiAssistantId})`);
       
