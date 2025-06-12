@@ -352,6 +352,28 @@ export default function AgentDetailPage() {
           {/* Test call button for Vapi integration */}
           {agentData.vapiAssistantId && (
             <Button 
+              variant="outline"
+              size="sm" 
+              className="mr-2" 
+              onClick={() => {
+                // Simple approach - open web call in new window
+                const vapiUrl = `https://vapi.ai/call?assistant=${agentData.vapiAssistantId}&publicKey=49c87404-6985-4e57-9fe3-4bbe4cd5d7f5`;
+                window.open(vapiUrl, '_blank', 'width=400,height=600,scrollbars=yes,resizable=yes');
+                
+                toast({
+                  title: "Web Call Opened",
+                  description: "A new window has opened for testing the voice call",
+                });
+              }}
+            >
+              <PhoneCall className="h-4 w-4 mr-2" />
+              Test Web Call
+            </Button>
+          )}
+          
+          {/* Alternative embedded approach */}
+          {agentData.vapiAssistantId && false && (
+            <Button 
               variant={isWebCallActive ? "destructive" : "outline"}
               size="sm" 
               className="mr-2" 

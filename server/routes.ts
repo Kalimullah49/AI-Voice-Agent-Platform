@@ -1851,6 +1851,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Endpoint to provide Vapi.ai public key for web calls
+  app.get("/api/vapi/token", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      return res.json({
+        success: true,
+        token: '49c87404-6985-4e57-9fe3-4bbe4cd5d7f5' // Vapi public key for web calls
+      });
+    } catch (error) {
+      console.error('Error getting Vapi token:', error);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Error getting Vapi token' 
+      });
+    }
+  });
+
   app.post("/api/vapi/call", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { agentId, fromNumber, toNumber } = req.body;
