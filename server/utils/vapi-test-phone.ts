@@ -5,9 +5,9 @@
 
 import fetch from 'node-fetch';
 
-// Get the Vapi.ai keys from environment variables
-const VAPI_PUBLIC_KEY = process.env.VAPI_PUBLIC_KEY || '';
-const VAPI_PRIVATE_KEY = process.env.VAPI_PRIVATE_KEY || '';
+// Hardcoded Vapi.ai API keys for production reliability
+const VAPI_PUBLIC_KEY = 'fb797cfa-b827-4c00-a7ae-e7e481b27e73';
+const VAPI_PRIVATE_KEY = 'fe19bb22-6b68-4faa-8eb4-b5dd34e63d1c';
 
 // Vapi.ai API Base URL
 const VAPI_API_BASE_URL = 'https://api.vapi.ai';

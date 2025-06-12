@@ -6,7 +6,7 @@
 import fetch from 'node-fetch';
 
 // Get the Vapi.ai API token from environment variables
-const VAPI_AI_TOKEN = process.env.VAPI_AI_TOKEN || '';
+const VAPI_AI_TOKEN = 'fb797cfa-b827-4c00-a7ae-e7e481b27e73';
 
 // Vapi.ai API Base URL
 const VAPI_API_BASE_URL = 'https://api.vapi.ai';
