@@ -245,38 +245,112 @@ export default function AgentDetailPage() {
         callButton.innerHTML = '📞';
         
         try {
-          // Simple iframe approach for Vapi web calls
+          // Load Vapi SDK and create custom interface
           statusText.textContent = 'Loading voice interface...';
           
-          // Create iframe for Vapi web call
-          const iframe = document.createElement('iframe');
-          iframe.src = `https://vapi.ai/call?assistant=${agentData.vapiAssistantId}&publicKey=49c87404-6985-4e57-9fe3-4bbe4cd5d7f5`;
-          iframe.style.cssText = `
+          // Create custom call interface
+          const callInterface = document.createElement('div');
+          callInterface.style.cssText = `
             width: 100%;
-            height: 300px;
-            border: none;
-            border-radius: 8px;
+            height: 250px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            color: white;
+            text-align: center;
+            padding: 20px;
           `;
-          iframe.id = 'vapi-call-iframe';
           
-          // Clear content and add iframe
+          const micIcon = document.createElement('div');
+          micIcon.innerHTML = '🎤';
+          micIcon.style.cssText = `
+            font-size: 48px;
+            margin-bottom: 16px;
+          `;
+          
+          // Add CSS keyframes for pulse animation
+          const style = document.createElement('style');
+          style.textContent = `
+            @keyframes pulse {
+              0% { transform: scale(1); opacity: 1; }
+              50% { transform: scale(1.1); opacity: 0.7; }
+              100% { transform: scale(1); opacity: 1; }
+            }
+            .pulse-animation { animation: pulse 2s infinite; }
+          `;
+          document.head.appendChild(style);
+          micIcon.className = 'pulse-animation';
+          
+          const callStatus = document.createElement('div');
+          callStatus.id = 'call-status-display';
+          callStatus.style.cssText = `
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+          `;
+          callStatus.textContent = 'Initializing...';
+          
+          const callInfo = document.createElement('div');
+          callInfo.style.cssText = `
+            font-size: 14px;
+            opacity: 0.9;
+            line-height: 1.4;
+          `;
+          callInfo.textContent = 'Your browser will request microphone permission';
+          
+          callInterface.appendChild(micIcon);
+          callInterface.appendChild(callStatus);
+          callInterface.appendChild(callInfo);
+          
+          // Clear content and add interface
           content.innerHTML = '';
-          content.appendChild(iframe);
+          content.appendChild(callInterface);
           
-          statusText.textContent = 'Voice call ready';
+          // Load Vapi SDK
+          const script = document.createElement('script');
+          script.src = 'https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js';
+          script.onload = () => {
+            // Initialize Vapi after script loads
+            setTimeout(() => {
+              if (window.vapiSDK) {
+                try {
+                  window.vapiSDK.run({
+                    apiKey: '49c87404-6985-4e57-9fe3-4bbe4cd5d7f5',
+                    assistant: agentData.vapiAssistantId,
+                    config: {
+                      position: 'inline'
+                    }
+                  });
+                  
+                  callStatus.textContent = 'Call Active - Speak Now!';
+                  callInfo.textContent = 'AI agent is listening and ready to respond';
+                  isCallActive = true;
+                  
+                } catch (error) {
+                  console.error('Vapi initialization error:', error);
+                  callStatus.textContent = 'Call Setup Failed';
+                  callInfo.textContent = 'Please try again or check your internet connection';
+                }
+              } else {
+                callStatus.textContent = 'Voice SDK Not Available';
+                callInfo.textContent = 'Unable to load voice calling functionality';
+              }
+            }, 1000);
+          };
+          
+          script.onerror = () => {
+            callStatus.textContent = 'Voice Service Unavailable';
+            callInfo.textContent = 'Unable to connect to voice calling service';
+          };
+          
+          document.head.appendChild(script);
+          
+          statusText.textContent = 'Voice call initializing...';
           callButton.innerHTML = '🔴';
           callButton.style.background = '#ef4444';
-          isCallActive = true;
-          
-          const stopText = document.createElement('div');
-          stopText.style.cssText = `
-            font-size: 12px;
-            color: #94a3b8;
-            margin-top: 12px;
-            text-align: center;
-          `;
-          stopText.textContent = 'Use the interface above to test your AI agent';
-          content.appendChild(stopText);
         } catch (error) {
           console.error('Error starting call:', error);
           statusText.textContent = 'Error connecting';
