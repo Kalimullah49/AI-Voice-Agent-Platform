@@ -126,6 +126,187 @@ export default function AgentDetailPage() {
     selectedVoice: null,
   });
   
+  // Initialize embedded web call widget
+  const initializeWebCallWidget = () => {
+    // Remove any existing widget first
+    const existingWidget = document.getElementById('vapi-widget-container');
+    if (existingWidget) {
+      existingWidget.remove();
+    }
+
+    // Create widget container
+    const widgetContainer = document.createElement('div');
+    widgetContainer.id = 'vapi-widget-container';
+    widgetContainer.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 300px;
+      height: 400px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid #e2e8f0;
+    `;
+
+    // Create header
+    const header = document.createElement('div');
+    header.style.cssText = `
+      background: #1a1a1a;
+      color: white;
+      padding: 12px 16px;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    `;
+    header.innerHTML = `
+      <span>Voice AI Test Call</span>
+      <button id="close-widget" style="background: none; border: none; color: white; cursor: pointer; font-size: 18px;">&times;</button>
+    `;
+
+    // Create content area
+    const content = document.createElement('div');
+    content.style.cssText = `
+      flex: 1;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    `;
+
+    // Create call button
+    const callButton = document.createElement('button');
+    callButton.id = 'vapi-call-button';
+    callButton.style.cssText = `
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: #22c55e;
+      border: none;
+      color: white;
+      font-size: 32px;
+      cursor: pointer;
+      margin-bottom: 16px;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    `;
+    callButton.innerHTML = '📞';
+    callButton.title = 'Click to start voice call';
+
+    const statusText = document.createElement('div');
+    statusText.id = 'call-status';
+    statusText.style.cssText = `
+      font-size: 14px;
+      color: #64748b;
+      margin-bottom: 8px;
+    `;
+    statusText.textContent = 'Ready to start call';
+
+    const instructionText = document.createElement('div');
+    instructionText.style.cssText = `
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.4;
+    `;
+    instructionText.textContent = 'Click the phone button to test your AI agent';
+
+    content.appendChild(callButton);
+    content.appendChild(statusText);
+    content.appendChild(instructionText);
+
+    widgetContainer.appendChild(header);
+    widgetContainer.appendChild(content);
+    document.body.appendChild(widgetContainer);
+
+    // Add event listeners
+    const closeButton = document.getElementById('close-widget');
+    closeButton?.addEventListener('click', () => {
+      widgetContainer.remove();
+      setIsWebCallActive(false);
+    });
+
+    let isCallActive = false;
+    callButton.addEventListener('click', async () => {
+      if (!isCallActive) {
+        // Start call
+        statusText.textContent = 'Connecting...';
+        callButton.style.background = '#ef4444';
+        callButton.innerHTML = '📞';
+        
+        try {
+          // Load Vapi SDK dynamically
+          if (!window.vapiSDK) {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js';
+            script.onload = () => {
+              startVapiCall();
+            };
+            document.head.appendChild(script);
+          } else {
+            startVapiCall();
+          }
+        } catch (error) {
+          console.error('Error starting call:', error);
+          statusText.textContent = 'Error connecting';
+          callButton.style.background = '#22c55e';
+          callButton.innerHTML = '📞';
+        }
+      } else {
+        // End call
+        if (window.vapiSDK) {
+          try {
+            window.vapiSDK.stop();
+          } catch (e) {
+            console.warn('Error stopping call:', e);
+          }
+        }
+        statusText.textContent = 'Call ended';
+        callButton.style.background = '#22c55e';
+        callButton.innerHTML = '📞';
+        isCallActive = false;
+        
+        setTimeout(() => {
+          statusText.textContent = 'Ready to start call';
+        }, 2000);
+      }
+    });
+
+    const startVapiCall = () => {
+      if (window.vapiSDK && agentData.vapiAssistantId) {
+        try {
+          window.vapiSDK.run({
+            apiKey: '49c87404-6985-4e57-9fe3-4bbe4cd5d7f5',
+            assistant: agentData.vapiAssistantId,
+            config: {
+              position: 'hidden' // Hide the default button since we have our own
+            }
+          });
+          
+          statusText.textContent = 'Call active - Speak now!';
+          callButton.innerHTML = '🔴';
+          isCallActive = true;
+          
+        } catch (error) {
+          console.error('Error initializing Vapi:', error);
+          statusText.textContent = 'Error starting call';
+          callButton.style.background = '#22c55e';
+          callButton.innerHTML = '📞';
+        }
+      }
+    };
+
+    setIsWebCallActive(true);
+  };
+
   // Fetch available voices function
   const fetchVoices = () => {
     // Set state to indicate loading
@@ -352,22 +533,25 @@ export default function AgentDetailPage() {
           {/* Test call button for Vapi integration */}
           {agentData.vapiAssistantId && (
             <Button 
-              variant="outline"
+              variant={isWebCallActive ? "destructive" : "outline"}
               size="sm" 
               className="mr-2" 
               onClick={() => {
-                // Simple approach - open web call in new window
-                const vapiUrl = `https://vapi.ai/call?assistant=${agentData.vapiAssistantId}&publicKey=49c87404-6985-4e57-9fe3-4bbe4cd5d7f5`;
-                window.open(vapiUrl, '_blank', 'width=400,height=600,scrollbars=yes,resizable=yes');
-                
-                toast({
-                  title: "Web Call Opened",
-                  description: "A new window has opened for testing the voice call",
-                });
+                if (isWebCallActive) {
+                  // Remove the widget
+                  const widgetContainer = document.getElementById('vapi-widget-container');
+                  if (widgetContainer) {
+                    widgetContainer.remove();
+                  }
+                  setIsWebCallActive(false);
+                } else {
+                  // Create embedded widget
+                  initializeWebCallWidget();
+                }
               }}
             >
               <PhoneCall className="h-4 w-4 mr-2" />
-              Test Web Call
+              {isWebCallActive ? "End Web Call" : "Test Web Call"}
             </Button>
           )}
           
