@@ -6,7 +6,7 @@
 import fetch from 'node-fetch';
 
 // Hardcoded Vapi.ai API key for production reliability
-const VAPI_PRIVATE_KEY = 'fe19bb22-6b68-4faa-8eb4-b5dd34e63d1c';
+const VAPI_PRIVATE_KEY = '2291104d-93d4-4292-9d18-6f3af2e420e0';
 
 /**
  * Make an outbound call using Vapi.ai
