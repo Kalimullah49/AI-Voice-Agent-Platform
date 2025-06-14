@@ -436,11 +436,7 @@ export default function CampaignsPage() {
                 <Megaphone className="h-12 w-12" />
               </div>
               <h3 className="text-lg font-medium text-gray-900 mb-1">No campaigns found</h3>
-              <p className="text-gray-500 mb-4">Create your first campaign to start making outbound calls.</p>
-              <Button>
-                <PlusIcon className="h-4 w-4 mr-2" />
-                Create new campaign
-              </Button>
+              <p className="text-gray-500">Create your first campaign to start making outbound calls.</p>
             </div>
           )}
         </CardContent>
