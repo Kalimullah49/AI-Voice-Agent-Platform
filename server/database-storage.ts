@@ -321,123 +321,7 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(actions);
   }
   
-  // Twilio account operations
-  async getTwilioAccount(id: number): Promise<TwilioAccount | undefined> {
-    const results = await db.select().from(twilioAccounts).where(eq(twilioAccounts.id, id));
-    return results[0];
-  }
-  
-  async createTwilioAccount(account: InsertTwilioAccount): Promise<TwilioAccount> {
-    // If this is the first account for this user, set it as default
-    const userAccounts = await this.getTwilioAccountsByUserId(account.userId);
-    const isDefault = userAccounts.length === 0 ? true : account.isDefault || false;
-    
-    // If setting this account as default, unset other defaults for this user
-    if (isDefault) {
-      await db
-        .update(twilioAccounts)
-        .set({ isDefault: false })
-        .where(eq(twilioAccounts.userId, account.userId));
-    }
-    
-    const [newAccount] = await db
-      .insert(twilioAccounts)
-      .values({
-        ...account,
-        isDefault,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      })
-      .returning();
-    
-    return newAccount;
-  }
-
-  async updateTwilioAccount(id: number, account: Partial<InsertTwilioAccount>): Promise<TwilioAccount | undefined> {
-    // If setting this account as default, unset other defaults for this user
-    const existingAccount = await this.getTwilioAccount(id);
-    if (!existingAccount) return undefined;
-    
-    if (account.isDefault) {
-      await db
-        .update(twilioAccounts)
-        .set({ isDefault: false })
-        .where(eq(twilioAccounts.userId, existingAccount.userId));
-    }
-    
-    const [updatedAccount] = await db
-      .update(twilioAccounts)
-      .set({
-        ...account,
-        updatedAt: new Date()
-      })
-      .where(eq(twilioAccounts.id, id))
-      .returning();
-    
-    return updatedAccount;
-  }
-  
-  async deleteTwilioAccount(id: number): Promise<boolean> {
-    const account = await this.getTwilioAccount(id);
-    if (!account) return false;
-    
-    await db.delete(twilioAccounts).where(eq(twilioAccounts.id, id));
-    
-    // If this was the default account, set another account as default if available
-    if (account.isDefault) {
-      const accounts = await this.getTwilioAccountsByUserId(account.userId);
-      if (accounts.length > 0) {
-        await db
-          .update(twilioAccounts)
-          .set({ isDefault: true })
-          .where(eq(twilioAccounts.id, accounts[0].id));
-      }
-    }
-    
-    return true;
-  }
-  
-  async getAllTwilioAccounts(): Promise<TwilioAccount[]> {
-    return await db.select().from(twilioAccounts);
-  }
-  
-  async getTwilioAccountsByUserId(userId: string): Promise<TwilioAccount[]> {
-    return await db
-      .select()
-      .from(twilioAccounts)
-      .where(eq(twilioAccounts.userId, userId));
-  }
-  
-  async getDefaultTwilioAccount(userId: string): Promise<TwilioAccount | undefined> {
-    const results = await db
-      .select()
-      .from(twilioAccounts)
-      .where(and(
-        eq(twilioAccounts.userId, userId),
-        eq(twilioAccounts.isDefault, true)
-      ));
-    
-    return results[0];
-  }
-  
-  async setDefaultTwilioAccount(id: number, userId: string): Promise<boolean> {
-    const account = await this.getTwilioAccount(id);
-    if (!account || account.userId !== userId) return false;
-    
-    // Unset all other accounts as default
-    await db
-      .update(twilioAccounts)
-      .set({ isDefault: false })
-      .where(eq(twilioAccounts.userId, userId));
-    
-    // Set this account as default
-    await db
-      .update(twilioAccounts)
-      .set({ isDefault: true })
-      .where(eq(twilioAccounts.id, id));
-    
-    return true;
-  }
+  // Twilio account operations removed - using hardcoded credentials for all users
 
   // Phone number operations
   async getPhoneNumber(id: number): Promise<PhoneNumber | undefined> {
@@ -475,12 +359,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(phoneNumbers.userId, userId));
   }
   
-  async getPhoneNumbersByTwilioAccountId(twilioAccountId: number): Promise<PhoneNumber[]> {
-    return await db
-      .select()
-      .from(phoneNumbers)
-      .where(eq(phoneNumbers.twilioAccountId, twilioAccountId));
-  }
+  // getPhoneNumbersByTwilioAccountId removed - no longer needed with hardcoded credentials
   
   async getPhoneNumbersByAgentId(agentId: number): Promise<PhoneNumber[]> {
     return await db

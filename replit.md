@@ -12,6 +12,9 @@ Mind AI is a comprehensive AI-powered call center management and analytics solut
 - **Frontend**: React with TypeScript, Tailwind CSS, and shadcn/ui
 
 ## Recent Changes
+- **Twilio Architecture**: Complete removal of individual user Twilio accounts - all users now share hardcoded credentials (AC6c6a3440ca612a19538907cb1b4868d)
+- **Phone Management**: Simplified phone number operations to use centralized Twilio account for all users
+- **Database Schema**: Updated phone numbers table to remove twilioAccountId dependency
 - **Agent Management**: Removed "Deploy to Vapi" and "Optimize with AI" buttons per client feedback
 - **Publish Button**: Single "Publish" button now handles both saving and Vapi deployment
 - **Campaign Execution**: Fixed voice agent functionality for uploaded numbers
@@ -29,6 +32,9 @@ Mind AI is a comprehensive AI-powered call center management and analytics solut
 - ✅ Twilio account management with multiple SID support
 
 ## Current Issues Being Resolved
+- ✅ Twilio account removal completed - all users now use centralized hardcoded credentials
+- ✅ Database schema updated to remove twilioAccountId dependencies
+- ✅ Phone number operations simplified for single account architecture
 - 🔧 Authentication type mismatches causing 401 errors
 - 🔧 User schema synchronization between frontend/backend
 - 🔧 Session handling for proper auth flow

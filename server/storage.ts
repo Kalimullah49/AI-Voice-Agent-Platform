@@ -45,24 +45,13 @@ export interface IStorage {
   createAction(action: InsertAction): Promise<Action>;
   getAllActions(): Promise<Action[]>;
   
-  // Twilio account operations
-  getTwilioAccount(id: number): Promise<TwilioAccount | undefined>;
-  createTwilioAccount(account: InsertTwilioAccount): Promise<TwilioAccount>;
-  updateTwilioAccount(id: number, account: Partial<InsertTwilioAccount>): Promise<TwilioAccount | undefined>;
-  deleteTwilioAccount(id: number): Promise<boolean>;
-  getAllTwilioAccounts(): Promise<TwilioAccount[]>;
-  getTwilioAccountsByUserId(userId: string): Promise<TwilioAccount[]>;
-  getDefaultTwilioAccount(userId: string): Promise<TwilioAccount | undefined>;
-  setDefaultTwilioAccount(id: number, userId: string): Promise<boolean>;
-  
-  // Phone number operations
+  // Phone number operations (simplified for hardcoded Twilio credentials)
   getPhoneNumber(id: number): Promise<PhoneNumber | undefined>;
   createPhoneNumber(phoneNumber: InsertPhoneNumber): Promise<PhoneNumber>;
   updatePhoneNumber(id: number, phoneNumber: Partial<InsertPhoneNumber>): Promise<PhoneNumber | undefined>;
   deletePhoneNumber(id: number): Promise<boolean>;
   getAllPhoneNumbers(): Promise<PhoneNumber[]>;
   getPhoneNumbersByUserId(userId: string): Promise<PhoneNumber[]>;
-  getPhoneNumbersByTwilioAccountId(twilioAccountId: number): Promise<PhoneNumber[]>;
   getPhoneNumbersByAgentId(agentId: number): Promise<PhoneNumber[]>;
   
   // Contact group operations
@@ -184,7 +173,22 @@ export class MemStorage implements IStorage {
   
   async createAgent(insertAgent: InsertAgent): Promise<Agent> {
     const id = this.agentId++;
-    const agent: Agent = { ...insertAgent, id };
+    const agent: Agent = { 
+      ...insertAgent, 
+      id,
+      persona: insertAgent.persona ?? null,
+      toneStyle: insertAgent.toneStyle ?? null,
+      initialMessage: insertAgent.initialMessage ?? null,
+      companyBackground: insertAgent.companyBackground ?? null,
+      agentRules: insertAgent.agentRules ?? null,
+      vapiAssistantId: insertAgent.vapiAssistantId ?? null,
+      edgeCases: insertAgent.edgeCases ?? null,
+      script: insertAgent.script ?? null,
+      summarizerPrompt: insertAgent.summarizerPrompt ?? null,
+      responseIntelligenceLevel: insertAgent.responseIntelligenceLevel ?? null,
+      active: insertAgent.active ?? null,
+      userId: insertAgent.userId ?? null
+    };
     this.agents.set(id, agent);
     return agent;
   }
@@ -218,7 +222,16 @@ export class MemStorage implements IStorage {
   async createCall(insertCall: InsertCall): Promise<Call> {
     const id = this.callId++;
     const startedAt = new Date();
-    const call: Call = { ...insertCall, id, startedAt };
+    const call: Call = { 
+      ...insertCall, 
+      id, 
+      startedAt,
+      agentId: insertCall.agentId ?? null,
+      duration: insertCall.duration ?? 0,
+      endedReason: insertCall.endedReason ?? null,
+      outcome: insertCall.outcome ?? null,
+      cost: insertCall.cost ?? null
+    };
     this.calls.set(id, call);
     return call;
   }
@@ -239,7 +252,18 @@ export class MemStorage implements IStorage {
   async createAction(insertAction: InsertAction): Promise<Action> {
     const id = this.actionId++;
     const createdAt = new Date();
-    const action: Action = { ...insertAction, id, createdAt };
+    const action: Action = { 
+      ...insertAction, 
+      id, 
+      createdAt,
+      description: insertAction.description ?? null,
+      endpoint: insertAction.endpoint ?? null,
+      method: insertAction.method ?? null,
+      waitMessage: insertAction.waitMessage ?? null,
+      defaultValues: insertAction.defaultValues ?? null,
+      extractionSchema: insertAction.extractionSchema ?? null,
+      apiKey: insertAction.apiKey ?? null
+    };
     this.actions.set(id, action);
     return action;
   }
@@ -255,7 +279,17 @@ export class MemStorage implements IStorage {
   
   async createPhoneNumber(insertPhoneNumber: InsertPhoneNumber): Promise<PhoneNumber> {
     const id = this.phoneNumberId++;
-    const phoneNumber: PhoneNumber = { ...insertPhoneNumber, id };
+    const phoneNumber: PhoneNumber = { 
+      ...insertPhoneNumber, 
+      id,
+      createdAt: insertPhoneNumber.createdAt ?? new Date(),
+      updatedAt: insertPhoneNumber.updatedAt ?? null,
+      active: insertPhoneNumber.active ?? null,
+      agentId: insertPhoneNumber.agentId ?? null,
+      twilioSid: insertPhoneNumber.twilioSid ?? null,
+      friendlyName: insertPhoneNumber.friendlyName ?? null,
+      vapiPhoneNumberId: insertPhoneNumber.vapiPhoneNumberId ?? null
+    };
     this.phoneNumbers.set(id, phoneNumber);
     return phoneNumber;
   }
@@ -281,9 +315,7 @@ export class MemStorage implements IStorage {
     return Array.from(this.phoneNumbers.values()).filter(phoneNumber => phoneNumber.userId === userId);
   }
   
-  async getPhoneNumbersByTwilioAccountId(twilioAccountId: number): Promise<PhoneNumber[]> {
-    return Array.from(this.phoneNumbers.values()).filter(phoneNumber => phoneNumber.twilioAccountId === twilioAccountId);
-  }
+  // getPhoneNumbersByTwilioAccountId removed - no longer needed with hardcoded credentials
   
   // Contact group operations
   async getContactGroup(id: number): Promise<ContactGroup | undefined> {
@@ -327,7 +359,21 @@ export class MemStorage implements IStorage {
   async createContact(insertContact: InsertContact): Promise<Contact> {
     const id = this.contactId++;
     const createdAt = new Date();
-    const contact: Contact = { ...insertContact, id, createdAt };
+    const contact: Contact = { 
+      ...insertContact, 
+      id, 
+      createdAt,
+      email: insertContact.email ?? null,
+      firstName: insertContact.firstName ?? null,
+      lastName: insertContact.lastName ?? null,
+      groupId: insertContact.groupId ?? null,
+      address: insertContact.address ?? null,
+      city: insertContact.city ?? null,
+      state: insertContact.state ?? null,
+      zipCode: insertContact.zipCode ?? null,
+      country: insertContact.country ?? null,
+      dnc: insertContact.dnc ?? null
+    };
     this.contacts.set(id, contact);
     return contact;
   }
@@ -359,7 +405,17 @@ export class MemStorage implements IStorage {
     const id = this.campaignId++;
     const createdAt = new Date();
     const updatedAt = new Date();
-    const campaign: Campaign = { ...insertCampaign, id, createdAt, updatedAt };
+    const campaign: Campaign = { 
+      ...insertCampaign, 
+      id, 
+      createdAt, 
+      updatedAt,
+      status: insertCampaign.status ?? "draft",
+      agentId: insertCampaign.agentId ?? null,
+      contactGroupId: insertCampaign.contactGroupId ?? null,
+      concurrentCalls: insertCampaign.concurrentCalls ?? null,
+      phoneNumberId: insertCampaign.phoneNumberId ?? null
+    };
     this.campaigns.set(id, campaign);
     return campaign;
   }

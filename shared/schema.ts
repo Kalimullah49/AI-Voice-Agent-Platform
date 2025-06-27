@@ -208,17 +208,18 @@ export const insertTwilioAccountSchema = createInsertSchema(twilioAccounts).pick
   isDefault: true,
 });
 
-// Phone number model
+// Phone number model - simplified for hardcoded Twilio credentials
 export const phoneNumbers = pgTable("phone_numbers", {
   id: serial("id").primaryKey(),
   number: text("number").notNull().unique(),
   agentId: integer("agent_id").references(() => agents.id),
   active: boolean("active").default(true),
-  twilioAccountId: integer("twilio_account_id").references(() => twilioAccounts.id),
-  userId: varchar("user_id").references(() => users.id), // User who owns this number
+  userId: varchar("user_id").references(() => users.id).notNull(), // User who owns this number
   twilioSid: text("twilio_sid"), // Store the Twilio SID for the phone number
   friendlyName: text("friendly_name"),
   vapiPhoneNumberId: text("vapi_phone_number_id"), // Store the Vapi.ai phone number ID
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const insertPhoneNumberSchema = createInsertSchema(phoneNumbers).pick({

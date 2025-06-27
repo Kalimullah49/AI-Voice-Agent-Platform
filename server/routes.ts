@@ -14,6 +14,11 @@ import twilio from 'twilio';
 // Our custom auth middleware will be imported dynamically
 import { DatabaseStorage } from "./database-storage";
 
+// Hardcoded Twilio credentials for all users
+const TWILIO_ACCOUNT_SID = 'AC6c6a3440ca612a19538907cb1b4868d';
+const TWILIO_AUTH_TOKEN = '52d9827d5591afa0fa41d95376041085';
+const twilioClient = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+
 // Campaign execution queue management for concurrent calls across multiple users
 interface CampaignExecution {
   campaignId: number;
@@ -207,7 +212,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.session.userId;
       
       // Get all agents and filter by user ID
-      const agents = await storage.getAllAgentsByUserId(userId);
+      const agents = await storage.getAllAgentsByUserId(userId!);
       res.json(agents);
     } catch (error) {
       console.error("Error fetching agents:", error);
@@ -471,230 +476,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Twilio account management
-  app.get("/api/twilio-accounts", isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      const userId = req.session.userId;
-      const accounts = await storage.getTwilioAccountsByUserId(userId);
-      res.json(accounts);
-    } catch (error) {
-      console.error("Error fetching Twilio accounts:", error);
-      res.status(500).json({ message: "Failed to fetch Twilio accounts" });
-    }
-  });
+  // Twilio functionality now uses hardcoded credentials for all users
 
-  app.get("/api/twilio-accounts/:id", isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      const userId = req.session.userId;
-      const accountId = parseInt(req.params.id);
-      
-      if (isNaN(accountId)) {
-        return res.status(400).json({ message: "Invalid account ID" });
-      }
-      
-      const account = await storage.getTwilioAccount(accountId);
-      
-      if (!account) {
-        return res.status(404).json({ message: "Twilio account not found" });
-      }
-      
-      // Check if this account belongs to the current user
-      if (account.userId !== userId) {
-        return res.status(403).json({ message: "You don't have permission to access this account" });
-      }
-      
-      res.json(account);
-    } catch (error) {
-      console.error("Error fetching Twilio account:", error);
-      res.status(500).json({ message: "Failed to fetch Twilio account" });
-    }
-  });
 
-  app.post("/api/twilio-accounts", isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      const userId = req.session.userId;
-      
-      // Add the user ID to the account data
-      const accountData = insertTwilioAccountSchema.parse({
-        ...req.body,
-        userId
-      });
-      
-      // Verify the Twilio credentials before saving
-      try {
-        const client = twilio(accountData.accountSid, accountData.authToken);
-        // Try to fetch account details to verify credentials
-        await client.api.accounts(accountData.accountSid).fetch();
-      } catch (twilioError) {
-        return res.status(400).json({ 
-          message: "Invalid Twilio credentials", 
-          error: twilioError.message 
-        });
-      }
-      
-      const account = await storage.createTwilioAccount(accountData);
-      res.status(201).json(account);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        res.status(400).json({ message: "Invalid account data", errors: error.errors });
-      } else {
-        console.error("Error creating Twilio account:", error);
-        res.status(500).json({ message: "Failed to create Twilio account" });
-      }
-    }
-  });
 
-  app.patch("/api/twilio-accounts/:id", isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      const userId = req.session.userId;
-      const accountId = parseInt(req.params.id);
-      
-      if (isNaN(accountId)) {
-        return res.status(400).json({ message: "Invalid account ID" });
-      }
-      
-      const existingAccount = await storage.getTwilioAccount(accountId);
-      
-      if (!existingAccount) {
-        return res.status(404).json({ message: "Twilio account not found" });
-      }
-      
-      // Check if this account belongs to the current user
-      if (existingAccount.userId !== userId) {
-        return res.status(403).json({ message: "You don't have permission to modify this account" });
-      }
-      
-      // If updating credentials, verify they work
-      if (req.body.accountSid || req.body.authToken) {
-        try {
-          const accountSid = req.body.accountSid || existingAccount.accountSid;
-          const authToken = req.body.authToken || existingAccount.authToken;
-          
-          const client = twilio(accountSid, authToken);
-          // Try to fetch account details to verify credentials
-          await client.api.accounts(accountSid).fetch();
-        } catch (twilioError) {
-          return res.status(400).json({ 
-            message: "Invalid Twilio credentials", 
-            error: twilioError.message 
-          });
-        }
-      }
-      
-      const updatedAccount = await storage.updateTwilioAccount(accountId, req.body);
-      res.json(updatedAccount);
-    } catch (error) {
-      console.error("Error updating Twilio account:", error);
-      res.status(500).json({ message: "Failed to update Twilio account" });
-    }
-  });
-
-  app.delete("/api/twilio-accounts/:id", isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      const userId = req.session.userId;
-      const accountId = parseInt(req.params.id);
-      
-      if (isNaN(accountId)) {
-        return res.status(400).json({ message: "Invalid account ID" });
-      }
-      
-      const existingAccount = await storage.getTwilioAccount(accountId);
-      
-      if (!existingAccount) {
-        return res.status(404).json({ message: "Twilio account not found" });
-      }
-      
-      // Check if this account belongs to the current user
-      if (existingAccount.userId !== userId) {
-        return res.status(403).json({ message: "You don't have permission to delete this account" });
-      }
-      
-      // Get all phone numbers associated with this Twilio account
-      const associatedPhoneNumbers = await storage.getPhoneNumbersByTwilioAccountId(accountId);
-      
-      console.log(`Found ${associatedPhoneNumbers.length} phone numbers associated with Twilio account ${existingAccount.accountName || existingAccount.accountSid}`);
-      
-      // Delete each phone number from Vapi.ai and our database
-      for (const phoneNumber of associatedPhoneNumbers) {
-        try {
-          // Delete from Vapi.ai if registered
-          if (phoneNumber.vapiPhoneNumberId) {
-            const result = await deleteVapiPhoneNumber(phoneNumber.vapiPhoneNumberId);
-            if (result.success) {
-              console.log(`Successfully removed phone number ${phoneNumber.number} from Vapi.ai`);
-            } else {
-              console.warn(`Failed to remove phone number ${phoneNumber.number} from Vapi.ai: ${result.message}`);
-            }
-          }
-          
-          // Delete the phone number from our database
-          await storage.deletePhoneNumber(phoneNumber.id);
-          console.log(`Deleted phone number ${phoneNumber.number} from database`);
-        } catch (error) {
-          console.error(`Error processing phone number ${phoneNumber.number}:`, error);
-          // Continue with other phone numbers even if one fails
-        }
-      }
-      
-      // Now delete the Twilio account
-      await storage.deleteTwilioAccount(accountId);
-      console.log(`Successfully deleted Twilio account ${existingAccount.accountName || existingAccount.accountSid}`);
-      
-      res.status(204).send();
-    } catch (error) {
-      console.error("Error deleting Twilio account:", error);
-      res.status(500).json({ message: "Failed to delete Twilio account" });
-    }
-  });
-
-  app.post("/api/twilio-accounts/:id/set-default", isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      const userId = req.session.userId;
-      const accountId = parseInt(req.params.id);
-      
-      if (isNaN(accountId)) {
-        return res.status(400).json({ message: "Invalid account ID" });
-      }
-      
-      const result = await storage.setDefaultTwilioAccount(accountId, userId);
-      
-      if (!result) {
-        return res.status(404).json({ message: "Failed to set account as default" });
-      }
-      
-      res.json({ message: "Default account updated successfully" });
-    } catch (error) {
-      console.error("Error setting default Twilio account:", error);
-      res.status(500).json({ message: "Failed to set default Twilio account" });
-    }
-  });
-
-  // Twilio phone number management
+  // Twilio phone number management - using hardcoded credentials
   app.get("/api/twilio-phone-numbers", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.session.userId;
-      const accountId = parseInt(req.query.accountId as string);
-      
-      if (isNaN(accountId)) {
-        return res.status(400).json({ message: "Invalid account ID" });
-      }
-      
-      const account = await storage.getTwilioAccount(accountId);
-      
-      if (!account) {
-        return res.status(404).json({ message: "Twilio account not found" });
-      }
-      
-      // Check if this account belongs to the current user
-      if (account.userId !== userId) {
-        return res.status(403).json({ message: "You don't have permission to access this account" });
-      }
-      
-      // Create Twilio client with user's credentials
-      const client = twilio(account.accountSid, account.authToken);
-      
-      // Fetch available phone numbers from Twilio
-      const incomingNumbers = await client.incomingPhoneNumbers.list();
+      // Fetch available phone numbers from Twilio using hardcoded credentials
+      const incomingNumbers = await twilioClient.incomingPhoneNumbers.list();
       
       res.json(incomingNumbers.map(number => ({
         sid: number.sid,
@@ -712,28 +502,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/available-twilio-phone-numbers", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.session.userId;
-      const accountId = parseInt(req.query.accountId as string);
       const countryCode = (req.query.countryCode as string) || 'US';
       const areaCode = req.query.areaCode as string;
-      
-      if (isNaN(accountId)) {
-        return res.status(400).json({ message: "Invalid account ID" });
-      }
-      
-      const account = await storage.getTwilioAccount(accountId);
-      
-      if (!account) {
-        return res.status(404).json({ message: "Twilio account not found" });
-      }
-      
-      // Check if this account belongs to the current user
-      if (account.userId !== userId) {
-        return res.status(403).json({ message: "You don't have permission to access this account" });
-      }
-      
-      // Create Twilio client with user's credentials
-      const client = twilio(account.accountSid, account.authToken);
       
       // Search parameters
       const searchParams: any = {};
@@ -741,8 +511,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         searchParams.areaCode = areaCode;
       }
       
-      // Fetch available phone numbers from Twilio
-      const availableNumbers = await client.availablePhoneNumbers(countryCode)
+      // Fetch available phone numbers from Twilio using hardcoded credentials
+      const availableNumbers = await twilioClient.availablePhoneNumbers(countryCode)
                                           .local
                                           .list(searchParams);
       
@@ -763,37 +533,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/purchase-twilio-phone-number", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.session.userId;
-      const { accountId, phoneNumber, friendlyName } = req.body;
+      const { phoneNumber, friendlyName } = req.body;
       
-      if (!accountId || !phoneNumber) {
-        return res.status(400).json({ message: "Account ID and phone number are required" });
+      if (!phoneNumber) {
+        return res.status(400).json({ message: "Phone number is required" });
       }
       
-      const account = await storage.getTwilioAccount(accountId);
-      
-      if (!account) {
-        return res.status(404).json({ message: "Twilio account not found" });
-      }
-      
-      // Check if this account belongs to the current user
-      if (account.userId !== userId) {
-        return res.status(403).json({ message: "You don't have permission to use this account" });
-      }
-      
-      // Create Twilio client with user's credentials
-      const client = twilio(account.accountSid, account.authToken);
-      
-      // Purchase phone number from Twilio
-      const purchasedNumber = await client.incomingPhoneNumbers.create({
+      // Purchase phone number from Twilio using hardcoded credentials
+      const purchasedNumber = await twilioClient.incomingPhoneNumbers.create({
         phoneNumber,
         friendlyName: friendlyName || `Mind AI Number ${new Date().toISOString()}`
       });
       
-      // Store the phone number in our database
+      // Store the phone number in our database (no longer tied to user Twilio account)
       const phoneNumberData: any = {
         number: purchasedNumber.phoneNumber,
-        userId,
-        twilioAccountId: accountId,
+        userId: userId!,
         twilioSid: purchasedNumber.sid,
         friendlyName: purchasedNumber.friendlyName,
         active: true
@@ -804,9 +559,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { registerPhoneNumberWithVapiNumbers } = await import('./utils/vapiIntegration');
         const vapiResult = await registerPhoneNumberWithVapiNumbers(
           purchasedNumber.phoneNumber,
-          account.accountSid,
+          TWILIO_ACCOUNT_SID,
           purchasedNumber.friendlyName,
-          account.authToken // Pass the user's own Twilio auth token for verification
+          TWILIO_AUTH_TOKEN
         );
         
         if (vapiResult.success && vapiResult.phoneNumberId) {
@@ -854,34 +609,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Import existing phone numbers from a connected Twilio account
+  // Import existing phone numbers from the hardcoded Twilio account
   app.post("/api/import-twilio-numbers", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.session.userId;
-      const { accountId } = req.body;
       
-      if (!accountId) {
-        return res.status(400).json({ message: "Twilio account ID is required" });
-      }
-      
-      // Get the Twilio account
-      const twilioAccount = await storage.getTwilioAccount(accountId);
-      
-      if (!twilioAccount) {
-        return res.status(404).json({ message: "Twilio account not found" });
-      }
-      
-      // Verify the account belongs to the current user
-      if (twilioAccount.userId !== userId) {
-        return res.status(403).json({ message: "You don't have permission to access this Twilio account" });
-      }
-      
-      // Create Twilio client
-      const client = twilio(twilioAccount.accountSid, twilioAccount.authToken);
-      
-      // Fetch all existing phone numbers from the Twilio account
-      const twilioNumbers = await client.incomingPhoneNumbers.list();
-      console.log(`Found ${twilioNumbers.length} phone numbers in Twilio account ${twilioAccount.accountName || twilioAccount.accountSid}`);
+      // Fetch all existing phone numbers from the hardcoded Twilio account
+      const twilioNumbers = await twilioClient.incomingPhoneNumbers.list();
+      console.log(`Found ${twilioNumbers.length} phone numbers in hardcoded Twilio account`);
       
       // Get existing phone numbers in our database for this user to avoid duplicates
       const existingNumbers = await storage.getPhoneNumbersByUserId(userId);
@@ -902,11 +637,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           continue;
         }
         
-        // Add to our database
+        // Add to our database (no longer tied to user Twilio account)
         const newPhoneNumber = await storage.createPhoneNumber({
           number: twilioNumber.phoneNumber,
           userId,
-          twilioAccountId: accountId,
           twilioSid: twilioNumber.sid,
           friendlyName: twilioNumber.friendlyName || `Imported ${twilioNumber.phoneNumber}`,
           active: true
@@ -916,21 +650,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Register the number with Vapi.ai
         try {
-          // Try to verify that this phone number actually belongs to this Twilio account
-          // by using the Twilio API to check
-          console.log(`Verifying ownership of ${twilioNumber.phoneNumber} in Twilio account ${twilioAccount.accountSid}`);
+          console.log(`Verifying ownership of ${twilioNumber.phoneNumber} in hardcoded Twilio account`);
           
           // Import the function directly instead of using require
           const { registerPhoneNumberWithVapiNumbers } = await import('./utils/vapiIntegration');
           
           // Log more details to help debug
-          console.log(`Registering with Vapi.ai: Phone number ${twilioNumber.phoneNumber}, Twilio SID: ${twilioNumber.sid}, Account SID: ${twilioAccount.accountSid}`);
+          console.log(`Registering with Vapi.ai: Phone number ${twilioNumber.phoneNumber}, Twilio SID: ${twilioNumber.sid}`);
           
           const vapiResult = await registerPhoneNumberWithVapiNumbers(
             twilioNumber.phoneNumber,
-            twilioAccount.accountSid,
+            TWILIO_ACCOUNT_SID,
             twilioNumber.friendlyName || `Imported ${twilioNumber.phoneNumber}`,
-            twilioAccount.authToken // Pass the user's own Twilio auth token for verification
+            TWILIO_AUTH_TOKEN
           );
           
           if (vapiResult.success) {
@@ -1003,57 +735,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "You don't have permission to release this phone number" });
       }
       
-      // Get the associated Twilio account
-      const twilioAccountId = phoneNumber.twilioAccountId;
-      
-      if (!twilioAccountId) {
-        return res.status(400).json({ message: "Phone number does not have an associated Twilio account" });
-      }
-      
-      const twilioAccount = await storage.getTwilioAccount(twilioAccountId);
-      
-      if (!twilioAccount) {
-        return res.status(404).json({ message: "Twilio account not found" });
-      }
-      
-      // Only attempt to release from Twilio if we have all the necessary info
-      if (phoneNumber.twilioSid && twilioAccount.accountSid && twilioAccount.authToken) {
+      // Only attempt to release from Twilio if we have the necessary info
+      if (phoneNumber.twilioSid) {
         try {
-          // Create Twilio client
-          const client = twilio(
-            twilioAccount.accountSid, 
-            twilioAccount.authToken,
-            { 
-              logLevel: 'debug',
-              accountSid: twilioAccount.accountSid 
-            }
-          );
-          
-          // Request to release the number from Twilio using HTTP DELETE request
-          // This follows the official Twilio API documentation for releasing phone numbers
+          // Release from Twilio using hardcoded credentials
           console.log(`Attempting to release Twilio number with SID: ${phoneNumber.twilioSid}`);
           
-          // Create authorization string for Basic Auth
-          const auth = Buffer.from(`${twilioAccount.accountSid}:${twilioAccount.authToken}`).toString('base64');
+          // Use the hardcoded Twilio client to release the phone number
+          await twilioClient.incomingPhoneNumbers(phoneNumber.twilioSid).remove();
           
-          // Make direct HTTP request to Twilio API
-          const twilioDeletionUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccount.accountSid}/IncomingPhoneNumbers/${phoneNumber.twilioSid}.json`;
-          console.log(`Making Twilio API request to: ${twilioDeletionUrl}`);
+          console.log(`Successfully released number ${phoneNumber.number} from Twilio account`);
           
-          const response = await fetch(twilioDeletionUrl, {
-            method: 'DELETE',
-            headers: {
-              'Authorization': `Basic ${auth}`,
-              'Content-Type': 'application/x-www-form-urlencoded'
+          // Delete from Vapi.ai if registered
+          if (phoneNumber.vapiPhoneNumberId) {
+            try {
+              const { deleteVapiPhoneNumber } = await import('./utils/vapiIntegration');
+              const result = await deleteVapiPhoneNumber(phoneNumber.vapiPhoneNumberId);
+              if (result.success) {
+                console.log(`Successfully removed phone number ${phoneNumber.number} from Vapi.ai`);
+              } else {
+                console.warn(`Failed to remove phone number ${phoneNumber.number} from Vapi.ai: ${result.message}`);
+              }
+            } catch (vapiError) {
+              console.error(`Error removing phone number from Vapi.ai:`, vapiError);
             }
-          });
-          
-          if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Twilio API error: ${response.status} - ${errorText}`);
           }
-          
-          console.log(`Successfully released number ${phoneNumber.number} from Twilio account ${twilioAccount.accountName || twilioAccount.accountSid}`);
           
           // Now delete from our database ONLY after successfully releasing from Twilio
           const success = await storage.deletePhoneNumber(phoneNumberId);
@@ -1077,10 +783,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       } else {
-        return res.status(400).json({ 
-          message: "Missing required Twilio information to release this number", 
-          details: "The phone number needs to have a Twilio SID and associated Twilio account credentials" 
-        });
+        // If no Twilio SID, just delete from database and Vapi.ai
+        try {
+          // Delete from Vapi.ai if registered
+          if (phoneNumber.vapiPhoneNumberId) {
+            const { deleteVapiPhoneNumber } = await import('./utils/vapiIntegration');
+            const result = await deleteVapiPhoneNumber(phoneNumber.vapiPhoneNumberId);
+            if (result.success) {
+              console.log(`Successfully removed phone number ${phoneNumber.number} from Vapi.ai`);
+            } else {
+              console.warn(`Failed to remove phone number ${phoneNumber.number} from Vapi.ai: ${result.message}`);
+            }
+          }
+          
+          const success = await storage.deletePhoneNumber(phoneNumberId);
+          
+          if (success) {
+            return res.status(200).json({ 
+              message: "Phone number successfully removed from database",
+              number: phoneNumber.number
+            });
+          } else {
+            return res.status(500).json({ 
+              message: "Failed to delete phone number from database" 
+            });
+          }
+        } catch (deleteError) {
+          console.error("Error deleting phone number:", deleteError);
+          return res.status(500).json({ 
+            message: "Failed to delete phone number", 
+            error: deleteError instanceof Error ? deleteError.message : "Unknown error" 
+          });
+        }
       }
     } catch (error) {
       console.error("Error releasing phone number:", error);
