@@ -568,125 +568,132 @@ export default function AgentDetailPage() {
             </Button>
           )}
           
-          <Button variant="outline" size="sm" className="mr-2"
+          <Button 
+            variant="default" 
+            size="sm" 
             onClick={() => {
-              // Create Vapi assistant from agent data
-              const assistantParams = {
-                name: agentData.name,
-                firstMessage: agentData.initialMessage || "Hello, how can I assist you today?",
-                endCallMessage: "Thank you for calling. Goodbye!",
-                recordingEnabled: true,
-                voicemailDetectionEnabled: true,
-                endCallFunctionEnabled: true,
-                // Removing forwardingPhoneNumber completely as empty strings aren't accepted
-                metadata: {
-                  agentId: id,
-                  createdFrom: "AimAI Platform",
-                },
-                model: {
-                  provider: "openai",
-                  model: getOpenAIModel(agentData.responseIntelligenceLevel),
-                  temperature: 0.7,
-                  systemPrompt: (() => {
-                    // Build system prompt using only provided fields
-                    let prompt = '';
-                    
-                    // Only add sections that have content
-                    if (agentData.persona) {
-                      prompt += `## Persona ##\n${agentData.persona}\n\n`;
-                    }
-                    
-                    if (agentData.companyBackground) {
-                      prompt += `## Company Background ##\n${agentData.companyBackground}\n\n`;
-                    }
-                    
-                    if (agentData.agentRules) {
-                      prompt += `## Agent Rules ##\n${agentData.agentRules}\n\n`;
-                    }
-                    
-                    if (agentData.script) {
-                      prompt += `## Agent Script ##\n${agentData.script}\n\n`;
-                    }
-                    
-                    if (agentData.edgeCases) {
-                      prompt += `## Edge Cases ##\n${agentData.edgeCases}\n\n`;
-                    }
-                    
-                    if (agentData.faqs) {
-                      prompt += `## FAQs ##\n${agentData.faqs}\n\n`;
-                    }
-                    
-                    // If no content was provided at all, add minimal instruction
-                    if (prompt.trim() === '') {
-                      prompt = 'You are a helpful AI assistant that answers questions clearly and honestly.';
-                    }
-                    
-                    return prompt.trim();
-                  })()
-                },
-                voice: {
-                  provider: "11labs",
-                  voiceId: agentData.voiceId || agentData.selectedVoice?.voice_id || "EXAVITQu4vr4xnSDxMaL", // Use selected ElevenLabs voice or fallback to "Bella" (female voice similar to Savannah)
-                  speed: Math.min(1.2, (agentData.speed || 10) / 10), // Scale down from 0-10 to 0-1.2
-                  stability: agentData.temperature || 0.4
-                  // Note: Removed similarity_boost and background_noise as they're not supported by Vapi API
-                },
-                transcriber: {
-                  provider: "deepgram",
-                  model: "nova-2-general",
-                  language: "en"
-                }
+              // Combined save and deploy operation
+              const saveData = {
+                ...agentData,
+                responseIntelligenceLevel: agentData.responseIntelligenceLevel || "Enhanced Mode",
+                temperature: agentData.temperature || 0.4,
+                voiceId: agentData.voiceId || agentData.selectedVoice?.voice_id || "EXAVITQu4vr4xnSDxMaL",
+                initialMessage: agentData.initialMessage || "Hello, how can I assist you today?",
               };
-              
-              // Call API to create assistant
-              fetch('/api/vapi/assistants', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(assistantParams)
-              })
-              .then(res => res.json())
-              .then(data => {
-                if (data.success) {
-                  toast({
-                    title: "Vapi Assistant Created",
-                    description: "Your agent has been deployed to Vapi.ai successfully!",
-                  });
-                  // Update agent with Vapi assistant ID
-                  if (data.assistant && data.assistant.id) {
-                    const updateData = {
-                      ...agentData,
-                      vapiAssistantId: data.assistant.id
-                    };
-                    updateAgentMutation.mutate(updateData);
-                  }
-                } else {
-                  toast({
-                    title: "Failed to Create Assistant",
-                    description: data.message || "Check your Vapi.ai API token in the .env file.",
-                    variant: "destructive"
+
+              // First save the agent
+              updateAgentMutation.mutate(saveData, {
+                onSuccess: () => {
+                  // Then deploy to Vapi
+                  const assistantParams = {
+                    name: saveData.name,
+                    firstMessage: saveData.initialMessage,
+                    endCallMessage: "Thank you for calling. Goodbye!",
+                    recordingEnabled: true,
+                    voicemailDetectionEnabled: true,
+                    endCallFunctionEnabled: true,
+                    metadata: {
+                      agentId: id,
+                      createdFrom: "AimAI Platform",
+                    },
+                    model: {
+                      provider: "openai",
+                      model: getOpenAIModel(saveData.responseIntelligenceLevel),
+                      temperature: 0.7,
+                      systemPrompt: (() => {
+                        // Build system prompt using only provided fields
+                        let prompt = '';
+                        
+                        // Only add sections that have content
+                        if (saveData.persona) {
+                          prompt += `## Persona ##\n${saveData.persona}\n\n`;
+                        }
+                        
+                        if (saveData.companyBackground) {
+                          prompt += `## Company Background ##\n${saveData.companyBackground}\n\n`;
+                        }
+                        
+                        if (saveData.agentRules) {
+                          prompt += `## Agent Rules ##\n${saveData.agentRules}\n\n`;
+                        }
+                        
+                        if (saveData.script) {
+                          prompt += `## Script ##\n${saveData.script}\n\n`;
+                        }
+                        
+                        if (saveData.edgeCases) {
+                          prompt += `## Edge Cases ##\n${saveData.edgeCases}\n\n`;
+                        }
+                        
+                        if (saveData.faqs) {
+                          prompt += `## FAQs ##\n${saveData.faqs}\n\n`;
+                        }
+                        
+                        // If no content was provided at all, add minimal instruction
+                        if (prompt.trim() === '') {
+                          prompt = 'You are a helpful AI assistant that answers questions clearly and honestly.';
+                        }
+                        
+                        return prompt.trim();
+                      })()
+                    },
+                    voice: {
+                      provider: "11labs",
+                      voiceId: saveData.voiceId,
+                      speed: Math.min(1.2, (agentData.speed || 10) / 10),
+                      stability: saveData.temperature || 0.4
+                    },
+                    transcriber: {
+                      provider: "deepgram",
+                      model: "nova-2-general",
+                      language: "en"
+                    }
+                  };
+                  
+                  // Deploy to Vapi
+                  fetch('/api/vapi/assistants', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(assistantParams)
+                  })
+                  .then(res => res.json())
+                  .then(data => {
+                    if (data.success) {
+                      toast({
+                        title: "Published Successfully",
+                        description: "Agent saved and deployed to Vapi.ai!",
+                      });
+                      // Update agent with Vapi assistant ID
+                      if (data.assistant && data.assistant.id) {
+                        const finalUpdateData = {
+                          ...saveData,
+                          vapiAssistantId: data.assistant.id
+                        };
+                        updateAgentMutation.mutate(finalUpdateData);
+                      }
+                    } else {
+                      toast({
+                        title: "Partial Success",
+                        description: "Agent saved but Vapi deployment failed. " + (data.message || ""),
+                        variant: "destructive"
+                      });
+                    }
+                  })
+                  .catch(error => {
+                    toast({
+                      title: "Partial Success", 
+                      description: "Agent saved but Vapi deployment failed. Please try again.",
+                      variant: "destructive"
+                    });
+                    console.error("Vapi deployment error:", error);
                   });
                 }
-              })
-              .catch(error => {
-                toast({
-                  title: "Error",
-                  description: "Failed to create Vapi assistant. Please try again.",
-                  variant: "destructive"
-                });
-                console.error("Vapi assistant creation error:", error);
               });
             }}
+            disabled={updateAgentMutation.isPending}
           >
-            <PhoneCall className="h-4 w-4 mr-2" />
-            Deploy to Vapi
-          </Button>
-          <Button variant="outline" size="sm">
-            <Sparkles className="h-4 w-4 mr-2" />
-            Improve with AI
-          </Button>
-          <Button variant="default" size="sm" onClick={handleSave} disabled={updateAgentMutation.isPending}>
             <Save className="h-4 w-4 mr-2" />
-            {updateAgentMutation.isPending ? "Saving..." : "Publish"}
+            {updateAgentMutation.isPending ? "Publishing..." : "Publish"}
           </Button>
         </div>
       </div>

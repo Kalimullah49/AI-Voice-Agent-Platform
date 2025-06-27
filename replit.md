@@ -12,10 +12,11 @@ Mind AI is a comprehensive AI-powered call center management and analytics solut
 - **Frontend**: React with TypeScript, Tailwind CSS, and shadcn/ui
 
 ## Recent Changes
-- **API Keys**: All Vapi.ai and ElevenLabs keys hardcoded for production stability
-- **Contact Dialog**: Fixed scrollable form for contact creation
-- **Campaign UI**: Removed duplicate "Create new campaign" button
-- **Technical Documentation**: Comprehensive client-ready documentation created
+- **Agent Management**: Removed "Deploy to Vapi" and "Optimize with AI" buttons per client feedback
+- **Publish Button**: Single "Publish" button now handles both saving and Vapi deployment
+- **Campaign Execution**: Fixed voice agent functionality for uploaded numbers
+- **Validation System**: Added comprehensive checks for Vapi Assistant IDs and phone number registration
+- **Error Handling**: Enhanced campaign error messages for better user guidance
 
 ## Key Features Working
 - ✅ Agent management with voice configuration

@@ -69,6 +69,17 @@ async function makeNextCall(execution: CampaignExecution) {
   try {
     console.log(`📞 Call ${execution.currentIndex}/${execution.contacts.length}: ${contact.firstName} ${contact.lastName} -> ${contact.phoneNumber}`);
 
+    // Validate required Vapi IDs before making the call
+    if (!execution.agent.vapiAssistantId) {
+      throw new Error(`Agent "${execution.agent.name}" is missing Vapi Assistant ID. Please publish the agent first.`);
+    }
+    
+    if (!execution.phoneNumber.vapiPhoneNumberId) {
+      throw new Error(`Phone number ${execution.phoneNumber.number} is not registered with Vapi.ai. Please ensure it's properly configured.`);
+    }
+
+    console.log(`🔥 Making Vapi call with Assistant ID: ${execution.agent.vapiAssistantId}, Phone ID: ${execution.phoneNumber.vapiPhoneNumberId}`);
+    
     // Make the call via Vapi.ai using the same format as the working single call
     const vapiResponse = await fetch('https://api.vapi.ai/call', {
       method: 'POST',
@@ -1542,19 +1553,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No contacts found in campaign group" });
       }
 
-      // Get agent details
+      // Get agent details with null safety
+      if (!campaign.agentId) {
+        return res.status(400).json({ message: "Campaign has no agent assigned" });
+      }
+      
       const agent = await storage.getAgent(campaign.agentId);
       if (!agent) {
         return res.status(400).json({ message: "Agent not found" });
       }
 
-      // Get phone number for the agent
+      // Check if agent has a valid Vapi assistant ID
+      if (!agent.vapiAssistantId) {
+        return res.status(400).json({ 
+          message: "Agent is not deployed to Vapi.ai. Please publish the agent first." 
+        });
+      }
+
+      // Get phone number for the agent with null safety
       const phoneNumbers = await storage.getPhoneNumbersByAgentId(campaign.agentId);
       if (!phoneNumbers || phoneNumbers.length === 0) {
         return res.status(400).json({ message: "No phone number assigned to agent" });
       }
 
       const phoneNumber = phoneNumbers[0];
+      
+      // Check if phone number has Vapi registration
+      if (!phoneNumber.vapiPhoneNumberId) {
+        return res.status(400).json({ 
+          message: "Phone number is not registered with Vapi.ai. Please ensure the number is properly configured." 
+        });
+      }
+
       const fromNumber = phoneNumber.number;
 
       // Update campaign status to active
