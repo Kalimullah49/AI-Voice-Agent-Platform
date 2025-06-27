@@ -670,8 +670,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/available-twilio-phone-numbers", isAuthenticated, async (req: Request, res: Response) => {
     try {
+      const userId = req.session.userId;
       const countryCode = (req.query.countryCode as string) || 'US';
       const areaCode = req.query.areaCode as string;
+      
+      // Get user's Twilio account credentials from database
+      const twilioAccounts = await storage.getTwilioAccountsByUserId(userId);
+      if (!twilioAccounts || twilioAccounts.length === 0) {
+        return res.status(400).json({ message: "No Twilio account configured" });
+      }
+      
+      const defaultAccount = twilioAccounts.find(acc => acc.isDefault) || twilioAccounts[0];
+      
+      // Create Twilio client with user's actual credentials
+      const userTwilioClient = twilio(defaultAccount.accountSid, defaultAccount.authToken);
       
       // Search parameters
       const searchParams: any = {};
@@ -679,8 +691,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         searchParams.areaCode = areaCode;
       }
       
-      // Fetch available phone numbers from Twilio using hardcoded credentials
-      const availableNumbers = await twilioClient.availablePhoneNumbers(countryCode)
+      // Fetch available phone numbers from Twilio using user's credentials
+      const availableNumbers = await userTwilioClient.availablePhoneNumbers(countryCode)
                                           .local
                                           .list(searchParams);
       
@@ -707,13 +719,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Phone number is required" });
       }
       
-      // Purchase phone number from Twilio using hardcoded credentials
-      const purchasedNumber = await twilioClient.incomingPhoneNumbers.create({
+      // Get user's Twilio account credentials from database
+      const twilioAccounts = await storage.getTwilioAccountsByUserId(userId);
+      if (!twilioAccounts || twilioAccounts.length === 0) {
+        return res.status(400).json({ message: "No Twilio account configured" });
+      }
+      
+      const defaultAccount = twilioAccounts.find(acc => acc.isDefault) || twilioAccounts[0];
+      
+      // Create Twilio client with user's actual credentials
+      const userTwilioClient = twilio(defaultAccount.accountSid, defaultAccount.authToken);
+      
+      // Purchase phone number from Twilio using user's credentials
+      const purchasedNumber = await userTwilioClient.incomingPhoneNumbers.create({
         phoneNumber,
         friendlyName: friendlyName || `Mind AI Number ${new Date().toISOString()}`
       });
       
-      // Store the phone number in our database (no longer tied to user Twilio account)
+      // Store the phone number in our database
       const phoneNumberData: any = {
         number: purchasedNumber.phoneNumber,
         userId: userId!,
@@ -727,9 +750,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { registerPhoneNumberWithVapiNumbers } = await import('./utils/vapiIntegration');
         const vapiResult = await registerPhoneNumberWithVapiNumbers(
           purchasedNumber.phoneNumber,
-          TWILIO_ACCOUNT_SID,
+          defaultAccount.accountSid,
           purchasedNumber.friendlyName,
-          TWILIO_AUTH_TOKEN
+          defaultAccount.authToken
         );
         
         if (vapiResult.success && vapiResult.phoneNumberId) {
