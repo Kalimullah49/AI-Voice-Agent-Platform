@@ -1,122 +1,69 @@
-# Mind AI - Call Center Management & Analytics
+# Mind AI Platform - Project Documentation
 
 ## Overview
+Mind AI is a comprehensive AI-powered call center management and analytics solution built as a multi-tenant SaaS platform. The system provides advanced voice automation capabilities, intelligent call analysis, campaign management, and real-time analytics for businesses across all industries.
 
-Mind AI is a comprehensive AI-powered call center management and analytics solution designed as a multi-tenant SaaS platform. The system provides advanced voice automation capabilities, intelligent campaign management, real-time analytics, and CRM integration. Built with modern web technologies, it offers scalable voice services through Twilio and Vapi.ai integrations.
+## Current Status
+- **Core Platform**: Fully functional with voice AI integration
+- **Authentication**: Custom session-based auth with email verification
+- **Voice Integration**: Vapi.ai with ElevenLabs voice synthesis
+- **Telephony**: Complete Twilio integration for phone services
+- **Database**: PostgreSQL with Drizzle ORM for type-safe operations
+- **Frontend**: React with TypeScript, Tailwind CSS, and shadcn/ui
 
-## System Architecture
+## Recent Changes
+- **API Keys**: All Vapi.ai and ElevenLabs keys hardcoded for production stability
+- **Contact Dialog**: Fixed scrollable form for contact creation
+- **Campaign UI**: Removed duplicate "Create new campaign" button
+- **Technical Documentation**: Comprehensive client-ready documentation created
 
-### Frontend Architecture
-- **React 18** with TypeScript for type-safe development
-- **Vite** for fast development and optimized builds
-- **Tailwind CSS** with shadcn/ui components for consistent UI
-- **Wouter** for lightweight client-side routing
-- **TanStack Query** for efficient server state management
-- **React Hook Form** with Zod validation for form handling
+## Key Features Working
+- ✅ Agent management with voice configuration
+- ✅ Campaign creation and bulk calling
+- ✅ Contact and group management with CSV import
+- ✅ Phone number purchase and assignment
+- ✅ Real-time call monitoring and analytics
+- ✅ Email verification system with Postmark integration
+- ✅ Twilio account management with multiple SID support
 
-### Backend Architecture
-- **Node.js** with Express.js framework
-- **TypeScript** for full-stack type safety
-- **PostgreSQL** with Neon serverless connection pooling
-- **Drizzle ORM** for type-safe database operations
-- **Express Session** with PostgreSQL session store
-- **Passport.js** for authentication middleware
+## Current Issues Being Resolved
+- 🔧 Authentication type mismatches causing 401 errors
+- 🔧 User schema synchronization between frontend/backend
+- 🔧 Session handling for proper auth flow
 
-### Database Strategy
-- **Primary Database**: PostgreSQL via Neon serverless
-- **ORM**: Drizzle with migration support
-- **Session Storage**: PostgreSQL-based session store
-- **Schema Management**: Type-safe schema definitions with Zod validation
-
-## Key Components
-
-### Authentication System
-- Custom authentication using Express Session
-- Password hashing with Node.js crypto (scrypt)
-- Email verification system with Postmark integration
-- Password reset functionality
-- Multi-tenant user isolation
-
-### Voice AI Integration
-- **Vapi.ai**: Primary voice AI service for intelligent call handling
-- **Twilio**: Telephony services and phone number management
-- **ElevenLabs**: Voice synthesis and cloning capabilities
-- **OpenAI GPT-4**: Natural language processing for conversations
-
-### Campaign Management
-- Automated outbound calling campaigns
-- Contact group management and segmentation
-- Concurrent call handling with queue management
-- Real-time campaign monitoring and control
-
-### Analytics & Reporting
-- Real-time call metrics and performance tracking
-- Call duration, cost, and outcome analytics
-- Dashboard with interactive charts and visualizations
-- CSV export functionality for detailed reporting
-
-## Data Flow
-
-### User Authentication Flow
-1. User registration with email verification
-2. Session creation with PostgreSQL storage
-3. JWT-like session management with httpOnly cookies
-4. Multi-tenant data isolation by user ID
-
-### Call Management Flow
-1. Agent creation with Vapi.ai assistant registration
-2. Phone number acquisition through Twilio integration
-3. Campaign setup with contact targeting
-4. Real-time call execution with webhook handling
-5. Call data collection and analytics processing
-
-### External API Integration
-1. Vapi.ai webhooks for call status updates
-2. Twilio API for phone number management
-3. Postmark for transactional email delivery
-4. ElevenLabs for voice synthesis
-
-## External Dependencies
-
-### Core Services
-- **Vapi.ai**: Voice AI and call automation
-- **Twilio**: Telephony infrastructure
-- **Postmark**: Email delivery service
-- **ElevenLabs**: Voice synthesis
-- **OpenAI**: Natural language processing
-- **Neon**: PostgreSQL serverless hosting
-
-### Development Tools
-- **Drizzle Kit**: Database migrations
-- **ESBuild**: Production builds
-- **TypeScript**: Type checking
-- **Tailwind CSS**: Styling framework
-
-## Deployment Strategy
-
-### Replit Configuration
-- **Runtime**: Node.js 20 with PostgreSQL 16
-- **Development**: `npm run dev` with hot reload
-- **Production Build**: Vite build + ESBuild server bundling
-- **Deployment**: Autoscale with port 5000 → 80 mapping
-
-### Environment Variables
-- `DATABASE_URL`: Neon PostgreSQL connection string
-- `POSTMARK_SERVER_TOKEN`: Email service authentication
-- `SESSION_SECRET`: Session encryption key
-- `VAPI_PRIVATE_KEY`: Voice AI service key
-- `TWILIO_*`: Telephony service credentials
-
-### Build Process
-1. Frontend: Vite builds React app to `dist/public`
-2. Backend: ESBuild bundles server to `dist/index.js`
-3. Database: Drizzle migrations applied automatically
-4. Deployment: Replit autoscale handles scaling
-
-## Changelog
-
-- June 26, 2025. Initial setup
+## API Integration Status
+- **Vapi.ai**: Private key `2291104d-93d4-4292-9d18-6f3af2e420e0` (hardcoded)
+- **Vapi.ai**: Public key `49c87404-6985-4e57-9fe3-4bbe4cd5d7f5` (hardcoded)
+- **ElevenLabs**: Voice API fully integrated with custom voice support
+- **Postmark**: Email delivery with sender `contact@callsinmotion.com`
+- **Twilio**: Complete telephony integration for voice services
 
 ## User Preferences
+- Production approach: Hardcode all API keys for reliability
+- Email sender: Use only `contact@callsinmotion.com` for all emails
+- Voice defaults: Bella voice (EXAVITQu4vr4xnSDxMaL) when no voice selected
+- UI/UX: Clean, minimal design with single action buttons
+- Technical documentation: Client-ready comprehensive documentation required
 
-Preferred communication style: Simple, everyday language.
+## Project Architecture
+- **Frontend**: React 18 + TypeScript + Vite + Tailwind CSS
+- **Backend**: Node.js + Express + TypeScript + PostgreSQL
+- **Database**: Neon PostgreSQL with Drizzle ORM
+- **Authentication**: Custom session-based with bcrypt password hashing
+- **External APIs**: Vapi.ai, ElevenLabs, Twilio, Postmark, OpenAI GPT-4o
+- **Deployment**: Replit with automated scaling and SSL
+
+## Database Schema Highlights
+- Users with email verification and password reset
+- Agents with voice configuration and Vapi.ai integration
+- Campaigns with concurrent call management
+- Contacts with group organization and CSV import
+- Phone numbers with Twilio SID management
+- Call logs with transcription and cost tracking
+
+## Next Development Phase
+- Enhanced analytics dashboard with advanced metrics
+- Multi-language support for international users
+- Advanced call routing and queue management
+- Mobile applications for iOS and Android
+- Integration marketplace for third-party tools

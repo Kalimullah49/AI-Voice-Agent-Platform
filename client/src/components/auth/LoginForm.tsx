@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/providers/AuthProvider";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 export default function LoginForm() {
@@ -17,7 +16,26 @@ export default function LoginForm() {
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
 
   const { toast } = useToast();
-  const { login, isLoginPending } = useAuth();
+  
+  const loginSubmit = useMutation({
+    mutationFn: async (credentials: LoginUser) => {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(credentials),
+      });
+      
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to log in");
+      }
+      
+      return await res.json();
+    },
+  });
 
 
   
@@ -30,9 +48,13 @@ export default function LoginForm() {
   });
 
   function onSubmit(data: LoginUser) {
-    login(data, {
-      onSuccess: (response) => {
+    loginSubmit.mutate(data, {
+      onSuccess: (response: any) => {
         console.log("🎯 Login form success callback triggered:", response);
+        toast({
+          title: "Login successful",
+          description: "Welcome back!",
+        });
         // Small delay to ensure state updates are processed
         setTimeout(() => {
           window.location.href = "/";
@@ -46,6 +68,12 @@ export default function LoginForm() {
           toast({
             title: "Email verification required",
             description: "Please verify your email address before logging in.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Login failed",
+            description: error.message || "Invalid credentials",
             variant: "destructive",
           });
         }
@@ -126,9 +154,9 @@ export default function LoginForm() {
         <Button 
           type="submit" 
           className="w-full" 
-          disabled={isLoginPending}
+          disabled={loginSubmit.isPending}
         >
-          {isLoginPending ? (
+          {loginSubmit.isPending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Signing in...

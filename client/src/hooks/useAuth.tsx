@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext } from "react";
+import React, { createContext, ReactNode, useContext } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { LoginUser, RegisterUser, User } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
@@ -24,10 +24,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Get current user
   const {
     data: user,
-    isLoading
+    isLoading,
+    error: queryError
   } = useQuery<User>({
     queryKey: ["/api/auth/user"],
     retry: false,
+    queryFn: async () => {
+      const res = await fetch("/api/auth/user", {
+        credentials: "include",
+      });
+      
+      if (res.status === 401) {
+        return null;
+      }
+      
+      if (!res.ok) {
+        throw new Error(`${res.status}: ${res.statusText}`);
+      }
+      
+      return await res.json();
+    },
   });
 
   // Login mutation

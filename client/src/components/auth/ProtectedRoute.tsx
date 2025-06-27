@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { useAuth } from '../../providers/AuthProvider';
+import { useAuth } from '@/hooks/useAuth';
 import { Redirect } from 'wouter';
 import { Loader2 } from 'lucide-react';
 import EmailVerification from '@/pages/email-verification';
@@ -9,10 +9,10 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, isLoading, refetchUser } = useAuth();
+  const { user, isLoading } = useAuth();
   
   console.log("🛡️ ProtectedRoute check:", {
-    user: user ? { id: user.id, email: user.email, emailVerified: user.emailVerified } : null,
+    user: user ? { id: user.id, email: user.email } : null,
     isLoading,
     willRedirect: !user && !isLoading
   });
@@ -31,12 +31,12 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     return <Redirect to="/auth" />;
   }
 
-  // Check if user exists but email is not verified
-  if (user && user.emailVerified === false) {
+  // Check if user exists but email is not verified (if emailVerified property exists)
+  if (user && 'emailVerified' in user && (user as any).emailVerified === false) {
     return (
       <EmailVerification 
-        email={user.email} 
-        onVerificationComplete={refetchUser}
+        email={user.email || ''} 
+        onVerificationComplete={() => window.location.reload()}
       />
     );
   }
