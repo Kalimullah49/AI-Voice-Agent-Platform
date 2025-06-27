@@ -45,6 +45,14 @@ export interface IStorage {
   createAction(action: InsertAction): Promise<Action>;
   getAllActions(): Promise<Action[]>;
   
+  // Twilio account operations
+  getTwilioAccount(id: number): Promise<TwilioAccount | undefined>;
+  createTwilioAccount(account: InsertTwilioAccount): Promise<TwilioAccount>;
+  updateTwilioAccount(id: number, account: Partial<InsertTwilioAccount>): Promise<TwilioAccount | undefined>;
+  deleteTwilioAccount(id: number): Promise<boolean>;
+  getAllTwilioAccounts(): Promise<TwilioAccount[]>;
+  getTwilioAccountsByUserId(userId: string): Promise<TwilioAccount[]>;
+  
   // Phone number operations (simplified for hardcoded Twilio credentials)
   getPhoneNumber(id: number): Promise<PhoneNumber | undefined>;
   createPhoneNumber(phoneNumber: InsertPhoneNumber): Promise<PhoneNumber>;

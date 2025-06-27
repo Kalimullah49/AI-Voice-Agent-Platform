@@ -368,6 +368,42 @@ export class DatabaseStorage implements IStorage {
       .where(eq(phoneNumbers.agentId, agentId));
   }
   
+  // Twilio account operations
+  async getTwilioAccount(id: number): Promise<TwilioAccount | undefined> {
+    const results = await db.select().from(twilioAccounts).where(eq(twilioAccounts.id, id));
+    return results[0];
+  }
+  
+  async createTwilioAccount(account: InsertTwilioAccount): Promise<TwilioAccount> {
+    const [newAccount] = await db.insert(twilioAccounts).values(account).returning();
+    return newAccount;
+  }
+  
+  async updateTwilioAccount(id: number, account: Partial<InsertTwilioAccount>): Promise<TwilioAccount | undefined> {
+    const [updatedAccount] = await db
+      .update(twilioAccounts)
+      .set(account)
+      .where(eq(twilioAccounts.id, id))
+      .returning();
+    return updatedAccount;
+  }
+  
+  async deleteTwilioAccount(id: number): Promise<boolean> {
+    const result = await db.delete(twilioAccounts).where(eq(twilioAccounts.id, id));
+    return result !== undefined;
+  }
+  
+  async getAllTwilioAccounts(): Promise<TwilioAccount[]> {
+    return await db.select().from(twilioAccounts);
+  }
+  
+  async getTwilioAccountsByUserId(userId: string): Promise<TwilioAccount[]> {
+    return await db
+      .select()
+      .from(twilioAccounts)
+      .where(eq(twilioAccounts.userId, userId));
+  }
+  
   // Contact group operations
   async getContactGroup(id: number): Promise<ContactGroup | undefined> {
     const results = await db.select().from(contactGroups).where(eq(contactGroups.id, id));
