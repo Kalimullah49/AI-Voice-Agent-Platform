@@ -14,9 +14,9 @@ import twilio from 'twilio';
 // Our custom auth middleware will be imported dynamically
 import { DatabaseStorage } from "./database-storage";
 
-// Hardcoded Twilio credentials for all users
-const TWILIO_ACCOUNT_SID = 'AC6c6a3440ca612a19538907cb1b4868d';
-const TWILIO_AUTH_TOKEN = '52d9827d5591afa0fa41d95376041085';
+// Twilio credentials from environment variables
+const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID!;
+const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN!;
 const twilioClient = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
 
 // Campaign execution queue management for concurrent calls across multiple users
