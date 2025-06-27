@@ -343,6 +343,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/calls", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.session.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found in session" });
+      }
       
       // Get all agents for this user
       const userAgents = await storage.getAllAgentsByUserId(userId);
@@ -365,6 +368,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/calls/clear", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.session.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found in session" });
+      }
       
       // Get user's agents
       const userAgents = await storage.getAllAgentsByUserId(userId);
@@ -402,6 +408,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/calls/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.session.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found in session" });
+      }
+      
       const id = parseInt(req.params.id);
       const call = await storage.getCall(id);
       
@@ -582,7 +592,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error purchasing Twilio phone number:", error);
       res.status(500).json({ 
         message: "Failed to purchase Twilio phone number", 
-        error: error.message 
+        error: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });
@@ -600,6 +610,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.json(phoneNumbers);
       } else {
         // Otherwise fetch all phone numbers for the user
+        if (!userId) {
+          return res.status(401).json({ message: "User ID not found in session" });
+        }
         const phoneNumbers = await storage.getPhoneNumbersByUserId(userId);
         res.json(phoneNumbers);
       }

@@ -32,7 +32,7 @@ async function comparePasswords(supplied: string, stored: string): Promise<boole
 // Session interface for TypeScript
 declare module "express-session" {
   interface SessionData {
-    userId: string;
+    userId?: string;
   }
 }
 

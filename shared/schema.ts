@@ -150,15 +150,8 @@ export const calls = pgTable("calls", {
   startedAt: timestamp("started_at").defaultNow().notNull(),
 });
 
-export const insertCallSchema = createInsertSchema(calls).pick({
-  fromNumber: true,
-  toNumber: true,
-  agentId: true,
-  direction: true,
-  duration: true,
-  endedReason: true,
-  outcome: true,
-  cost: true,
+export const insertCallSchema = createInsertSchema(calls).omit({
+  id: true,
 });
 
 // Action model
@@ -222,15 +215,10 @@ export const phoneNumbers = pgTable("phone_numbers", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const insertPhoneNumberSchema = createInsertSchema(phoneNumbers).pick({
-  number: true,
-  agentId: true,
-  active: true,
-  twilioAccountId: true,
-  userId: true,
-  twilioSid: true,
-  friendlyName: true,
-  vapiPhoneNumberId: true,
+export const insertPhoneNumberSchema = createInsertSchema(phoneNumbers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 // Contact group model
