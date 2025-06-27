@@ -349,13 +349,21 @@ export default function AgentDetailPage() {
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Agent Settings</h2>
         <div className="flex gap-2">
-          {/* Test call button for Vapi integration */}
-          {agentData.vapiAssistantId && (
-            <Button 
-              variant={isWebCallActive ? "destructive" : "outline"}
-              size="sm" 
-              className="mr-2" 
-              onClick={() => {
+          {/* Test call button - always available */}
+          <Button 
+            variant={isWebCallActive ? "destructive" : "outline"}
+            size="sm" 
+            className="mr-2" 
+            onClick={() => {
+              if (!agentData.vapiAssistantId) {
+                // If no Vapi Assistant ID, publish first then test
+                toast({
+                  title: "Publish Agent First",
+                  description: "You need to publish your agent before testing. Click 'Publish' then try the test call again.",
+                  variant: "destructive"
+                });
+                return;
+              }
                 if (isWebCallActive) {
                   // Cleaner approach to removing the widget
                   try {
@@ -566,7 +574,6 @@ export default function AgentDetailPage() {
               <PhoneCall className="h-4 w-4 mr-2" />
               {isWebCallActive ? "Stop Web Test Call" : "Test Web Call"}
             </Button>
-          )}
           
           <Button 
             variant="default" 

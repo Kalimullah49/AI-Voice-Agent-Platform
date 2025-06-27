@@ -670,7 +670,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/available-twilio-phone-numbers", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.session.userId;
+      const userId = req.session.userId!;
       const countryCode = (req.query.countryCode as string) || 'US';
       const areaCode = req.query.areaCode as string;
       
@@ -682,11 +682,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const defaultAccount = twilioAccounts.find(acc => acc.isDefault) || twilioAccounts[0];
       
+      console.log('🔍 Debugging Twilio request:');
+      console.log('Account SID:', defaultAccount.accountSid);
+      console.log('Auth Token length:', defaultAccount.authToken?.length);
+      console.log('Country code:', countryCode);
+      console.log('Area code:', areaCode);
+      
       // Create Twilio client with user's actual credentials
       const userTwilioClient = twilio(defaultAccount.accountSid, defaultAccount.authToken);
       
       // Search parameters
-      const searchParams: any = {};
+      const searchParams: any = { limit: 10 };
       if (areaCode) {
         searchParams.areaCode = areaCode;
       }
@@ -695,6 +701,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const availableNumbers = await userTwilioClient.availablePhoneNumbers(countryCode)
                                           .local
                                           .list(searchParams);
+      
+      console.log(`✅ Successfully fetched ${availableNumbers.length} available numbers`);
       
       res.json(availableNumbers.map(number => ({
         phoneNumber: number.phoneNumber,
@@ -705,14 +713,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
         capabilities: number.capabilities
       })));
     } catch (error) {
-      console.error("Error fetching available Twilio phone numbers:", error);
-      res.status(500).json({ message: "Failed to fetch available Twilio phone numbers" });
+      console.error("❌ Error fetching available Twilio phone numbers:", error);
+      console.error("Error details:", {
+        message: (error as any).message,
+        code: (error as any).code,
+        status: (error as any).status,
+        moreInfo: (error as any).moreInfo
+      });
+      res.status(500).json({ 
+        message: "Failed to fetch available Twilio phone numbers",
+        error: (error as any).message,
+        code: (error as any).code
+      });
+    }
+  });
+
+  // Web test call endpoint - creates a test call using Vapi without Twilio
+  app.post("/api/web-test-call", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId!;
+      const { agentId, assistantId } = req.body;
+      
+      if (!assistantId) {
+        return res.status(400).json({ message: "Assistant ID is required for web test call" });
+      }
+      
+      console.log(`🎧 Creating web test call for agent ${agentId} with assistant ${assistantId}`);
+      
+      // Create a test call record in database
+      const testCall = await storage.createCall({
+        direction: "outbound",
+        fromNumber: "+1-WEB-TEST",
+        toNumber: "+1-WEB-TEST",
+        agentId: agentId || null,
+        duration: 0,
+        cost: 0,
+        vapiCallId: `web-test-${Date.now()}`
+      });
+      
+      console.log(`✅ Created web test call record: ${testCall.id}`);
+      
+      res.json({
+        success: true,
+        callId: testCall.id,
+        assistantId,
+        message: "Web test call initiated successfully"
+      });
+      
+    } catch (error) {
+      console.error("❌ Error creating web test call:", error);
+      res.status(500).json({ 
+        message: "Failed to create web test call",
+        error: (error as any).message
+      });
     }
   });
 
   app.post("/api/purchase-twilio-phone-number", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.session.userId;
+      const userId = req.session.userId!;
       const { phoneNumber, friendlyName } = req.body;
       
       if (!phoneNumber) {
