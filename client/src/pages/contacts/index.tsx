@@ -57,6 +57,7 @@ export default function ContactsPage() {
   const [csvData, setCsvData] = useState<any[]>([]);
   const [uploadStep, setUploadStep] = useState<number>(1);
   const [showUploadDialog, setShowUploadDialog] = useState<boolean>(false);
+  const [isCreateContactDialogOpen, setIsCreateContactDialogOpen] = useState<boolean>(false);
   
   const queryClient = useQueryClient();
   
@@ -117,6 +118,8 @@ export default function ContactsPage() {
       setState("");
       setCountry("");
       setZipCode("");
+      // Close the dialog
+      setIsCreateContactDialogOpen(false);
     }
   });
   
@@ -404,7 +407,7 @@ export default function ContactsPage() {
           
           <div className="flex justify-between items-center mb-4">
             <div className="text-sm font-medium">Actions</div>
-            <Dialog>
+            <Dialog open={isCreateContactDialogOpen} onOpenChange={setIsCreateContactDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-blue-600">
                   <PlusIcon className="h-4 w-4 mr-2" />

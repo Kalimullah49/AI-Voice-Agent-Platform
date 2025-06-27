@@ -56,6 +56,7 @@ export default function CampaignsPage() {
   const [selectedPhoneNumberId, setSelectedPhoneNumberId] = useState<string>("");
   const [concurrentCalls, setConcurrentCalls] = useState<string>("1");
   const [scrubNationalBlacklists, setScrubNationalBlacklists] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   
   const queryClient = useQueryClient();
   
@@ -91,6 +92,9 @@ export default function CampaignsPage() {
       setSelectedPhoneNumberId("");
       setConcurrentCalls("1");
       setScrubNationalBlacklists(false);
+      
+      // Close the dialog
+      setIsCreateDialogOpen(false);
       
       // Invalidate cache to refetch campaigns
       queryClient.invalidateQueries({ queryKey: ["/api/campaigns"] });
@@ -191,7 +195,7 @@ export default function CampaignsPage() {
             <Settings className="h-4 w-4 mr-2" />
             Dialer Settings
           </Button>
-          <Dialog>
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button>
                 <PlusIcon className="h-4 w-4 mr-2" />

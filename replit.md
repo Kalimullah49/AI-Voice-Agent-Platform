@@ -17,6 +17,7 @@ Mind AI is a comprehensive AI-powered call center management and analytics solut
 - **Campaign Execution**: Fixed voice agent functionality for uploaded numbers
 - **Validation System**: Added comprehensive checks for Vapi Assistant IDs and phone number registration
 - **Error Handling**: Enhanced campaign error messages for better user guidance
+- **Dialog Management**: Fixed popup cards for contacts, campaigns, and agents to close after successful submission
 
 ## Key Features Working
 - ✅ Agent management with voice configuration
