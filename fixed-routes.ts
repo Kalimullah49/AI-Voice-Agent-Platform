@@ -1,20 +1,20 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage } from "./server/storage";
 import { 
   insertUserSchema, insertAgentSchema, insertCallSchema, insertActionSchema, 
   insertTwilioAccountSchema, insertPhoneNumberSchema, VapiAssistantParams,
   insertContactGroupSchema, insertContactSchema, insertCampaignSchema
-} from "@shared/schema";
+} from "./shared/schema";
 import { ZodError } from "zod";
-import { isAuthenticated } from "./auth";
-import { formatZodError } from "zod-validation-error";
+import { isAuthenticated } from "./server/auth";
+import { fromZodError } from "zod-validation-error";
 import twilio from "twilio";
 import { 
   createVapiAssistant, 
   deleteVapiAssistant,
   testApiConnection 
-} from "./utils/vapi";
+} from "./server/utils/vapi";
 import { format } from "date-fns";
 
 // Get dashboard metrics

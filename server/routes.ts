@@ -143,9 +143,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create a database storage instance for our routes
   const dbStorage = new DatabaseStorage();
   
-  // Setup custom authentication
-  const { setupAuth, isAuthenticated } = await import('./auth');
-  setupAuth(app);
+  // Import authentication middleware
+  const { isAuthenticated } = await import('./auth');
 
   // API Configuration routes
   app.post("/api/config/llm", async (req, res) => {
