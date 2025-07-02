@@ -56,7 +56,12 @@ export default function AgentsPage() {
       <div className="flex justify-between items-center">
         <div></div>
         <div className="flex items-center gap-2">
-          {/* Buttons removed as requested by user */}
+          <Button
+            onClick={() => setCreateAgentDialogOpen(true)}
+          >
+            <PlusIcon className="h-4 w-4 mr-2" />
+            Create new agent
+          </Button>
         </div>
       </div>
 
@@ -149,9 +154,15 @@ export default function AgentsPage() {
           <CardHeader>
             <CardTitle>No Agents Found</CardTitle>
             <CardDescription>
-              No AI voice agents have been created yet.
+              Create your first AI voice agent to start handling calls automatically.
             </CardDescription>
           </CardHeader>
+          <CardContent className="flex justify-center pb-6">
+            <Button onClick={() => setCreateAgentDialogOpen(true)}>
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Create new agent
+            </Button>
+          </CardContent>
         </Card>
       )}
       
