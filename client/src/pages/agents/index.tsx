@@ -56,22 +56,7 @@ export default function AgentsPage() {
       <div className="flex justify-between items-center">
         <div></div>
         <div className="flex items-center gap-2">
-          <Button 
-            variant="outline"
-            onClick={() => {
-              // Will be implemented later with AI integration
-              alert('AI generation feature coming soon');
-            }}
-          >
-            <UserPlus className="h-4 w-4 mr-2" />
-            Generate with AI
-          </Button>
-          <Button
-            onClick={() => setCreateAgentDialogOpen(true)}
-          >
-            <PlusIcon className="h-4 w-4 mr-2" />
-            Create new agent
-          </Button>
+          {/* Buttons removed as requested by user */}
         </div>
       </div>
 
@@ -164,15 +149,9 @@ export default function AgentsPage() {
           <CardHeader>
             <CardTitle>No Agents Found</CardTitle>
             <CardDescription>
-              Create your first AI voice agent to start handling calls automatically.
+              No AI voice agents have been created yet.
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex justify-center pb-6">
-            <Button>
-              <PlusIcon className="h-4 w-4 mr-2" />
-              Create new agent
-            </Button>
-          </CardContent>
         </Card>
       )}
       
