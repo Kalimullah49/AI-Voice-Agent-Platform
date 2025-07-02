@@ -12,7 +12,11 @@ Mind AI is a comprehensive AI-powered call center management and analytics solut
 - **Frontend**: React with TypeScript, Tailwind CSS, and shadcn/ui
 
 ## Recent Changes
-- **Twilio Architecture**: Complete removal of individual user Twilio accounts - all users now share hardcoded credentials (AC6c6a3440ca612a19538907cb1b4868d)
+- **Voice Agent Fix (July 2, 2025)**: Resolved "silence-timed-out" errors in campaign calls by adding proper transcriber configuration to Vapi assistants
+- **Transcriber Configuration**: Added Deepgram nova-2-general transcriber to all new and existing Vapi assistants for proper speech detection
+- **Assistant Configuration**: Enhanced default settings with voicemailDetectionEnabled, endCallFunctionEnabled, and recordingEnabled
+- **Repair Endpoint**: Added `/api/vapi/assistants/fix-configuration` to update existing assistants with proper voice settings
+- **Twilio Architecture**: Complete removal of individual user Twilio accounts - all users now share hardcoded credentials
 - **Phone Management**: Simplified phone number operations to use centralized Twilio account for all users
 - **Database Schema**: Updated phone numbers table to remove twilioAccountId dependency
 - **Agent Management**: Removed "Deploy to Vapi" and "Optimize with AI" buttons per client feedback

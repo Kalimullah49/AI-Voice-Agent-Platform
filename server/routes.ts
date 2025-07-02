@@ -1214,6 +1214,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       }
       
+      // Add transcriber configuration if missing (critical for speech detection)
+      if (!assistantParams.transcriber) {
+        assistantParams.transcriber = {
+          provider: "deepgram",
+          model: "nova-2-general",
+          language: "en"
+        };
+      }
+      
+      // Ensure critical call handling settings are configured
+      if (assistantParams.voicemailDetectionEnabled === undefined) {
+        assistantParams.voicemailDetectionEnabled = true;
+      }
+      
+      if (assistantParams.endCallFunctionEnabled === undefined) {
+        assistantParams.endCallFunctionEnabled = true;
+      }
+      
+      if (assistantParams.recordingEnabled === undefined) {
+        assistantParams.recordingEnabled = true;
+      }
+      
       // Create or update the assistant via Vapi API
       const result = await createVapiAssistant(assistantParams);
       
@@ -1250,6 +1272,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({
         success: false,
         message: error instanceof Error ? error.message : "An error occurred while creating the Vapi assistant"
+      });
+    }
+  });
+
+  // Fix existing Vapi assistants by updating them with proper transcriber configuration
+  app.post("/api/vapi/assistants/fix-configuration", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId;
+      
+      // Get all agents for the current user
+      const agents = await storage.getAllAgentsByUserId(userId!);
+      const fixedAssistants = [];
+      const errors = [];
+      
+      for (const agent of agents) {
+        if (agent.vapiAssistantId) {
+          try {
+            console.log(`Fixing Vapi assistant configuration for agent ${agent.id} (${agent.name})`);
+            
+            // Create updated assistant parameters with proper configuration
+            const updateParams = {
+              name: agent.name,
+              firstMessage: agent.initialMessage || "Hello, how can I assist you today?",
+              endCallMessage: "Thank you for calling. Goodbye!",
+              recordingEnabled: true,
+              voicemailDetectionEnabled: true,
+              endCallFunctionEnabled: true,
+              transcriber: {
+                provider: "deepgram",
+                model: "nova-2-general",
+                language: "en"
+              },
+              voice: {
+                provider: "11labs",
+                voiceId: "EXAVITQu4vr4xnSDxMaL"
+              },
+              model: {
+                provider: "openai",
+                model: "gpt-4o",
+                messages: [
+                  {
+                    role: "system",
+                    content: agent.persona || "You are a helpful AI assistant that answers clearly and politely."
+                  }
+                ]
+              },
+              metadata: {
+                agentId: agent.id.toString(),
+                userId: userId,
+                createdFrom: "AimAI Platform - Configuration Fix"
+              },
+              server: {
+                url: `https://${req.hostname}/api/webhook/vapi`
+              }
+            };
+            
+            // Update the assistant
+            const response = await fetch(`https://api.vapi.ai/assistant/${agent.vapiAssistantId}`, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer 2291104d-93d4-4292-9d18-6f3af2e420e0`
+              },
+              body: JSON.stringify(updateParams)
+            });
+            
+            if (response.ok) {
+              fixedAssistants.push({
+                agentId: agent.id,
+                agentName: agent.name,
+                vapiAssistantId: agent.vapiAssistantId,
+                status: 'fixed'
+              });
+              console.log(`✅ Fixed configuration for agent ${agent.name}`);
+            } else {
+              const errorText = await response.text();
+              errors.push({
+                agentId: agent.id,
+                agentName: agent.name,
+                error: `API error: ${response.status} - ${errorText}`
+              });
+            }
+          } catch (error) {
+            errors.push({
+              agentId: agent.id,
+              agentName: agent.name,
+              error: error instanceof Error ? error.message : 'Unknown error'
+            });
+          }
+        }
+      }
+      
+      res.json({
+        success: true,
+        message: `Fixed ${fixedAssistants.length} assistants`,
+        fixed: fixedAssistants,
+        errors: errors
+      });
+      
+    } catch (error) {
+      console.error("Error fixing Vapi assistant configurations:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to fix assistant configurations"
       });
     }
   });
