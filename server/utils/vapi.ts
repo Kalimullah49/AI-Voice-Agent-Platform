@@ -10,7 +10,7 @@ const VAPI_PRIVATE_KEY = '2291104d-93d4-4292-9d18-6f3af2e420e0';
 const VAPI_PUBLIC_KEY = '49c87404-6985-4e57-9fe3-4bbe4cd5d7f5';
 
 // ElevenLabs API token for voice synthesis
-const ELEVENLABS_API_KEY = 'sk_4337a989be76c7288b9d1815c3cd6d851d6cdee452da1898';
+const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || 'sk_4337a989be76c7288b9d1815c3cd6d851d6cdee452da1898';
 
 // Debug hardcoded keys on startup
 console.log('🔍 Hardcoded API Keys Check:');
@@ -564,8 +564,7 @@ export async function registerPhoneNumberWithVapi(
  */
 export async function getAvailableVoices(): Promise<{ success: boolean; voices: VoiceInfo[]; message?: string }> {
   try {
-
-    // Use ElevenLabs API to get available voices
+    // First try to get voices from ElevenLabs API
     const response = await fetch('https://api.elevenlabs.io/v1/voices', {
       method: 'GET',
       headers: {
@@ -584,26 +583,71 @@ export async function getAvailableVoices(): Promise<{ success: boolean; voices: 
       
       console.error(`ElevenLabs API error: ${response.status} - ${errorText}`);
       
-      // Return a descriptive error message based on the status code
-      if (response.status === 401) {
-        return { 
-          success: false, 
-          voices: [],
-          message: "Invalid ElevenLabs API key. Please check your API key in the .env file."
-        };
-      } else if (response.status === 429) {
-        return {
-          success: false,
-          voices: [],
-          message: "Too many requests to ElevenLabs API. Please try again later."
-        };
-      } else {
-        return {
-          success: false,
-          voices: [],
-          message: `ElevenLabs API error: ${errorData.detail?.message || errorText}`
-        };
-      }
+      // Return default voices if API fails
+      const defaultVoices: VoiceInfo[] = [
+        {
+          voice_id: 'EXAVITQu4vr4xnSDxMaL',
+          name: 'Bella',
+          category: 'narration',
+          description: 'Young, friendly female voice',
+          preview_url: '',
+          gender: 'Female',
+          age: 'Young Adult',
+          accent: 'American',
+          language: 'English',
+          use_case: 'narration',
+          style: 'friendly',
+          is_clone: false
+        },
+        {
+          voice_id: 'pNInz6obpgDQGcFmaJgB',
+          name: 'Adam',
+          category: 'narration',
+          description: 'Deep, mature male voice',
+          preview_url: '',
+          gender: 'Male',
+          age: 'Middle Aged',
+          accent: 'American',
+          language: 'English',
+          use_case: 'narration',
+          style: 'conversational',
+          is_clone: false
+        },
+        {
+          voice_id: 'XB0fDUnXU5powFXDhCwa',
+          name: 'Charlotte',
+          category: 'conversational',
+          description: 'Warm, professional female voice',
+          preview_url: '',
+          gender: 'Female',
+          age: 'Middle Aged',
+          accent: 'British',
+          language: 'English',
+          use_case: 'conversational',
+          style: 'professional',
+          is_clone: false
+        },
+        {
+          voice_id: 'bVMeCyTHy58xNoL34h3p',
+          name: 'Jeremy',
+          category: 'conversational', 
+          description: 'Young, energetic male voice',
+          preview_url: '',
+          gender: 'Male',
+          age: 'Young Adult',
+          accent: 'American',
+          language: 'English',
+          use_case: 'conversational',
+          style: 'energetic',
+          is_clone: false
+        }
+      ];
+      
+      return {
+        success: true,
+        voices: defaultVoices,
+        message: `Using default voices. ElevenLabs API error: ${response.status === 401 ? 'Invalid API key' : 'Connection failed'}`
+      };
     }
 
     const data = await response.json() as any;

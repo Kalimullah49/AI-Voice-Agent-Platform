@@ -124,6 +124,10 @@ export default function AgentDetailPage() {
     voicesLoading: false,
     availableVoices: [],
     selectedVoice: null,
+    // Action settings
+    silenceThreshold: 4.0,
+    summaryEmails: "",
+    endCallTool: false,
   });
   
   // Fetch available voices function
@@ -1342,18 +1346,20 @@ export default function AgentDetailPage() {
                 <div>
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="font-medium">Silence threshold (4.0 minutes)</h3>
+                      <h3 className="font-medium">Silence threshold ({agentData.silenceThreshold} minutes)</h3>
                       <p className="text-sm text-muted-foreground">
                         An alert that tells if the agent has been silent for a certain number of seconds.
                       </p>
                     </div>
+                    <div className="text-xl font-medium">{agentData.silenceThreshold}</div>
                   </div>
                   <div className="pt-4">
                     <Slider
-                      value={[4]}
+                      value={[agentData.silenceThreshold]}
                       min={0}
                       max={10}
                       step={0.5}
+                      onValueChange={(value) => handleSliderChange("silenceThreshold", value)}
                       className="w-full"
                     />
                   </div>
