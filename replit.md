@@ -12,6 +12,9 @@ Mind AI is a comprehensive AI-powered call center management and analytics solut
 - **Frontend**: React with TypeScript, Tailwind CSS, and shadcn/ui
 
 ## Recent Changes
+- **Data Privacy Fix (July 7, 2025)**: Fixed critical issue where campaigns were visible across all users - campaigns now properly filtered by user ownership
+- **User-Specific Campaigns**: Added `getCampaignsByUserId` method to filter campaigns by agent ownership, ensuring data privacy between users
+- **Security Enhancement**: Campaign API endpoint now only returns campaigns belonging to logged-in user's agents
 - **Voice Agent Fix (July 2, 2025)**: Resolved "silence-timed-out" errors in campaign calls by adding proper transcriber configuration to Vapi assistants
 - **Transcriber Configuration**: Added Deepgram nova-2-general transcriber to all new and existing Vapi assistants for proper speech detection
 - **Assistant Configuration**: Enhanced default settings with voicemailDetectionEnabled, endCallFunctionEnabled, and recordingEnabled

@@ -80,6 +80,7 @@ export interface IStorage {
   createCampaign(campaign: InsertCampaign): Promise<Campaign>;
   updateCampaign(id: number, campaign: Partial<InsertCampaign>): Promise<Campaign | undefined>;
   getAllCampaigns(): Promise<Campaign[]>;
+  getCampaignsByUserId(userId: string): Promise<Campaign[]>;
   deleteCampaign(id: number): Promise<boolean>;
   
   // Email failure logging operations
@@ -440,6 +441,16 @@ export class MemStorage implements IStorage {
   
   async getAllCampaigns(): Promise<Campaign[]> {
     return Array.from(this.campaigns.values());
+  }
+  
+  async getCampaignsByUserId(userId: string): Promise<Campaign[]> {
+    // For memory storage, we need to filter campaigns by agents owned by the user
+    const userAgents = await this.getAllAgentsByUserId(userId);
+    const userAgentIds = userAgents.map(agent => agent.id);
+    
+    return Array.from(this.campaigns.values()).filter(campaign => 
+      campaign.agentId && userAgentIds.includes(campaign.agentId)
+    );
   }
   
   async clearAllData(): Promise<void> {

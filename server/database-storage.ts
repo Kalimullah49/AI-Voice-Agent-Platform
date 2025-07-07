@@ -471,6 +471,25 @@ export class DatabaseStorage implements IStorage {
   async getAllCampaigns(): Promise<Campaign[]> {
     return await db.select().from(campaigns);
   }
+  
+  async getCampaignsByUserId(userId: string): Promise<Campaign[]> {
+    // Join campaigns with agents to filter by userId
+    return await db
+      .select({
+        id: campaigns.id,
+        name: campaigns.name,
+        status: campaigns.status,
+        agentId: campaigns.agentId,
+        contactGroupId: campaigns.contactGroupId,
+        concurrentCalls: campaigns.concurrentCalls,
+        phoneNumberId: campaigns.phoneNumberId,
+        createdAt: campaigns.createdAt,
+        updatedAt: campaigns.updatedAt
+      })
+      .from(campaigns)
+      .leftJoin(agents, eq(campaigns.agentId, agents.id))
+      .where(eq(agents.userId, userId));
+  }
 
   async deleteCampaign(id: number): Promise<boolean> {
     const result = await db.delete(campaigns).where(eq(campaigns.id, id));
