@@ -312,9 +312,9 @@ export default function PhoneNumbersPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="">No agent assigned</SelectItem>
-                        {agents && agents.map((agent: any) => (
+                        {agents && agents.filter(agent => agent && agent.id).map((agent: any) => (
                           <SelectItem key={agent.id} value={agent.id.toString()}>
-                            {agent.name}
+                            {agent.name || 'Unnamed Agent'}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -439,9 +439,9 @@ export default function PhoneNumbersPage() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="">No agent assigned</SelectItem>
-                          {agents && agents.map((agent: any) => (
+                          {agents && agents.filter(agent => agent && agent.id).map((agent: any) => (
                             <SelectItem key={agent.id} value={agent.id.toString()}>
-                              {agent.name}
+                              {agent.name || 'Unnamed Agent'}
                             </SelectItem>
                           ))}
                         </SelectContent>
