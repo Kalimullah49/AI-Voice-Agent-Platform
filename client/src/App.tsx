@@ -22,6 +22,7 @@ import PhoneNumbersPage from "@/pages/phone-numbers";
 import BillingPage from "@/pages/billing";
 import SettingsPage from "@/pages/settings";
 import WebhookLogsPage from "@/pages/webhook-logs";
+import CallTestPage from "@/pages/debug/call-test";
 
 function Router() {
   const ProtectedAppRoute = ({ children }: { children: React.ReactNode }) => (
@@ -105,6 +106,11 @@ function Router() {
       <Route path="/webhook-logs">
         <ProtectedAppRoute>
           <WebhookLogsPage />
+        </ProtectedAppRoute>
+      </Route>
+      <Route path="/debug/call-test">
+        <ProtectedAppRoute>
+          <CallTestPage />
         </ProtectedAppRoute>
       </Route>
       <Route>

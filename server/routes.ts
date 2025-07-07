@@ -73,6 +73,16 @@ async function makeNextCall(execution: CampaignExecution) {
 
   try {
     console.log(`📞 Call ${execution.currentIndex}/${execution.contacts.length}: ${contact.firstName} ${contact.lastName} -> ${contact.phoneNumber}`);
+  
+  // Validate phone number format
+  if (!contact.phoneNumber || contact.phoneNumber.length < 10) {
+    throw new Error(`Invalid phone number format: ${contact.phoneNumber}`);
+  }
+  
+  // Log international calling attempt
+  if (contact.phoneNumber.startsWith('+92') || contact.phoneNumber.startsWith('92')) {
+    console.log(`🌍 International call attempt: US -> Pakistan (${contact.phoneNumber})`);
+  }
 
     // Validate required Vapi IDs before making the call
     if (!execution.agent.vapiAssistantId) {
@@ -86,28 +96,41 @@ async function makeNextCall(execution: CampaignExecution) {
     console.log(`🔥 Making Vapi call with Assistant ID: ${execution.agent.vapiAssistantId}, Phone ID: ${execution.phoneNumber.vapiPhoneNumberId}`);
     
     // Make the call via Vapi.ai using the same format as the working single call
+    const callPayload = {
+      assistantId: execution.agent.vapiAssistantId,
+      phoneNumberId: execution.phoneNumber.vapiPhoneNumberId,
+      customer: {
+        number: contact.phoneNumber
+      }
+    };
+    
+    console.log(`🎯 Vapi call payload: ${JSON.stringify(callPayload)}`);
+    
     const vapiResponse = await fetch('https://api.vapi.ai/call', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer 2291104d-93d4-4292-9d18-6f3af2e420e0`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        assistantId: execution.agent.vapiAssistantId,
-        phoneNumberId: execution.phoneNumber.vapiPhoneNumberId,
-        customer: {
-          number: contact.phoneNumber
-        }
-      })
+      body: JSON.stringify(callPayload)
     });
 
     if (!vapiResponse.ok) {
       const errorText = await vapiResponse.text();
+      console.error(`❌ Vapi API error ${vapiResponse.status}: ${errorText}`);
       throw new Error(`Vapi API error ${vapiResponse.status}: ${errorText}`);
     }
 
     const callData = await vapiResponse.json();
     const callId = callData.id;
+    
+    console.log(`🎯 Vapi call response: ${JSON.stringify(callData)}`);
+    
+    // Check if call was accepted or if there are any immediate issues
+    if (callData.status === 'failed' || callData.status === 'rejected') {
+      console.error(`❌ Call was rejected or failed: ${callData.status} - ${callData.endedReason || 'No reason provided'}`);
+      throw new Error(`Call failed: ${callData.endedReason || 'Unknown reason'}`);
+    }
     
     execution.activeCalls.add(callId);
 
@@ -1924,6 +1947,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
       cost: cost.map(c => parseFloat(c.toFixed(2)))
     };
   }
+
+  // Test phone number calling capability
+  app.post("/api/test-call", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { phoneNumber, agentId } = req.body;
+      
+      if (!phoneNumber || !agentId) {
+        return res.status(400).json({ message: "Phone number and agent ID are required" });
+      }
+      
+      // Get the agent and phone number details
+      const agent = await storage.getAgent(agentId);
+      if (!agent) {
+        return res.status(404).json({ message: "Agent not found" });
+      }
+      
+      if (!agent.vapiAssistantId) {
+        return res.status(400).json({ message: "Agent must be published to Vapi.ai first" });
+      }
+      
+      // Get the first available phone number for this user
+      const phoneNumbers = await storage.getPhoneNumbersByUserId(req.session.userId);
+      const availablePhone = phoneNumbers.find(p => p.vapiPhoneNumberId);
+      
+      if (!availablePhone) {
+        return res.status(400).json({ message: "No Vapi-registered phone numbers available" });
+      }
+      
+      // Test call via Vapi
+      const callPayload = {
+        assistantId: agent.vapiAssistantId,
+        phoneNumberId: availablePhone.vapiPhoneNumberId,
+        customer: {
+          number: phoneNumber
+        }
+      };
+      
+      console.log(`🧪 Test call payload: ${JSON.stringify(callPayload)}`);
+      
+      const vapiResponse = await fetch('https://api.vapi.ai/call', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer 2291104d-93d4-4292-9d18-6f3af2e420e0`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(callPayload)
+      });
+      
+      if (!vapiResponse.ok) {
+        const errorText = await vapiResponse.text();
+        console.error(`❌ Test call Vapi API error ${vapiResponse.status}: ${errorText}`);
+        return res.status(500).json({ 
+          message: `Vapi API error: ${errorText}`,
+          status: vapiResponse.status 
+        });
+      }
+      
+      const callData = await vapiResponse.json();
+      console.log(`🧪 Test call response: ${JSON.stringify(callData)}`);
+      
+      // Create call record
+      await storage.createCall({
+        fromNumber: availablePhone.number,
+        toNumber: phoneNumber,
+        direction: 'outbound',
+        agentId: agent.id,
+        duration: 0,
+        cost: 0,
+        outcome: 'test-call'
+      });
+      
+      res.json({
+        success: true,
+        callId: callData.id,
+        status: callData.status,
+        message: "Test call initiated successfully"
+      });
+      
+    } catch (error) {
+      console.error("Test call error:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Failed to initiate test call" 
+      });
+    }
+  });
 
   // Create a Vapi call endpoint for outbound calls
   // Webhook endpoint for Vapi.ai events (end-of-call reports, status updates, function calls)

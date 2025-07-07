@@ -12,6 +12,10 @@ Mind AI is a comprehensive AI-powered call center management and analytics solut
 - **Frontend**: React with TypeScript, Tailwind CSS, and shadcn/ui
 
 ## Recent Changes
+- **Campaign Call Debug System (July 7, 2025)**: Added comprehensive debugging tools for campaign calling issues including test call endpoint and debug page at /debug/call-test
+- **SelectItem Error Fix (July 7, 2025)**: Fixed React runtime error in phone numbers page by changing empty string values to "unassigned" in all SelectItem components
+- **Campaign Call Enhancement (July 7, 2025)**: Added detailed logging, error handling, and phone number validation to campaign execution system
+- **International Calling Analysis (July 7, 2025)**: Identified potential international calling restrictions as root cause of campaign call failures
 - **Dialog Auto-Close Fix (July 7, 2025)**: Fixed create group dialog to automatically close after successful group creation with success toast
 - **Twilio Account Management Removal (July 7, 2025)**: Removed "Manage Twilio Accounts" tab from phone numbers page - all users now use default account for purchases
 - **Contact Group Delete Enhancement (July 7, 2025)**: Enhanced delete functionality to handle groups referenced by campaigns by removing campaign references first
@@ -47,6 +51,10 @@ Mind AI is a comprehensive AI-powered call center management and analytics solut
 - ✅ Twilio account management with multiple SID support
 
 ## Current Issues Being Resolved
+- 🔍 **Campaign Call Delivery Issue**: Calls are being initiated via Vapi.ai but not reaching recipients, likely due to international calling restrictions from US (+1) to Pakistan (+92) numbers
+- 🔍 **Call Status Investigation**: Calls show duration and cost but "queued" status suggests delivery issues rather than system failures
+- ✅ Phone numbers page SelectItem runtime error fixed - no more empty string values
+- ✅ Comprehensive campaign debugging system implemented with test call functionality
 - ✅ Twilio account removal completed - all users now use centralized hardcoded credentials
 - ✅ Database schema updated to remove twilioAccountId dependencies
 - ✅ Phone number operations simplified for single account architecture
