@@ -215,7 +215,7 @@ export default function PhoneNumbersPage() {
   const handlePurchaseNumber = () => {
     if (!selectedNumber) return;
     
-    const agentId = assignToAgentId ? parseInt(assignToAgentId) : undefined;
+    const agentId = assignToAgentId && assignToAgentId !== "unassigned" ? parseInt(assignToAgentId) : undefined;
     purchaseNumberMutation.mutate({
       phoneNumber: selectedNumber,
       agentId
@@ -311,7 +311,7 @@ export default function PhoneNumbersPage() {
                         <SelectValue placeholder="Select an agent (optional)" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">No agent assigned</SelectItem>
+                        <SelectItem value="unassigned">No agent assigned</SelectItem>
                         {agents && agents.filter(agent => agent && agent.id).map((agent: any) => (
                           <SelectItem key={agent.id} value={agent.id.toString()}>
                             {agent.name || 'Unnamed Agent'}
@@ -428,9 +428,9 @@ export default function PhoneNumbersPage() {
                     <div className="space-y-2">
                       <p className="text-sm font-medium">Assigned Agent</p>
                       <Select 
-                        value={phoneNumber.agentId ? phoneNumber.agentId.toString() : ""} 
+                        value={phoneNumber.agentId ? phoneNumber.agentId.toString() : "unassigned"} 
                         onValueChange={(value) => {
-                          const agentId = value ? parseInt(value) : null;
+                          const agentId = value === "unassigned" ? null : parseInt(value);
                           assignPhoneNumberMutation.mutate({ phoneNumberId: phoneNumber.id, agentId });
                         }}
                       >
@@ -438,7 +438,7 @@ export default function PhoneNumbersPage() {
                           <SelectValue placeholder="Select an agent" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">No agent assigned</SelectItem>
+                          <SelectItem value="unassigned">No agent assigned</SelectItem>
                           {agents && agents.filter(agent => agent && agent.id).map((agent: any) => (
                             <SelectItem key={agent.id} value={agent.id.toString()}>
                               {agent.name || 'Unnamed Agent'}
