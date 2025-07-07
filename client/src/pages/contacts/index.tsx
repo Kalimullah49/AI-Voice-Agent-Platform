@@ -58,6 +58,7 @@ export default function ContactsPage() {
   const [uploadStep, setUploadStep] = useState<number>(1);
   const [showUploadDialog, setShowUploadDialog] = useState<boolean>(false);
   const [isCreateContactDialogOpen, setIsCreateContactDialogOpen] = useState<boolean>(false);
+  const [isCreateGroupDialogOpen, setIsCreateGroupDialogOpen] = useState<boolean>(false);
   
   const queryClient = useQueryClient();
   
@@ -88,6 +89,11 @@ export default function ContactsPage() {
       // Invalidate the contact groups query to refetch the data
       queryClient.invalidateQueries({ queryKey: ["/api/contact-groups"] });
       setNewGroupName("");
+      setIsCreateGroupDialogOpen(false);
+      toast({
+        title: "Group created",
+        description: "Contact group created successfully."
+      });
     }
   });
   
@@ -261,7 +267,7 @@ export default function ContactsPage() {
           <div className="flex justify-between items-center mb-4">
             <div></div>
             
-            <Dialog>
+            <Dialog open={isCreateGroupDialogOpen} onOpenChange={setIsCreateGroupDialogOpen}>
               <DialogTrigger asChild>
                 <Button>
                   <PlusIcon className="h-4 w-4 mr-2" />
