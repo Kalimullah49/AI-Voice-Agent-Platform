@@ -12,6 +12,9 @@ Mind AI is a comprehensive AI-powered call center management and analytics solut
 - **Frontend**: React with TypeScript, Tailwind CSS, and shadcn/ui
 
 ## Recent Changes
+- **Dialog Auto-Close Fix (July 7, 2025)**: Fixed create group dialog to automatically close after successful group creation with success toast
+- **Twilio Account Management Removal (July 7, 2025)**: Removed "Manage Twilio Accounts" tab from phone numbers page - all users now use default account for purchases
+- **Contact Group Delete Enhancement (July 7, 2025)**: Enhanced delete functionality to handle groups referenced by campaigns by removing campaign references first
 - **Contact Management Fix (July 7, 2025)**: Fixed delete functionality for contact groups by implementing proper cascading delete to remove contacts first
 - **UI Cleanup (July 7, 2025)**: Removed duplicate "Contacts" heading and "Groups" tab for cleaner interface  
 - **UI Enhancement (July 7, 2025)**: Fixed silence threshold slider to be fully functional with real-time updates

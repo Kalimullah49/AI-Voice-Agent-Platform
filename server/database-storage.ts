@@ -427,6 +427,20 @@ export class DatabaseStorage implements IStorage {
         return false;
       }
       
+      // Check if any campaigns are using this contact group
+      const campaignsUsingGroup = await db
+        .select()
+        .from(campaigns)
+        .where(eq(campaigns.contactGroupId, id));
+      
+      if (campaignsUsingGroup.length > 0) {
+        // Update campaigns to remove the contact group reference
+        await db
+          .update(campaigns)
+          .set({ contactGroupId: null })
+          .where(eq(campaigns.contactGroupId, id));
+      }
+      
       // First, delete all contacts in this group to avoid foreign key constraint
       await db.delete(contacts).where(eq(contacts.groupId, id));
       
