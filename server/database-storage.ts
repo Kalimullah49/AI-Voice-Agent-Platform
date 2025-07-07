@@ -420,8 +420,24 @@ export class DatabaseStorage implements IStorage {
   }
   
   async deleteContactGroup(id: number): Promise<boolean> {
-    const result = await db.delete(contactGroups).where(eq(contactGroups.id, id));
-    return result !== undefined;
+    try {
+      // First, check if the group exists
+      const group = await this.getContactGroup(id);
+      if (!group) {
+        return false;
+      }
+      
+      // First, delete all contacts in this group to avoid foreign key constraint
+      await db.delete(contacts).where(eq(contacts.groupId, id));
+      
+      // Then delete the contact group
+      const result = await db.delete(contactGroups).where(eq(contactGroups.id, id));
+      
+      return true;
+    } catch (error) {
+      console.error('Error deleting contact group:', error);
+      return false;
+    }
   }
   
   // Contact operations

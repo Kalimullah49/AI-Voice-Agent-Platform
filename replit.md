@@ -12,6 +12,8 @@ Mind AI is a comprehensive AI-powered call center management and analytics solut
 - **Frontend**: React with TypeScript, Tailwind CSS, and shadcn/ui
 
 ## Recent Changes
+- **Contact Management Fix (July 7, 2025)**: Fixed delete functionality for contact groups by implementing proper cascading delete to remove contacts first
+- **UI Cleanup (July 7, 2025)**: Removed duplicate "Contacts" heading and "Groups" tab for cleaner interface  
 - **UI Enhancement (July 7, 2025)**: Fixed silence threshold slider to be fully functional with real-time updates
 - **Voice Selection Fix (July 7, 2025)**: Implemented fallback voice system with 4 default voices (Bella, Adam, Charlotte, Jeremy) when ElevenLabs API fails
 - **Message Improvement (July 7, 2025)**: Updated agent publish success message to show "Agent published successfully!" instead of mentioning Vapi.ai deployment

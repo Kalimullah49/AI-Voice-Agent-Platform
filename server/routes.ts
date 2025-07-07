@@ -1507,6 +1507,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.status(200).json({ message: "Contact group deleted successfully" });
     } catch (error) {
+      console.error('Delete contact group error:', error);
       res.status(500).json({ message: "Failed to delete contact group" });
     }
   });
