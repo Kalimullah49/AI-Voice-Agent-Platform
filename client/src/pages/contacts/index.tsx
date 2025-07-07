@@ -258,16 +258,8 @@ export default function ContactsPage() {
       {!selectedGroupId ? (
         // Groups list view
         <>
-          <div className="mb-4">
-            <h2 className="text-2xl font-bold tracking-tight">Contacts</h2>
-          </div>
-
           <div className="flex justify-between items-center mb-4">
-            <Tabs defaultValue="groups" onValueChange={setActiveTab}>
-              <TabsList>
-                <TabsTrigger value="groups">Groups</TabsTrigger>
-              </TabsList>
-            </Tabs>
+            <div></div>
             
             <Dialog>
               <DialogTrigger asChild>
