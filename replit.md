@@ -12,6 +12,9 @@ Mind AI is a comprehensive AI-powered call center management and analytics solut
 - **Frontend**: React with TypeScript, Tailwind CSS, and shadcn/ui
 
 ## Recent Changes
+- **UI Enhancement (July 7, 2025)**: Fixed silence threshold slider to be fully functional with real-time updates
+- **Voice Selection Fix (July 7, 2025)**: Implemented fallback voice system with 4 default voices (Bella, Adam, Charlotte, Jeremy) when ElevenLabs API fails
+- **Message Improvement (July 7, 2025)**: Updated agent publish success message to show "Agent published successfully!" instead of mentioning Vapi.ai deployment
 - **Data Privacy Fix (July 7, 2025)**: Fixed critical issue where campaigns were visible across all users - campaigns now properly filtered by user ownership
 - **User-Specific Campaigns**: Added `getCampaignsByUserId` method to filter campaigns by agent ownership, ensuring data privacy between users
 - **Security Enhancement**: Campaign API endpoint now only returns campaigns belonging to logged-in user's agents

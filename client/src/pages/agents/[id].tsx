@@ -672,7 +672,7 @@ export default function AgentDetailPage() {
                     if (data.success) {
                       toast({
                         title: "Published Successfully",
-                        description: "Agent saved and deployed to Vapi.ai!",
+                        description: "Agent published successfully!",
                       });
                       // Update agent with Vapi assistant ID
                       if (data.assistant && data.assistant.id) {
