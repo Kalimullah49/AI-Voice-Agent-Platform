@@ -12,6 +12,7 @@ Mind AI is a comprehensive AI-powered call center management and analytics solut
 - **Frontend**: React with TypeScript, Tailwind CSS, and shadcn/ui
 
 ## Recent Changes
+- **🔧 ElevenLabs API Key Fix (July 8, 2025)**: Resolved persistent voice functionality issues by hardcoding valid API key due to Replit environment variable caching
 - **🚨 CRITICAL SECURITY FIX (July 8, 2025)**: Fixed major data privacy vulnerability where contact groups and contacts were visible to all users
   - Added `user_id` column to contact_groups table with proper referential integrity
   - Updated all contact group API endpoints to filter by user ownership
