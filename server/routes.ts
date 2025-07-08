@@ -736,22 +736,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const countryCode = (req.query.countryCode as string) || 'US';
       const areaCode = req.query.areaCode as string;
       
-      // Get user's Twilio account credentials from database
-      const twilioAccounts = await storage.getTwilioAccountsByUserId(userId);
-      if (!twilioAccounts || twilioAccounts.length === 0) {
-        return res.status(400).json({ message: "No Twilio account configured" });
-      }
-      
-      const defaultAccount = twilioAccounts.find(acc => acc.isDefault) || twilioAccounts[0];
-      
-      console.log('🔍 Debugging Twilio request:');
-      console.log('Account SID:', defaultAccount.accountSid);
-      console.log('Auth Token length:', defaultAccount.authToken?.length);
+      console.log('🔍 Searching for available Twilio phone numbers:');
       console.log('Country code:', countryCode);
       console.log('Area code:', areaCode);
       
-      // Create Twilio client with user's actual credentials
-      const userTwilioClient = twilio(defaultAccount.accountSid, defaultAccount.authToken);
+      // Use the centralized Twilio client (all users share same credentials)
       
       // Search parameters
       const searchParams: any = { limit: 10 };
@@ -759,8 +748,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         searchParams.areaCode = areaCode;
       }
       
-      // Fetch available phone numbers from Twilio using user's credentials
-      const availableNumbers = await userTwilioClient.availablePhoneNumbers(countryCode)
+      // Fetch available phone numbers from Twilio using centralized credentials
+      const availableNumbers = await twilioClient.availablePhoneNumbers(countryCode)
                                           .local
                                           .list(searchParams);
       
@@ -840,19 +829,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Phone number is required" });
       }
       
-      // Get user's Twilio account credentials from database
-      const twilioAccounts = await storage.getTwilioAccountsByUserId(userId);
-      if (!twilioAccounts || twilioAccounts.length === 0) {
-        return res.status(400).json({ message: "No Twilio account configured" });
-      }
+      console.log('🔍 Purchasing Twilio phone number:', phoneNumber);
       
-      const defaultAccount = twilioAccounts.find(acc => acc.isDefault) || twilioAccounts[0];
-      
-      // Create Twilio client with user's actual credentials
-      const userTwilioClient = twilio(defaultAccount.accountSid, defaultAccount.authToken);
-      
-      // Purchase phone number from Twilio using user's credentials
-      const purchasedNumber = await userTwilioClient.incomingPhoneNumbers.create({
+      // Purchase phone number from Twilio using centralized credentials
+      const purchasedNumber = await twilioClient.incomingPhoneNumbers.create({
         phoneNumber,
         friendlyName: friendlyName || `Mind AI Number ${new Date().toISOString()}`
       });
@@ -871,9 +851,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { registerPhoneNumberWithVapiNumbers } = await import('./utils/vapiIntegration');
         const vapiResult = await registerPhoneNumberWithVapiNumbers(
           purchasedNumber.phoneNumber,
-          defaultAccount.accountSid,
+          TWILIO_ACCOUNT_SID,
           purchasedNumber.friendlyName,
-          defaultAccount.authToken
+          TWILIO_AUTH_TOKEN
         );
         
         if (vapiResult.success && vapiResult.phoneNumberId) {
@@ -2035,6 +2015,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch dashboard metrics" });
+    }
+  });
+
+  // Debug endpoint for testing phone number purchasing
+  app.get("/api/debug/phone-numbers", async (req: Request, res: Response) => {
+    try {
+      console.log('🔍 Debug: Testing phone number search without authentication');
+      const countryCode = 'US';
+      const searchParams = { limit: 5 };
+      
+      // Test Twilio credentials
+      console.log('🔍 Twilio Account SID:', TWILIO_ACCOUNT_SID ? 'Present' : 'Missing');
+      console.log('🔍 Twilio Auth Token:', TWILIO_AUTH_TOKEN ? 'Present' : 'Missing');
+      
+      // Test phone number search
+      const availableNumbers = await twilioClient.availablePhoneNumbers(countryCode)
+                                      .local
+                                      .list(searchParams);
+      
+      console.log(`✅ Successfully fetched ${availableNumbers.length} available numbers`);
+      
+      res.json({
+        success: true,
+        count: availableNumbers.length,
+        numbers: availableNumbers.map(number => ({
+          phoneNumber: number.phoneNumber,
+          friendlyName: number.friendlyName,
+          locality: number.locality,
+          region: number.region,
+          isoCountry: number.isoCountry,
+          capabilities: number.capabilities
+        }))
+      });
+    } catch (error) {
+      console.error("❌ Debug phone number search failed:", error);
+      res.status(500).json({
+        success: false,
+        error: {
+          message: (error as any).message,
+          code: (error as any).code,
+          status: (error as any).status
+        }
+      });
     }
   });
 
