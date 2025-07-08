@@ -398,7 +398,7 @@ async function processStatusUpdate(data: any) {
       }
       
       // Process the extracted data
-      if (status === 'ended') {
+      if (status === 'ended' || status === 'assistant-ended-call' || status === 'user-ended-call' || status === 'call-ended') {
         // Special handling for ended status - check if we have any metrics
         let duration = 0;
         let cost = 0;
@@ -418,6 +418,8 @@ async function processStatusUpdate(data: any) {
           cost = message.costBreakdown.total;
         }
         
+        console.log(`Call termination detected - Status: ${status}, Duration: ${duration}s, Cost: $${cost}`);
+        
         await processCallData(
           assistantId,
           callData.id || '',
@@ -425,8 +427,8 @@ async function processStatusUpdate(data: any) {
           toNumber,
           duration,
           cost,
-          'ended',
-          message.endedReason || null,
+          'ended', // Always mark as ended for termination events
+          message.endedReason || status, // Use the specific end reason
           message.type === 'outboundPhoneCall' ? 'outbound' : 'inbound'
         );
       } else {
@@ -467,6 +469,14 @@ async function processStatusUpdate(data: any) {
       toNumber = callData.customer.number;
     } else if (callData.transport && callData.transport.to) {
       toNumber = callData.transport.to;
+    }
+    
+    // Check for termination events in original format
+    if (status === 'ended' || status === 'assistant-ended-call' || status === 'user-ended-call' || status === 'call-ended') {
+      console.log(`Call termination detected in original format - Status: ${status}`);
+      // Force process as end-of-call to ensure proper cleanup
+      await processEndOfCallReport(data);
+      return;
     }
     
     await processCallData(

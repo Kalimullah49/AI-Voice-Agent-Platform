@@ -397,26 +397,55 @@ export default function AgentDetailPage() {
                       }
                     }
                     
-                    // Method 4: Force disconnect by setting a global variable vapi uses
+                    // Method 4: Force disconnect by using proper Vapi SDK methods
                     try {
                       const disconnectScript = document.createElement('script');
                       disconnectScript.textContent = `
                         try {
-                          // Try multiple ways to force call termination
+                          // First try to stop the call using the proper SDK method
+                          if (window.vapiSDK && window.vapiSDK.stop) {
+                            console.log("Calling vapiSDK.stop()");
+                            window.vapiSDK.stop();
+                          }
+                          
+                          // Then try hangup if available
                           if (window.vapiSDK && window.vapiSDK.hangup) {
+                            console.log("Calling vapiSDK.hangup()");
                             window.vapiSDK.hangup();
                           }
                           
-                          // Force any ongoing call to disconnect
-                          if (window.vapiCurrentInstance && window.vapiCurrentInstance.hangup) {
-                            window.vapiCurrentInstance.hangup();
+                          // Force any ongoing call to disconnect using the instance
+                          if (window.vapiCurrentInstance) {
+                            if (window.vapiCurrentInstance.stop) {
+                              console.log("Calling vapiCurrentInstance.stop()");
+                              window.vapiCurrentInstance.stop();
+                            }
+                            if (window.vapiCurrentInstance.hangup) {
+                              console.log("Calling vapiCurrentInstance.hangup()");
+                              window.vapiCurrentInstance.hangup();
+                            }
+                          }
+                          
+                          // Destroy the SDK to force cleanup
+                          if (window.vapiSDK && window.vapiSDK.destroy) {
+                            console.log("Calling vapiSDK.destroy()");
+                            window.vapiSDK.destroy();
                           }
                           
                           // Set global flag to help clean up
                           window.vapiCallEnded = true;
-                        } catch(e) { console.warn("Error in hangup script:", e); }
+                        } catch(e) { 
+                          console.warn("Error in hangup script:", e); 
+                        }
                       `;
                       document.head.appendChild(disconnectScript);
+                      
+                      // Wait a moment for the script to execute
+                      setTimeout(() => {
+                        if (disconnectScript.parentNode) {
+                          disconnectScript.parentNode.removeChild(disconnectScript);
+                        }
+                      }, 1000);
                     } catch (err) {
                       console.warn("Error injecting disconnect script:", err);
                     }
@@ -549,7 +578,8 @@ export default function AgentDetailPage() {
                           
                           // Run the Vapi SDK with the proper configuration
                           if (window.vapiSDK) {
-                            window.vapiSDK.run({
+                            // Store the instance for proper cleanup
+                            window.vapiCurrentInstance = window.vapiSDK.run({
                               apiKey: apiKey,
                               assistant: assistant,
                             });
