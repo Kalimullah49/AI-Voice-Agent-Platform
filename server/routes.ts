@@ -1411,6 +1411,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Test ElevenLabs API connection
+  app.get("/api/elevenlabs/test", isAuthenticated, async (req, res) => {
+    try {
+      const elevenLabsKey = process.env.ELEVENLABS_API_KEY;
+      console.log(`Testing ElevenLabs API with key: ${elevenLabsKey ? elevenLabsKey.substring(0, 8) + '...' : 'NOT FOUND'}`);
+      
+      const response = await fetch('https://api.elevenlabs.io/v1/voices', {
+        method: 'GET',
+        headers: {
+          'xi-api-key': elevenLabsKey || ''
+        }
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        return res.json({
+          success: false,
+          status: response.status,
+          error: errorText,
+          keyExists: !!elevenLabsKey,
+          keyPrefix: elevenLabsKey ? elevenLabsKey.substring(0, 8) : 'N/A'
+        });
+      }
+      
+      const data = await response.json();
+      res.json({
+        success: true,
+        voiceCount: data.voices ? data.voices.length : 0,
+        keyExists: !!elevenLabsKey,
+        keyPrefix: elevenLabsKey ? elevenLabsKey.substring(0, 8) : 'N/A'
+      });
+    } catch (error) {
+      res.json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        keyExists: !!process.env.ELEVENLABS_API_KEY
+      });
+    }
+  });
+
   // Endpoint to provide Vapi public key for web calls
   app.get("/api/vapi/public-key", isAuthenticated, (req, res) => {
     res.json({ 
