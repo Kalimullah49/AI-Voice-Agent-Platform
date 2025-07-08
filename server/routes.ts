@@ -95,12 +95,21 @@ async function makeNextCall(execution: CampaignExecution) {
 
     console.log(`🔥 Making Vapi call with Assistant ID: ${execution.agent.vapiAssistantId}, Phone ID: ${execution.phoneNumber.vapiPhoneNumberId}`);
     
+    // Validate phone number format before making call
+    const cleanedNumber = contact.phoneNumber.replace(/\D/g, '');
+    if (cleanedNumber.length < 10) {
+      throw new Error(`Invalid phone number format: ${contact.phoneNumber} (cleaned: ${cleanedNumber})`);
+    }
+    
+    // Add + prefix if missing for international numbers
+    const formattedNumber = contact.phoneNumber.startsWith('+') ? contact.phoneNumber : `+${contact.phoneNumber}`;
+    
     // Make the call via Vapi.ai using the same format as the working single call
     const callPayload = {
       assistantId: execution.agent.vapiAssistantId,
       phoneNumberId: execution.phoneNumber.vapiPhoneNumberId,
       customer: {
-        number: contact.phoneNumber
+        number: formattedNumber
       }
     };
     
@@ -118,6 +127,12 @@ async function makeNextCall(execution: CampaignExecution) {
     if (!vapiResponse.ok) {
       const errorText = await vapiResponse.text();
       console.error(`❌ Vapi API error ${vapiResponse.status}: ${errorText}`);
+      
+      // Check for specific Twilio connection issues
+      if (errorText.includes('twilio') || errorText.includes('connection') || errorText.includes('provider')) {
+        throw new Error(`Twilio connection failed: ${errorText}`);
+      }
+      
       throw new Error(`Vapi API error ${vapiResponse.status}: ${errorText}`);
     }
 
@@ -129,15 +144,21 @@ async function makeNextCall(execution: CampaignExecution) {
     // Check if call was accepted or if there are any immediate issues
     if (callData.status === 'failed' || callData.status === 'rejected') {
       console.error(`❌ Call was rejected or failed: ${callData.status} - ${callData.endedReason || 'No reason provided'}`);
+      
+      // Provide more specific error messages
+      if (callData.endedReason && callData.endedReason.includes('twilio')) {
+        throw new Error(`Twilio connection failed: ${callData.endedReason}`);
+      }
+      
       throw new Error(`Call failed: ${callData.endedReason || 'Unknown reason'}`);
     }
     
     execution.activeCalls.add(callId);
 
-    // Create call record in database
+    // Create call record in database with proper formatting
     await storage.createCall({
       fromNumber: execution.phoneNumber.number,
-      toNumber: contact.phoneNumber,
+      toNumber: formattedNumber,
       direction: 'outbound',
       agentId: execution.agent.id,
       duration: 0,
@@ -148,17 +169,36 @@ async function makeNextCall(execution: CampaignExecution) {
     console.log(`✅ Call initiated: ${callId} to ${contact.firstName} ${contact.lastName}`);
 
     // The webhook will handle call completion and trigger the next call
-    // For now, simulate call progression
+    // Set up a timeout to handle calls that don't get webhooks
     setTimeout(() => {
-      execution.activeCalls.delete(callId);
-      // Start next call when this one completes
-      makeNextCall(execution);
-    }, 5000); // Give time for the call to establish
+      if (execution.activeCalls.has(callId)) {
+        console.log(`⚠️ Call ${callId} timeout - removing from active calls`);
+        execution.activeCalls.delete(callId);
+        makeNextCall(execution);
+      }
+    }, 60000); // 1 minute timeout
 
   } catch (error) {
     console.error(`❌ Failed to call ${contact.firstName} ${contact.lastName} (${contact.phoneNumber}):`, error);
+    
+    // Create a failed call record for tracking
+    try {
+      await storage.createCall({
+        fromNumber: execution.phoneNumber.number,
+        toNumber: formattedNumber || contact.phoneNumber,
+        direction: 'outbound',
+        agentId: execution.agent.id,
+        duration: 0,
+        cost: 0,
+        outcome: 'failed',
+        endedReason: error.message
+      });
+    } catch (dbError) {
+      console.error('Failed to create failed call record:', dbError);
+    }
+    
     // Continue with next call even if this one fails
-    setTimeout(() => makeNextCall(execution), 1000);
+    setTimeout(() => makeNextCall(execution), 2000);
   }
 }
 
@@ -1995,6 +2035,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch dashboard metrics" });
+    }
+  });
+
+  // Campaign debugging endpoint for troubleshooting call issues
+  app.get("/api/campaigns/:id/debug", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const campaignId = parseInt(req.params.id);
+      const userId = req.session.userId;
+
+      const campaign = await storage.getCampaign(campaignId);
+      if (!campaign) {
+        return res.status(404).json({ message: "Campaign not found" });
+      }
+
+      const agent = await storage.getAgent(campaign.agentId);
+      if (!agent || agent.userId !== userId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const phoneNumbers = await storage.getPhoneNumbersByAgentId(campaign.agentId);
+      const phoneNumber = phoneNumbers.length > 0 ? phoneNumbers[0] : null;
+      const contacts = await storage.getContactsByGroupId(campaign.contactGroupId);
+      const allCalls = await storage.getAllCalls();
+      const campaignCalls = allCalls.filter(call => call.agentId === campaign.agentId);
+
+      const systemHealth = {
+        agentHasVapiId: !!agent.vapiAssistantId,
+        phoneNumberExists: !!phoneNumber,
+        phoneNumberHasVapiId: !!(phoneNumber && phoneNumber.vapiPhoneNumberId),
+        contactsCount: contacts.length,
+        recentCallsCount: campaignCalls.length
+      };
+
+      res.json({
+        campaign,
+        agent,
+        phoneNumber,
+        contacts: contacts.slice(0, 5),
+        recentCalls: campaignCalls.slice(0, 10),
+        systemHealth
+      });
+    } catch (error) {
+      console.error("Error fetching campaign debug info:", error);
+      res.status(500).json({ message: "Failed to fetch campaign debug info" });
     }
   });
 

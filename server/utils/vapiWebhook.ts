@@ -46,8 +46,9 @@ async function processCallData(
   
   // First try to match by exact number combination
   let existingCall = calls.find(call => 
-    (call.fromNumber === fromNumber && call.toNumber === toNumber) || 
-    (call.fromNumber === toNumber && call.toNumber === fromNumber)
+    call.agentId === agent.id && 
+    ((call.fromNumber === fromNumber && call.toNumber === toNumber) || 
+     (call.fromNumber === toNumber && call.toNumber === fromNumber))
   );
   
   // If we can't find by numbers, try to look up by agent and most recent calls
@@ -475,6 +476,14 @@ async function processStatusUpdate(data: any) {
     if (status === 'ended' || status === 'assistant-ended-call' || status === 'user-ended-call' || status === 'call-ended') {
       console.log(`Call termination detected in original format - Status: ${status}`);
       // Force process as end-of-call to ensure proper cleanup
+      await processEndOfCallReport(data);
+      return;
+    }
+    
+    // Check for failed call status
+    if (status === 'failed' || status === 'error') {
+      console.log(`Call failure detected - Status: ${status}`);
+      // Process as end-of-call with failure status
       await processEndOfCallReport(data);
       return;
     }
