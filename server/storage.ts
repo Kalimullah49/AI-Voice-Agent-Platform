@@ -66,6 +66,7 @@ export interface IStorage {
   getContactGroup(id: number): Promise<ContactGroup | undefined>;
   createContactGroup(contactGroup: InsertContactGroup): Promise<ContactGroup>;
   getAllContactGroups(): Promise<ContactGroup[]>;
+  getContactGroupsByUserId(userId: string): Promise<ContactGroup[]>;
   deleteContactGroup(id: number): Promise<boolean>;
   
   // Contact operations
@@ -341,6 +342,10 @@ export class MemStorage implements IStorage {
   
   async getAllContactGroups(): Promise<ContactGroup[]> {
     return Array.from(this.contactGroups.values());
+  }
+  
+  async getContactGroupsByUserId(userId: string): Promise<ContactGroup[]> {
+    return Array.from(this.contactGroups.values()).filter(group => group.userId === userId);
   }
   
   async deleteContactGroup(id: number): Promise<boolean> {

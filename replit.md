@@ -12,6 +12,12 @@ Mind AI is a comprehensive AI-powered call center management and analytics solut
 - **Frontend**: React with TypeScript, Tailwind CSS, and shadcn/ui
 
 ## Recent Changes
+- **🚨 CRITICAL SECURITY FIX (July 8, 2025)**: Fixed major data privacy vulnerability where contact groups and contacts were visible to all users
+  - Added `user_id` column to contact_groups table with proper referential integrity
+  - Updated all contact group API endpoints to filter by user ownership
+  - Added user verification for contact creation/deletion operations
+  - Enhanced CSV upload to verify group ownership before bulk contact creation
+  - Both contact groups and contacts now properly isolated per user
 - **Campaign Call Debug System (July 7, 2025)**: Added comprehensive debugging tools for campaign calling issues including test call endpoint and debug page at /debug/call-test
 - **SelectItem Error Fix (July 7, 2025)**: Fixed React runtime error in phone numbers page by changing empty string values to "unassigned" in all SelectItem components
 - **Campaign Call Enhancement (July 7, 2025)**: Added detailed logging, error handling, and phone number validation to campaign execution system

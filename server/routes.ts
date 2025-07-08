@@ -1498,18 +1498,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Contact group routes
-  app.get("/api/contact-groups", async (req, res) => {
+  app.get("/api/contact-groups", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const contactGroups = await storage.getAllContactGroups();
+      const userId = req.session.userId;
+      const contactGroups = await storage.getContactGroupsByUserId(userId);
       res.json(contactGroups);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch contact groups" });
     }
   });
 
-  app.post("/api/contact-groups", async (req, res) => {
+  app.post("/api/contact-groups", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const contactGroupData = insertContactGroupSchema.parse(req.body);
+      const userId = req.session.userId;
+      const contactGroupData = insertContactGroupSchema.parse({
+        ...req.body,
+        userId: userId
+      });
       const contactGroup = await storage.createContactGroup(contactGroupData);
       res.status(201).json(contactGroup);
     } catch (error) {
@@ -1521,9 +1526,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.delete("/api/contact-groups/:id", async (req, res) => {
+  app.delete("/api/contact-groups/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
+      const userId = req.session.userId;
+      
+      // First, verify the group belongs to the user
+      const group = await storage.getContactGroup(id);
+      if (!group || group.userId !== userId) {
+        return res.status(404).json({ message: "Contact group not found" });
+      }
+      
       const success = await storage.deleteContactGroup(id);
       if (!success) {
         return res.status(404).json({ message: "Contact group not found" });
@@ -1536,18 +1549,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Contact routes
-  app.get("/api/contacts", async (req, res) => {
+  app.get("/api/contacts", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const contacts = await storage.getAllContacts();
-      res.json(contacts);
+      const userId = req.session.userId;
+      const userGroups = await storage.getContactGroupsByUserId(userId);
+      const userGroupIds = userGroups.map(group => group.id);
+      
+      // Only get contacts that belong to user's groups
+      const allContacts = await storage.getAllContacts();
+      const userContacts = allContacts.filter(contact => 
+        contact.groupId && userGroupIds.includes(contact.groupId)
+      );
+      
+      res.json(userContacts);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch contacts" });
     }
   });
 
-  app.post("/api/contacts", async (req, res) => {
+  app.post("/api/contacts", isAuthenticated, async (req: Request, res: Response) => {
     try {
+      const userId = req.session.userId;
       const contactData = insertContactSchema.parse(req.body);
+      
+      // Verify the group belongs to the user
+      if (contactData.groupId) {
+        const group = await storage.getContactGroup(contactData.groupId);
+        if (!group || group.userId !== userId) {
+          return res.status(403).json({ message: "Access denied to this contact group" });
+        }
+      }
+      
       const contact = await storage.createContact(contactData);
       res.status(201).json(contact);
     } catch (error) {
@@ -1559,9 +1591,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.delete("/api/contacts/:id", async (req, res) => {
+  app.delete("/api/contacts/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
+      const userId = req.session.userId;
+      
+      // First, verify the contact belongs to a user's group
+      const contact = await storage.getContact(id);
+      if (!contact || !contact.groupId) {
+        return res.status(404).json({ message: "Contact not found" });
+      }
+      
+      const group = await storage.getContactGroup(contact.groupId);
+      if (!group || group.userId !== userId) {
+        return res.status(403).json({ message: "Access denied to this contact" });
+      }
+      
       const success = await storage.deleteContact(id);
       if (!success) {
         return res.status(404).json({ message: "Contact not found" });
@@ -1573,12 +1618,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // CSV upload route for contacts
-  app.post("/api/contacts/csv-upload", async (req, res) => {
+  app.post("/api/contacts/csv-upload", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { contacts, groupId } = req.body;
+      const userId = req.session.userId;
       
       if (!Array.isArray(contacts) || !groupId) {
         return res.status(400).json({ message: "Invalid data. Expected contacts array and groupId" });
+      }
+      
+      // Verify the group belongs to the user
+      const group = await storage.getContactGroup(groupId);
+      if (!group || group.userId !== userId) {
+        return res.status(403).json({ message: "Access denied to this contact group" });
       }
       
       const createdContacts = [];

@@ -225,11 +225,13 @@ export const insertPhoneNumberSchema = createInsertSchema(phoneNumbers).omit({
 export const contactGroups = pgTable("contact_groups", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
+  userId: varchar("user_id").references(() => users.id).notNull(), // User who owns this group
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const insertContactGroupSchema = createInsertSchema(contactGroups).pick({
   name: true,
+  userId: true,
 });
 
 // Contact model

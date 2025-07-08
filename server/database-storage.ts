@@ -419,6 +419,10 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(contactGroups);
   }
   
+  async getContactGroupsByUserId(userId: string): Promise<ContactGroup[]> {
+    return await db.select().from(contactGroups).where(eq(contactGroups.userId, userId));
+  }
+  
   async deleteContactGroup(id: number): Promise<boolean> {
     try {
       // First, check if the group exists
