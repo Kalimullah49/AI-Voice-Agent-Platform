@@ -10,7 +10,8 @@ const VAPI_PRIVATE_KEY = '2291104d-93d4-4292-9d18-6f3af2e420e0';
 const VAPI_PUBLIC_KEY = '49c87404-6985-4e57-9fe3-4bbe4cd5d7f5';
 
 // ElevenLabs API token for voice synthesis
-const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
+// Note: Temporarily forcing environment refresh due to Replit secret caching
+const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || undefined;
 
 // Debug hardcoded keys on startup
 console.log('🔍 Hardcoded API Keys Check:');
@@ -18,6 +19,7 @@ console.log('VAPI_PRIVATE_KEY exists:', !!VAPI_PRIVATE_KEY);
 console.log('VAPI_PUBLIC_KEY exists:', !!VAPI_PUBLIC_KEY);
 console.log('ELEVENLABS_API_KEY exists:', !!ELEVENLABS_API_KEY);
 console.log('🔊 ElevenLabs API Key prefix:', ELEVENLABS_API_KEY ? ELEVENLABS_API_KEY.substring(0, 12) + '...' : 'NOT FOUND');
+console.log('🔊 Environment variable raw:', process.env.ELEVENLABS_API_KEY ? process.env.ELEVENLABS_API_KEY.substring(0, 12) + '...' : 'NOT FOUND');
 
 // Flag to enable detailed debugging
 const DEBUG_MODE = true;
