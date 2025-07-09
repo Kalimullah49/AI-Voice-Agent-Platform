@@ -740,8 +740,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Country code:', countryCode);
       console.log('Area code:', areaCode);
       
-      // Use the centralized Twilio client (all users share same credentials)
-      
       // Search parameters
       const searchParams: any = { limit: 10 };
       if (areaCode) {
@@ -755,14 +753,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`✅ Successfully fetched ${availableNumbers.length} available numbers`);
       
-      res.json(availableNumbers.map(number => ({
-        phoneNumber: number.phoneNumber,
-        friendlyName: number.friendlyName,
-        locality: number.locality,
-        region: number.region,
-        isoCountry: number.isoCountry,
-        capabilities: number.capabilities
-      })));
+      // If no numbers found with specific area code, suggest nearby area codes
+      if (availableNumbers.length === 0 && areaCode) {
+        console.log(`No numbers available in area code ${areaCode}, trying general search...`);
+        
+        // Try a general search without area code
+        const generalNumbers = await twilioClient.availablePhoneNumbers(countryCode)
+                                              .local
+                                              .list({ limit: 10 });
+        
+        if (generalNumbers.length > 0) {
+          console.log(`Found ${generalNumbers.length} numbers in other area codes`);
+          return res.json({
+            numbers: generalNumbers.map(number => ({
+              phoneNumber: number.phoneNumber,
+              friendlyName: number.friendlyName,
+              locality: number.locality,
+              region: number.region,
+              isoCountry: number.isoCountry,
+              capabilities: number.capabilities
+            })),
+            message: `No numbers available in area code ${areaCode}. Showing available numbers from other area codes.`,
+            fallback: true
+          });
+        } else {
+          return res.json({
+            numbers: [],
+            message: `No phone numbers are currently available for purchase in ${countryCode}. Please try again later.`,
+            fallback: false
+          });
+        }
+      }
+      
+      res.json({
+        numbers: availableNumbers.map(number => ({
+          phoneNumber: number.phoneNumber,
+          friendlyName: number.friendlyName,
+          locality: number.locality,
+          region: number.region,
+          isoCountry: number.isoCountry,
+          capabilities: number.capabilities
+        })),
+        message: availableNumbers.length > 0 ? 
+          `Found ${availableNumbers.length} available numbers${areaCode ? ` in area code ${areaCode}` : ''}` :
+          'No numbers available',
+        fallback: false
+      });
     } catch (error) {
       console.error("❌ Error fetching available Twilio phone numbers:", error);
       console.error("Error details:", {

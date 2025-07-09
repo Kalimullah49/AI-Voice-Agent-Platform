@@ -85,18 +85,47 @@ export default function PhoneNumbersPage() {
     
     setIsSearching(true);
     try {
-      const response = await fetch(`/api/available-twilio-phone-numbers?country=${countryCode}&areaCode=${searchAreaCode}`);
+      const response = await fetch(`/api/available-twilio-phone-numbers?countryCode=${countryCode}&areaCode=${searchAreaCode}`);
       if (!response.ok) {
         throw new Error('Failed to fetch available numbers');
       }
       const data = await response.json();
-      setAvailableNumbers(data);
+      
+      // Handle new response format with numbers array and message
+      if (data.numbers) {
+        setAvailableNumbers(data.numbers);
+        
+        // Show informative message if fallback numbers were returned
+        if (data.fallback) {
+          toast({
+            title: "Area code unavailable",
+            description: data.message,
+            variant: "default"
+          });
+        } else if (data.numbers.length > 0) {
+          toast({
+            title: "Numbers found",
+            description: data.message,
+            variant: "default"
+          });
+        } else {
+          toast({
+            title: "No numbers available",
+            description: data.message,
+            variant: "destructive"
+          });
+        }
+      } else {
+        // Fallback for old response format (direct array)
+        setAvailableNumbers(Array.isArray(data) ? data : []);
+      }
     } catch (error) {
       toast({
         title: "Search failed",
         description: "Failed to search for available numbers. Please try again.",
         variant: "destructive"
       });
+      setAvailableNumbers([]);
     } finally {
       setIsSearching(false);
     }
