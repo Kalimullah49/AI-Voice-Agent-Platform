@@ -199,7 +199,7 @@ async function processEndOfCallReport(data: any) {
       // Get assistant ID to identify the agent
       const assistantId = message.assistant?.id || callData.assistantId || '';
       
-      // Extract duration from different possible fields
+      // Extract duration from different possible fields - check root level first
       if (message.durationSeconds) {
         duration = Math.ceil(message.durationSeconds);
       } else if (message.durationMs) {
@@ -210,7 +210,7 @@ async function processEndOfCallReport(data: any) {
         duration = Math.ceil(message.durationMinutes * 60);
       }
       
-      // Extract cost from new format
+      // Extract cost from new format - check root level first
       if (typeof message.cost === 'number') {
         cost = message.cost;
       } else if (message.costBreakdown && message.costBreakdown.total) {
@@ -246,7 +246,7 @@ async function processEndOfCallReport(data: any) {
         cost, 
         status, 
         endReason, 
-        message.type === 'outboundPhoneCall' ? 'outbound' : 'inbound'
+        callData.type === 'outboundPhoneCall' ? 'outbound' : 'inbound'
       );
       
       return;
@@ -536,12 +536,22 @@ export async function handleVapiWebhook(req: Request, res: Response) {
     if (data) {
       // Check for new format with message wrapper
       if (data.message) {
+        console.log('Found message wrapper, checking message type:', data.message.type);
         if (data.message.type === 'end-of-call-report') {
           webhookType = 'end-of-call-report';
         } else if (data.message.type === 'status-update') {
           webhookType = 'status-update';
         } else if (data.message.type === 'function-call') {
           webhookType = 'function-call';
+        }
+        // Also check for cost and other indicators in the message
+        else if (data.message.cost !== undefined || data.message.durationSeconds !== undefined) {
+          console.log('Found cost/duration data, treating as end-of-call-report');
+          webhookType = 'end-of-call-report';
+        }
+        else if (data.message.status) {
+          console.log('Found status in message, treating as status-update');
+          webhookType = 'status-update';
         }
       } 
       // Check for legacy format without message wrapper
