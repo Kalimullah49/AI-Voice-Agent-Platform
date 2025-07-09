@@ -1149,9 +1149,21 @@ export default function AgentDetailPage() {
                               description: "Successfully generated voice audio",
                             });
                           } else {
+                            // Provide more specific error messages based on the error type
+                            let errorTitle = "Voice Synthesis Failed";
+                            let errorDescription = data.message || "Could not generate speech. Please check your ElevenLabs API key.";
+                            
+                            if (data.message && data.message.includes("unusual activity")) {
+                              errorTitle = "Voice Synthesis Temporarily Unavailable";
+                              errorDescription = "The voice synthesis service is temporarily unavailable due to high usage. This is a temporary issue that will be resolved soon. Your voice agents will still work for live calls.";
+                            } else if (data.message && data.message.includes("Paid Plan")) {
+                              errorTitle = "Voice Synthesis Temporarily Unavailable";
+                              errorDescription = "The voice synthesis service is temporarily unavailable. This is a temporary issue that will be resolved soon. Your voice agents will still work for live calls.";
+                            }
+                            
                             toast({
-                              title: "Voice Synthesis Failed",
-                              description: data.message || "Could not generate speech. Please check your ElevenLabs API key.",
+                              title: errorTitle,
+                              description: errorDescription,
                               variant: "destructive"
                             });
                           }

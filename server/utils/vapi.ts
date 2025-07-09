@@ -118,10 +118,28 @@ export async function synthesizeSpeech(options: VoiceSynthesisOptions): Promise<
       }
       console.error(`ElevenLabs API error: ${response.status} - ${errorMsg}`);
       
-      return {
-        success: false,
-        message: `ElevenLabs API error: ${errorMsg}`
-      };
+      // Handle specific error cases with better user messages
+      if (response.status === 401) {
+        return {
+          success: false,
+          message: "ElevenLabs API authentication failed. Please check your API key configuration."
+        };
+      } else if (response.status === 429) {
+        return {
+          success: false,
+          message: "ElevenLabs API rate limit exceeded. Please try again later or upgrade your plan."
+        };
+      } else if (errorMsg.includes("unusual activity") || errorMsg.includes("Paid Plan")) {
+        return {
+          success: false,
+          message: "ElevenLabs API error: Unusual activity detected. Free Tier usage has been disabled. You might need to purchase a Paid Plan to not trigger our abuse detectors. Free Tier only works if users do not abuse it, for example by creating multiple free accounts."
+        };
+      } else {
+        return {
+          success: false,
+          message: `ElevenLabs API error: ${errorMsg}`
+        };
+      }
     }
 
     // Get audio data as ArrayBuffer

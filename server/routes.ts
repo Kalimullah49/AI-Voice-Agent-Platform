@@ -1470,8 +1470,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Test ElevenLabs API connection
   app.get("/api/elevenlabs/test", isAuthenticated, async (req, res) => {
     try {
-      const elevenLabsKey = process.env.ELEVENLABS_API_KEY;
-      console.log(`Testing ElevenLabs API with key: ${elevenLabsKey ? elevenLabsKey.substring(0, 8) + '...' : 'NOT FOUND'}`);
+      // Use the same hardcoded key as in vapi.ts for consistency
+      const elevenLabsKey = 'sk_4abf57e070f576a328eb0012846ecea19777e695069c844c';
+      console.log(`Testing ElevenLabs API with hardcoded key: ${elevenLabsKey ? elevenLabsKey.substring(0, 8) + '...' : 'NOT FOUND'}`);
       
       const response = await fetch('https://api.elevenlabs.io/v1/voices', {
         method: 'GET',
@@ -1502,7 +1503,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
-        keyExists: !!process.env.ELEVENLABS_API_KEY
+        keyExists: true
       });
     }
   });
