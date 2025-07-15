@@ -1293,6 +1293,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       }
       
+      // Validate voice speed is at least 0.7 as required by Vapi
+      if (assistantParams.voice && assistantParams.voice.speed !== undefined) {
+        const speed = typeof assistantParams.voice.speed === 'string' ? parseFloat(assistantParams.voice.speed) : assistantParams.voice.speed;
+        if (speed < 0.7) {
+          return res.status(400).json({
+            success: false,
+            message: "Voice speed must not be less than 0.7"
+          });
+        }
+        assistantParams.voice.speed = speed;
+      }
+      
       // Add transcriber configuration if missing (critical for speech detection)
       if (!assistantParams.transcriber) {
         assistantParams.transcriber = {
@@ -1552,11 +1564,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ success: false, message: "Text is required" });
       }
       
+      // Parse and validate speed value
+      const parsedSpeed = typeof speed === 'string' ? parseFloat(speed) : speed;
+      
+      // Validate speed is at least 0.7 as required by Vapi
+      if (parsedSpeed && parsedSpeed < 0.7) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Voice speed must not be less than 0.7" 
+        });
+      }
+      
       // Call the updated synthesizeSpeech function
       const result = await synthesizeSpeech({
         text,
         voiceId,
-        speed: typeof speed === 'string' ? parseFloat(speed) : speed,
+        speed: parsedSpeed,
         temperature: typeof temperature === 'string' ? parseFloat(temperature) : temperature,
         textGuidance: typeof textGuidance === 'string' ? parseFloat(textGuidance) : textGuidance,
         voiceGuidance: typeof voiceGuidance === 'string' ? parseFloat(voiceGuidance) : voiceGuidance,
