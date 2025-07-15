@@ -232,7 +232,7 @@ export default function AgentDetailPage() {
         ...agent,
         // Default voice settings if not present in agent data
         voiceGuidance: agent.voiceGuidance || 1,
-        speed: agent.speed && agent.speed >= 0.7 ? agent.speed : 1.0,
+        speed: Math.max(0.7, Math.min(10, agent.speed || 1.0)),
         temperature: agent.temperature || 0.4,
         textGuidance: agent.textGuidance || 0.8,
         backgroundNoise: agent.backgroundNoise || false,
@@ -681,7 +681,7 @@ export default function AgentDetailPage() {
                     voice: {
                       provider: "11labs",
                       voiceId: saveData.voiceId,
-                      speed: Math.min(1.2, (agentData.speed || 10) / 10),
+                      speed: Math.max(0.7, agentData.speed || 1.0),
                       stability: saveData.temperature || 0.4
                     },
                     transcriber: {
