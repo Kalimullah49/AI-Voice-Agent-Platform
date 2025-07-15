@@ -497,6 +497,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get call recording download URL
+  app.get("/api/calls/:id/recording", isAuthenticated, async (req: Request, res: Response) => {
+    const callId = parseInt(req.params.id);
+    const userId = req.session.userId;
+    
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      // Get call details
+      const call = await storage.getCall(callId);
+      if (!call) {
+        return res.status(404).json({ 
+          success: false, 
+          message: "Call not found" 
+        });
+      }
+      
+      // Verify user owns this call (through agent ownership)
+      if (call.agentId) {
+        const agent = await storage.getAgent(call.agentId);
+        if (!agent || agent.userId !== userId) {
+          return res.status(403).json({ 
+            success: false, 
+            message: "Access denied" 
+          });
+        }
+      }
+      
+      // Check if we already have the recording URL
+      if (call.recordingUrl) {
+        return res.json({
+          success: true,
+          recordingUrl: call.recordingUrl
+        });
+      }
+      
+      // If no recording URL, try to fetch from Vapi
+      if (!call.vapiCallId) {
+        return res.status(404).json({
+          success: false,
+          message: "No recording available for this call"
+        });
+      }
+      
+      // Fetch call details from Vapi API
+      const vapiResponse = await fetch(`https://api.vapi.ai/call/${call.vapiCallId}`, {
+        headers: {
+          'Authorization': `Bearer ${process.env.VAPI_PRIVATE_KEY || "2291104d-93d4-4292-9d18-6f3af2e420e0"}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!vapiResponse.ok) {
+        return res.status(404).json({
+          success: false,
+          message: "Recording not found in Vapi"
+        });
+      }
+      
+      const vapiCallData = await vapiResponse.json();
+      
+      // Extract recording URL from artifact
+      let recordingUrl = null;
+      if (vapiCallData.artifact && vapiCallData.artifact.recordingUrl) {
+        recordingUrl = vapiCallData.artifact.recordingUrl;
+      }
+      
+      if (!recordingUrl) {
+        return res.status(404).json({
+          success: false,
+          message: "No recording available for this call"
+        });
+      }
+      
+      // Update call with recording URL
+      await storage.updateCall(callId, { recordingUrl });
+      
+      res.json({
+        success: true,
+        recordingUrl
+      });
+      
+    } catch (error) {
+      console.error("Error fetching call recording:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch call recording"
+      });
+    }
+  });
+
   app.post("/api/calls", async (req, res) => {
     try {
       const callData = insertCallSchema.parse(req.body);

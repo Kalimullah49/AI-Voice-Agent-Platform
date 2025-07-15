@@ -19,7 +19,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { TableSkeleton } from "@/components/ui/skeleton";
-import { DownloadIcon, CalendarIcon } from "lucide-react";
+import { DownloadIcon, CalendarIcon, FileAudio } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { formatDuration, formatPhoneNumber } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
 import { format, addDays, subDays } from "date-fns";
@@ -343,6 +344,7 @@ export default function CallsHistoryPage() {
                       <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Outcome</th>
                       <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total cost</th>
                       <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Started At</th>
+                      <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recording</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -380,6 +382,9 @@ export default function CallsHistoryPage() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {new Date(call.startedAt).toLocaleString()}
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <DownloadRecordingButton callId={call.id} />
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -394,5 +399,71 @@ export default function CallsHistoryPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// Component for downloading call recordings
+function DownloadRecordingButton({ callId }: { callId: number }) {
+  const [isDownloading, setIsDownloading] = useState(false);
+  const { toast } = useToast();
+
+  const handleDownload = async () => {
+    setIsDownloading(true);
+    try {
+      const response = await fetch(`/api/calls/${callId}/recording`);
+      const data = await response.json();
+      
+      if (data.success && data.recordingUrl) {
+        // Create a temporary link to download the recording
+        const link = document.createElement('a');
+        link.href = data.recordingUrl;
+        link.download = `call-recording-${callId}.mp3`;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast({
+          title: "Recording Downloaded",
+          description: "Call recording downloaded successfully",
+        });
+      } else {
+        toast({
+          title: "Recording Not Available",
+          description: data.message || "No recording available for this call",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Download Failed",
+        description: "Failed to download call recording",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={handleDownload}
+      disabled={isDownloading}
+      className="flex items-center gap-2"
+    >
+      {isDownloading ? (
+        <>
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+          <span>Loading...</span>
+        </>
+      ) : (
+        <>
+          <FileAudio className="h-4 w-4" />
+          <span>Download</span>
+        </>
+      )}
+    </Button>
   );
 }

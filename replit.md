@@ -12,6 +12,7 @@ Mind AI is a comprehensive AI-powered call center management and analytics solut
 - **Frontend**: React with TypeScript, Tailwind CSS, and shadcn/ui
 
 ## Recent Changes
+- **🎵 Call Recording Download Feature (July 15, 2025)**: Added complete call recording download functionality with Vapi integration - users can now download MP3 recordings directly from call history table with proper authentication and error handling
 - **🔧 Voice Speed Validation Fix (July 15, 2025)**: Fixed voice speed minimum limit to 0.7 as required by Vapi - updated frontend slider constraints, backend validation, and default values to prevent "voice speed must not be less than 0.7" errors
 - **🔧 Production Voice Synthesis Error Fix (July 9, 2025)**: Enhanced error handling for ElevenLabs "unusual activity" errors in production environment with user-friendly messaging - voice agents continue working for live calls despite test synthesis limitations
 - **🔧 Call Duration & Cost Sync Fix (July 9, 2025)**: Fixed webhook processing to properly sync call duration and cost data from Vapi dashboard to app call history - calls now show accurate duration and cost information
@@ -60,6 +61,7 @@ Mind AI is a comprehensive AI-powered call center management and analytics solut
 - ✅ Contact and group management with CSV import
 - ✅ Phone number purchase and assignment
 - ✅ Real-time call monitoring and analytics
+- ✅ Call recording download from Vapi artifacts
 - ✅ Email verification system with Postmark integration
 - ✅ Twilio account management with multiple SID support
 

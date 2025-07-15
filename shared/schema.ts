@@ -147,6 +147,8 @@ export const calls = pgTable("calls", {
   endedReason: text("ended_reason"), // Agent/Customer ended call
   outcome: text("outcome"), // transferred, no-outcome
   cost: real("cost").default(0),
+  recordingUrl: text("recording_url"), // URL to the call recording from Vapi
+  vapiCallId: text("vapi_call_id"), // Vapi call ID for fetching recording
   startedAt: timestamp("started_at").defaultNow().notNull(),
 });
 
