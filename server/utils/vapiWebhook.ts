@@ -24,7 +24,8 @@ async function processCallData(
   cost: number, 
   status: string, 
   endReason: string | null,
-  direction: string
+  direction: string,
+  recordingUrl: string | null = null
 ) {
   console.log(`Processing call data for assistantId: ${assistantId}, callId: ${callId}`);
   console.log(`Call details - Duration: ${duration}s, Cost: $${cost}, Status: ${status}, End Reason: ${endReason}`);
@@ -108,6 +109,16 @@ async function processCallData(
     
     console.log(`Call update data: ${JSON.stringify(updateData)}`);
     
+    // Add vapi_call_id if we have it and it's not already set
+    if (callId && !existingCall.vapiCallId) {
+      updateData.vapiCallId = callId;
+    }
+    
+    // Add recording URL if we have it and it's not already set
+    if (recordingUrl && !existingCall.recordingUrl) {
+      updateData.recordingUrl = recordingUrl;
+    }
+    
     // Only update if we have data to update
     if (Object.keys(updateData).length > 0) {
       const updatedCall = await storage.updateCall(existingCall.id, updateData);
@@ -148,7 +159,9 @@ async function processCallData(
       agentId: agent.id,
       direction,
       startedAt: new Date(),
-      outcome: status || 'unknown'
+      outcome: status || 'unknown',
+      vapiCallId: callId || null,
+      recordingUrl: recordingUrl || null
     } as any;
     
     // Only add metrics if the call is finished or we have valid metrics
@@ -220,6 +233,12 @@ async function processEndOfCallReport(data: any) {
       // Extract end reason
       endReason = message.endedReason || null;
       
+      // Extract recording URL from artifact
+      let recordingUrl = null;
+      if (message.artifact && message.artifact.recordingUrl) {
+        recordingUrl = message.artifact.recordingUrl;
+      }
+      
       // Extract phone numbers
       let fromNumber = '';
       let toNumber = '';
@@ -235,6 +254,7 @@ async function processEndOfCallReport(data: any) {
       // Process the extracted data
       console.log(`Call details from new format - Duration: ${duration}s, Cost: $${cost}, Status: ${status}, End Reason: ${endReason}`);
       console.log(`Phone numbers - From: ${fromNumber}, To: ${toNumber}`);
+      console.log(`Recording URL: ${recordingUrl}`);
       
       // Find the agent and update/create the call record
       await processCallData(
@@ -246,7 +266,8 @@ async function processEndOfCallReport(data: any) {
         cost, 
         status, 
         endReason, 
-        callData.type === 'outboundPhoneCall' ? 'outbound' : 'inbound'
+        callData.type === 'outboundPhoneCall' ? 'outbound' : 'inbound',
+        recordingUrl
       );
       
       return;
@@ -363,7 +384,8 @@ async function processEndOfCallReport(data: any) {
       cost,
       status,
       endReason,
-      callData.type === 'outboundPhoneCall' ? 'outbound' : 'inbound'
+      callData.type === 'outboundPhoneCall' ? 'outbound' : 'inbound',
+      null // recording URL - not available in legacy format
     );
     
   } catch (error) {
@@ -430,7 +452,8 @@ async function processStatusUpdate(data: any) {
           cost,
           'ended', // Always mark as ended for termination events
           message.endedReason || status, // Use the specific end reason
-          message.type === 'outboundPhoneCall' ? 'outbound' : 'inbound'
+          message.type === 'outboundPhoneCall' ? 'outbound' : 'inbound',
+          null // recording URL - not available in status update
         );
       } else {
         // Just update the status for non-ended statuses
@@ -443,7 +466,8 @@ async function processStatusUpdate(data: any) {
           0,
           status,
           null,
-          message.type === 'outboundPhoneCall' ? 'outbound' : 'inbound'
+          message.type === 'outboundPhoneCall' ? 'outbound' : 'inbound',
+          null // recording URL - not available in status update
         );
       }
       
@@ -497,7 +521,8 @@ async function processStatusUpdate(data: any) {
       0,
       status,
       null,
-      callData.type === 'outboundPhoneCall' ? 'outbound' : 'inbound'
+      callData.type === 'outboundPhoneCall' ? 'outbound' : 'inbound',
+      null // recording URL - not available in status update
     );
     
   } catch (error) {
