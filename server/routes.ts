@@ -1293,13 +1293,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       }
       
-      // Validate voice speed is at least 0.7 as required by Vapi
+      // Validate voice speed is within acceptable range (0.7-1.2 after conversion)
       if (assistantParams.voice && assistantParams.voice.speed !== undefined) {
         const speed = typeof assistantParams.voice.speed === 'string' ? parseFloat(assistantParams.voice.speed) : assistantParams.voice.speed;
-        if (speed < 0.7) {
+        if (speed < 0.7 || speed > 1.2) {
           return res.status(400).json({
             success: false,
-            message: "Voice speed must not be less than 0.7"
+            message: "Voice speed must be between 0.7 and 1.2"
           });
         }
         assistantParams.voice.speed = speed;
@@ -1567,11 +1567,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Parse and validate speed value
       const parsedSpeed = typeof speed === 'string' ? parseFloat(speed) : speed;
       
-      // Validate speed is at least 0.7 as required by Vapi
-      if (parsedSpeed && parsedSpeed < 0.7) {
+      // Validate speed is within acceptable range (0.7-1.2 after conversion)
+      if (parsedSpeed && (parsedSpeed < 0.7 || parsedSpeed > 1.2)) {
         return res.status(400).json({ 
           success: false, 
-          message: "Voice speed must not be less than 0.7" 
+          message: "Voice speed must be between 0.7 and 1.2" 
         });
       }
       
