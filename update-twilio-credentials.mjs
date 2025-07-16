@@ -3,8 +3,8 @@ import { twilioAccounts } from './shared/schema.ts';
 import { eq } from 'drizzle-orm';
 
 async function updateTwilioCredentials() {
-  const newAccountSid = 'AC521beb2502864bd198c5281de65b454e';
-  const newAuthToken = '03060fc8d6393a25b3fa6421e14f3557';
+  const newAccountSid = 'ACbc669435d8f51750070af6cc26226313';
+  const newAuthToken = '1fb01a79657b5f48dc1b354223a20338';
   
   console.log('🔧 Updating Twilio credentials in database...');
   console.log('New Account SID:', newAccountSid);

@@ -12,6 +12,7 @@ Mind AI is a comprehensive AI-powered call center management and analytics solut
 - **Frontend**: React with TypeScript, Tailwind CSS, and shadcn/ui
 
 ## Recent Changes
+- **🔧 Twilio Credentials Updated (July 16, 2025)**: Updated Twilio credentials to new account SID: ACbc669435d8f51750070af6cc26226313 and auth token for improved telephony services
 - **🎵 Call Recording Download Feature COMPLETED (July 15, 2025)**: Fully implemented call recording download system with complete Vapi integration
   - Enhanced webhook processing to extract and store recording URLs from Vapi artifact objects
   - Added `/api/calls/:id/recording` endpoint with automatic Vapi API fallback when recordings not cached

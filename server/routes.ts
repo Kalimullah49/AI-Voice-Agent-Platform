@@ -15,8 +15,8 @@ import twilio from 'twilio';
 import { DatabaseStorage } from "./database-storage";
 
 // Twilio credentials - hardcoded for reliability (per project requirements)
-const TWILIO_ACCOUNT_SID = "AC521beb2502864bd198c5281de65b454e";
-const TWILIO_AUTH_TOKEN = "03060fc8d6393a25b3fa6421e14f3557";
+const TWILIO_ACCOUNT_SID = "ACbc669435d8f51750070af6cc26226313";
+const TWILIO_AUTH_TOKEN = "1fb01a79657b5f48dc1b354223a20338";
 const twilioClient = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
 
 // Campaign execution queue management for concurrent calls across multiple users
