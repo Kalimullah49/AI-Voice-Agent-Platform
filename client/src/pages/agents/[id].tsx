@@ -113,7 +113,7 @@ export default function AgentDetailPage() {
     // Voice settings
     voiceId: "",
     voiceGuidance: 1,
-    speed: 10,
+    speed: 1.0,
     temperature: 0.4,
     textGuidance: 0.8,
     backgroundNoise: false,
@@ -232,7 +232,7 @@ export default function AgentDetailPage() {
         ...agent,
         // Default voice settings if not present in agent data
         voiceGuidance: agent.voiceGuidance || 1,
-        speed: Math.max(7, Math.min(10, agent.speed || 10)),
+        speed: Math.max(0.7, Math.min(1.2, agent.speed || 1.0)),
         temperature: agent.temperature || 0.4,
         textGuidance: agent.textGuidance || 0.8,
         backgroundNoise: agent.backgroundNoise || false,
@@ -681,7 +681,7 @@ export default function AgentDetailPage() {
                     voice: {
                       provider: "11labs",
                       voiceId: saveData.voiceId,
-                      speed: Math.max(0.7, (agentData.speed || 10) / 10),
+                      speed: Math.max(0.7, Math.min(1.2, agentData.speed || 1.0)),
                       stability: saveData.temperature || 0.4
                     },
                     transcriber: {
@@ -1274,7 +1274,7 @@ export default function AgentDetailPage() {
                     <div>
                       <h3 className="font-medium">Speed</h3>
                       <p className="text-sm text-muted-foreground">
-                        Controls how fast the generated audio should be. A number between 7 and 10; normal speed is 10.
+                        Controls how fast the generated audio should be. A number between 0.7 and 1.2; normal speed is 1.0.
                       </p>
                     </div>
                     <div className="text-xl font-medium">{agentData.speed}</div>
@@ -1282,8 +1282,8 @@ export default function AgentDetailPage() {
                   <div className="pt-4">
                     <Slider
                       value={[agentData.speed]}
-                      min={7}
-                      max={10}
+                      min={0.7}
+                      max={1.2}
                       step={0.1}
                       onValueChange={(value) => handleSliderChange("speed", value)}
                       className="w-full"
