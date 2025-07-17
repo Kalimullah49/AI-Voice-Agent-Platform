@@ -163,7 +163,8 @@ async function makeNextCall(execution: CampaignExecution) {
       agentId: execution.agent.id,
       duration: 0,
       cost: 0,
-      outcome: 'in-progress'
+      outcome: 'in-progress',
+      vapiCallId: callId
     });
 
     console.log(`✅ Call initiated: ${callId} to ${contact.firstName} ${contact.lastName}`);
@@ -191,7 +192,8 @@ async function makeNextCall(execution: CampaignExecution) {
         duration: 0,
         cost: 0,
         outcome: 'failed',
-        endedReason: error.message
+        endedReason: error.message,
+        vapiCallId: null
       });
     } catch (dbError) {
       console.error('Failed to create failed call record:', dbError);
@@ -2367,7 +2369,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         agentId: agent.id,
         duration: 0,
         cost: 0,
-        outcome: 'test-call'
+        outcome: 'test-call',
+        vapiCallId: callData.id
       });
       
       res.json({
@@ -2396,6 +2399,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error handling Vapi webhook:", error);
       return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Manual sync endpoint for calls that didn't get webhook updates
+  app.post("/api/calls/sync", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { syncAllPendingCalls } = await import('./utils/vapiSync');
+      const result = await syncAllPendingCalls();
+      
+      res.json({
+        success: result.success,
+        message: result.message,
+        syncedCount: result.synced
+      });
+    } catch (error) {
+      console.error("Error syncing calls:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Failed to sync calls" 
+      });
+    }
+  });
+
+  // Sync specific call by ID
+  app.post("/api/calls/:id/sync", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const callId = parseInt(req.params.id);
+      const call = await storage.getCall(callId);
+      
+      if (!call) {
+        return res.status(404).json({ 
+          success: false,
+          message: "Call not found" 
+        });
+      }
+      
+      if (!call.vapiCallId) {
+        return res.status(400).json({ 
+          success: false,
+          message: "Call has no Vapi call ID to sync with" 
+        });
+      }
+      
+      const { syncCallWithVapi } = await import('./utils/vapiSync');
+      const result = await syncCallWithVapi(call.vapiCallId);
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error syncing call:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Failed to sync call" 
+      });
     }
   });
   
@@ -2542,6 +2598,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         direction: "outbound",
         duration: 0, // This will be updated when the call ends
         startedAt: new Date(),
+        vapiCallId: data.id
       });
       
       res.json({ 

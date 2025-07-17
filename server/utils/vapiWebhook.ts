@@ -43,35 +43,51 @@ async function processCallData(
   // Try to find existing call in our database
   const calls = await storage.getAllCalls();
   
-  console.log(`Looking for matching call with fromNumber=${fromNumber}, toNumber=${toNumber}, agentId=${agent.id}`);
+  console.log(`Looking for matching call with fromNumber=${fromNumber}, toNumber=${toNumber}, agentId=${agent.id}, callId=${callId}`);
   
-  // First try to match by exact number combination
-  let existingCall = calls.find(call => 
-    call.agentId === agent.id && 
-    ((call.fromNumber === fromNumber && call.toNumber === toNumber) || 
-     (call.fromNumber === toNumber && call.toNumber === fromNumber))
-  );
+  // First try to match by Vapi call ID if available
+  let existingCall = null;
+  if (callId) {
+    existingCall = calls.find(call => call.vapiCallId === callId);
+    if (existingCall) {
+      console.log(`Found existing call by Vapi call ID: ${callId}, call record ID: ${existingCall.id}`);
+    }
+  }
   
-  // If we can't find by numbers, try to look up by agent and most recent calls
-  if (!existingCall && agent) {
-    console.log(`No exact number match found, trying to match by agent ID: ${agent.id}`);
+  // If no match by Vapi call ID, try to match by exact number combination and agent
+  if (!existingCall) {
+    existingCall = calls.find(call => 
+      call.agentId === agent.id && 
+      ((call.fromNumber === fromNumber && call.toNumber === toNumber) || 
+       (call.fromNumber === toNumber && call.toNumber === fromNumber))
+    );
     
-    // Get calls for this agent within the last 24 hours
+    if (existingCall) {
+      console.log(`Found existing call by phone number match: call record ID: ${existingCall.id}`);
+    }
+  }
+  
+  // If we still can't find by numbers, try to look up by agent and most recent calls that don't have vapi_call_id
+  if (!existingCall && agent) {
+    console.log(`No exact match found, trying to match by agent ID and recent calls: ${agent.id}`);
+    
+    // Get calls for this agent within the last 10 minutes that don't have vapi_call_id set
     const recentCalls = calls
       .filter(call => call.agentId === agent.id)
+      .filter(call => !call.vapiCallId) // Only consider calls without vapi_call_id
       .filter(call => {
         const callTime = new Date(call.startedAt).getTime();
-        const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-        return callTime > oneDayAgo;
+        const tenMinutesAgo = Date.now() - 10 * 60 * 1000; // 10 minutes
+        return callTime > tenMinutesAgo;
       })
       .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
     
-    console.log(`Found ${recentCalls.length} recent calls for agent ID: ${agent.id}`);
+    console.log(`Found ${recentCalls.length} recent calls without vapi_call_id for agent ID: ${agent.id}`);
     
     // Use the most recent call if available
     if (recentCalls.length > 0) {
       existingCall = recentCalls[0];
-      console.log(`Using most recent call (ID: ${existingCall.id}) for this agent`);
+      console.log(`Using most recent call without vapi_call_id (ID: ${existingCall.id}) for this agent`);
     }
   }
   
