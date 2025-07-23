@@ -426,7 +426,14 @@ export default function ContactsPage() {
                       id="phone-number" 
                       placeholder="Enter phone number" 
                       value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      onChange={(e) => {
+                        let value = e.target.value;
+                        // Auto-add +1 for US numbers if no country code present
+                        if (value && !value.startsWith('+') && value.length === 10) {
+                          value = '+1' + value;
+                        }
+                        setPhoneNumber(value);
+                      }}
                     />
                   </div>
 

@@ -402,21 +402,48 @@ export default function CallsHistoryPage() {
   );
 }
 
-// Component for downloading call recordings
+// Component for downloading call recordings with play functionality
 function DownloadRecordingButton({ callId }: { callId: number }) {
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [recordingUrl, setRecordingUrl] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const handleDownload = async () => {
-    setIsDownloading(true);
+  const fetchRecordingUrl = async () => {
     try {
       const response = await fetch(`/api/calls/${callId}/recording`);
       const data = await response.json();
       
       if (data.success && data.recordingUrl) {
+        setRecordingUrl(data.recordingUrl);
+        return data.recordingUrl;
+      } else {
+        toast({
+          title: "Recording Not Available",
+          description: data.message || "No recording available for this call",
+          variant: "destructive",
+        });
+        return null;
+      }
+    } catch (error) {
+      toast({
+        title: "Failed to Load Recording",
+        description: "Failed to load call recording",
+        variant: "destructive",
+      });
+      return null;
+    }
+  };
+
+  const handleDownload = async () => {
+    setIsDownloading(true);
+    try {
+      const url = recordingUrl || await fetchRecordingUrl();
+      
+      if (url) {
         // Create a temporary link to download the recording
         const link = document.createElement('a');
-        link.href = data.recordingUrl;
+        link.href = url;
         link.download = `call-recording-${callId}.mp3`;
         link.target = '_blank';
         document.body.appendChild(link);
@@ -426,12 +453,6 @@ function DownloadRecordingButton({ callId }: { callId: number }) {
         toast({
           title: "Recording Downloaded",
           description: "Call recording downloaded successfully",
-        });
-      } else {
-        toast({
-          title: "Recording Not Available",
-          description: data.message || "No recording available for this call",
-          variant: "destructive",
         });
       }
     } catch (error) {
@@ -445,25 +466,67 @@ function DownloadRecordingButton({ callId }: { callId: number }) {
     }
   };
 
+  const handlePlay = async () => {
+    try {
+      const url = recordingUrl || await fetchRecordingUrl();
+      
+      if (url) {
+        // Create an audio element and play it
+        const audio = new Audio(url);
+        setIsPlaying(true);
+        
+        audio.onended = () => setIsPlaying(false);
+        audio.onerror = () => {
+          setIsPlaying(false);
+          toast({
+            title: "Playback Failed",
+            description: "Failed to play call recording",
+            variant: "destructive",
+          });
+        };
+        
+        audio.play();
+      }
+    } catch (error) {
+      setIsPlaying(false);
+      toast({
+        title: "Playback Failed",
+        description: "Failed to play call recording",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={handleDownload}
-      disabled={isDownloading}
-      className="flex items-center gap-2"
-    >
-      {isDownloading ? (
-        <>
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-          <span>Loading...</span>
-        </>
-      ) : (
-        <>
-          <FileAudio className="h-4 w-4" />
-          <span>Download</span>
-        </>
-      )}
-    </Button>
+    <div className="flex items-center gap-1">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={handlePlay}
+        disabled={isPlaying}
+        className="flex items-center gap-1 px-2"
+      >
+        {isPlaying ? (
+          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary"></div>
+        ) : (
+          <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+        )}
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={handleDownload}
+        disabled={isDownloading}
+        className="flex items-center gap-1 px-2"
+      >
+        {isDownloading ? (
+          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary"></div>
+        ) : (
+          <FileAudio className="h-3 w-3" />
+        )}
+      </Button>
+    </div>
   );
 }

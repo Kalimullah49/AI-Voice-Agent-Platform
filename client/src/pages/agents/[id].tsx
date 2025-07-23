@@ -1614,8 +1614,18 @@ export default function AgentDetailPage() {
                       id="phoneNumber" 
                       placeholder="+12345678900" 
                       value={callToNumber}
-                      onChange={(e) => setCallToNumber(e.target.value)}
+                      onChange={(e) => {
+                        let value = e.target.value;
+                        // Auto-add +1 for US numbers if no country code present
+                        if (value && !value.startsWith('+') && value.length === 10) {
+                          value = '+1' + value;
+                        }
+                        setCallToNumber(value);
+                      }}
                     />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      US numbers will automatically get +1 prefix if not provided
+                    </p>
                   </div>
                   
                   <DialogFooter>

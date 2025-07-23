@@ -42,10 +42,25 @@ export async function makeOutboundCall(
       };
     }
     
-    // Format customer number to ensure E.164 format
-    const formattedCustomerNumber = customerNumber.startsWith('+') 
-      ? customerNumber 
-      : `+${customerNumber.replace(/\D/g, '')}`;
+    // Format customer number to ensure E.164 format with US +1 prefix
+    let formattedCustomerNumber = customerNumber.trim();
+    
+    // Remove any non-digit characters except the leading +
+    if (formattedCustomerNumber.startsWith('+')) {
+      formattedCustomerNumber = '+' + formattedCustomerNumber.slice(1).replace(/\D/g, '');
+    } else {
+      // Remove all non-digits
+      formattedCustomerNumber = formattedCustomerNumber.replace(/\D/g, '');
+      
+      // Auto-add +1 for US numbers if no country code present and appears to be 10-digit US number
+      if (formattedCustomerNumber.length === 10) {
+        formattedCustomerNumber = '+1' + formattedCustomerNumber;
+      } else if (!formattedCustomerNumber.startsWith('1') && formattedCustomerNumber.length === 11) {
+        formattedCustomerNumber = '+' + formattedCustomerNumber;
+      } else {
+        formattedCustomerNumber = '+' + formattedCustomerNumber;
+      }
+    }
     
     // Create payload exactly as required by Vapi.ai
     const payload = {

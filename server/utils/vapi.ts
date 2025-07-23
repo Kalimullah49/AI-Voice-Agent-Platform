@@ -661,6 +661,62 @@ export async function getAvailableVoices(): Promise<{ success: boolean; voices: 
           use_case: 'conversational',
           style: 'energetic',
           is_clone: false
+        },
+        {
+          voice_id: 'JBFqnCBsd6RMkjVDRZzb',
+          name: 'Sarah',
+          category: 'conversational',
+          description: 'Natural, friendly female voice',
+          preview_url: '',
+          gender: 'Female',
+          age: 'Young Adult', 
+          accent: 'American',
+          language: 'English',
+          use_case: 'conversational',
+          style: 'friendly',
+          is_clone: false
+        },
+        {
+          voice_id: 'TxGEqnHWrfWFTfGW9XjX',
+          name: 'Michael',
+          category: 'conversational',
+          description: 'Deep, authoritative male voice',
+          preview_url: '',
+          gender: 'Male',
+          age: 'Middle Aged',
+          accent: 'American',
+          language: 'English',
+          use_case: 'conversational',
+          style: 'authoritative',
+          is_clone: false
+        },
+        {
+          voice_id: 'AZnzlk1XvdvUeBnXmlld',
+          name: 'Domi',
+          category: 'conversational',
+          description: 'Confident, strong female voice',
+          preview_url: '',
+          gender: 'Female',
+          age: 'Young Adult',
+          accent: 'American',
+          language: 'English',
+          use_case: 'conversational',
+          style: 'confident',
+          is_clone: false
+        },
+        {
+          voice_id: 'CYw3kZ02Hs0563khs1Fj',
+          name: 'Dave',
+          category: 'conversational',
+          description: 'Casual, approachable male voice',
+          preview_url: '',
+          gender: 'Male', 
+          age: 'Young Adult',
+          accent: 'British',
+          language: 'English',
+          use_case: 'conversational',
+          style: 'casual',
+          is_clone: false
         }
       ];
       
