@@ -402,11 +402,12 @@ export default function CallsHistoryPage() {
   );
 }
 
-// Component for downloading call recordings with play functionality
+// Component for downloading call recordings with enhanced play/pause/stop functionality
 function DownloadRecordingButton({ callId }: { callId: number }) {
   const [isDownloading, setIsDownloading] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [playState, setPlayState] = useState<'stopped' | 'playing' | 'paused'>('stopped');
   const [recordingUrl, setRecordingUrl] = useState<string | null>(null);
+  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
   const { toast } = useToast();
 
   const fetchRecordingUrl = async () => {
@@ -466,29 +467,50 @@ function DownloadRecordingButton({ callId }: { callId: number }) {
     }
   };
 
-  const handlePlay = async () => {
+  const handlePlayPause = async () => {
     try {
-      const url = recordingUrl || await fetchRecordingUrl();
-      
-      if (url) {
-        // Create an audio element and play it
-        const audio = new Audio(url);
-        setIsPlaying(true);
+      if (playState === 'stopped') {
+        // Start playing
+        const url = recordingUrl || await fetchRecordingUrl();
         
-        audio.onended = () => setIsPlaying(false);
-        audio.onerror = () => {
-          setIsPlaying(false);
-          toast({
-            title: "Playback Failed",
-            description: "Failed to play call recording",
-            variant: "destructive",
-          });
-        };
-        
-        audio.play();
+        if (url) {
+          const audio = new Audio(url);
+          setAudioElement(audio);
+          setPlayState('playing');
+          
+          audio.onended = () => {
+            setPlayState('stopped');
+            setAudioElement(null);
+          };
+          
+          audio.onerror = () => {
+            setPlayState('stopped');
+            setAudioElement(null);
+            toast({
+              title: "Playback Failed",
+              description: "Failed to play call recording",
+              variant: "destructive",
+            });
+          };
+          
+          audio.play();
+        }
+      } else if (playState === 'playing') {
+        // Pause
+        if (audioElement) {
+          audioElement.pause();
+          setPlayState('paused');
+        }
+      } else if (playState === 'paused') {
+        // Resume
+        if (audioElement) {
+          audioElement.play();
+          setPlayState('playing');
+        }
       }
     } catch (error) {
-      setIsPlaying(false);
+      setPlayState('stopped');
+      setAudioElement(null);
       toast({
         title: "Playback Failed",
         description: "Failed to play call recording",
@@ -497,29 +519,65 @@ function DownloadRecordingButton({ callId }: { callId: number }) {
     }
   };
 
+  const handleStop = () => {
+    if (audioElement) {
+      audioElement.pause();
+      audioElement.currentTime = 0;
+      setAudioElement(null);
+    }
+    setPlayState('stopped');
+  };
+
+  const getPlayIcon = () => {
+    if (playState === 'playing') {
+      return (
+        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <rect x="6" y="4" width="4" height="16"></rect>
+          <rect x="14" y="4" width="4" height="16"></rect>
+        </svg>
+      );
+    } else {
+      return (
+        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+      );
+    }
+  };
+
   return (
     <div className="flex items-center gap-1">
       <Button
         variant="outline"
         size="sm"
-        onClick={handlePlay}
-        disabled={isPlaying}
+        onClick={handlePlayPause}
         className="flex items-center gap-1 px-2"
+        title={playState === 'playing' ? 'Pause' : 'Play'}
       >
-        {isPlaying ? (
-          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary"></div>
-        ) : (
-          <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <polygon points="5 3 19 12 5 21 5 3"></polygon>
-          </svg>
-        )}
+        {getPlayIcon()}
       </Button>
+      
+      {playState !== 'stopped' && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleStop}
+          className="flex items-center gap-1 px-2"
+          title="Stop"
+        >
+          <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          </svg>
+        </Button>
+      )}
+      
       <Button
         variant="outline"
         size="sm"
         onClick={handleDownload}
         disabled={isDownloading}
         className="flex items-center gap-1 px-2"
+        title="Download"
       >
         {isDownloading ? (
           <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary"></div>
