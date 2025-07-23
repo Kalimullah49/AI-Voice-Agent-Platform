@@ -429,7 +429,7 @@ export default function ContactsPage() {
                       onChange={(e) => {
                         let value = e.target.value;
                         // Auto-add +1 for US numbers if no country code present
-                        if (value && !value.startsWith('+') && value.length === 10) {
+                        if (value && !value.startsWith('+') && value.length === 10 && /^\d{10}$/.test(value)) {
                           value = '+1' + value;
                         }
                         setPhoneNumber(value);

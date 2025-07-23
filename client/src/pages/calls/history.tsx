@@ -92,8 +92,13 @@ export default function CallsHistoryPage() {
     queryKey: ["/api/calls"],
   });
   
+  // Sort calls by latest date and time first, then filter
+  const sortedCalls = calls?.sort((a, b) => {
+    return new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime();
+  });
+  
   // Filter the calls based on the current filters
-  const filteredCalls = calls?.filter((call) => {
+  const filteredCalls = sortedCalls?.filter((call) => {
     // Filter by duration
     const callDurationMinutes = Math.floor(call.duration / 60);
     if (callDurationMinutes < minDuration || callDurationMinutes > maxDuration) {
