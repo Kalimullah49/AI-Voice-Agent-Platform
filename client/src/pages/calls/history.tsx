@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRealTime } from "@/hooks/use-real-time";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,101 @@ import { useToast } from "@/hooks/use-toast";
 import { formatDuration, formatPhoneNumber } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
 import { format, addDays, subDays } from "date-fns";
+
+// Global audio manager to prevent conflicts
+class AudioManager {
+  private static instance: AudioManager;
+  private currentAudio: HTMLAudioElement | null = null;
+  private currentCallId: number | null = null;
+  private listeners: Map<number, (state: 'stopped' | 'playing' | 'paused') => void> = new Map();
+
+  static getInstance(): AudioManager {
+    if (!AudioManager.instance) {
+      AudioManager.instance = new AudioManager();
+    }
+    return AudioManager.instance;
+  }
+
+  subscribe(callId: number, callback: (state: 'stopped' | 'playing' | 'paused') => void) {
+    this.listeners.set(callId, callback);
+  }
+
+  unsubscribe(callId: number) {
+    this.listeners.delete(callId);
+  }
+
+  private notifyListeners() {
+    this.listeners.forEach((callback, callId) => {
+      if (callId === this.currentCallId) {
+        callback(this.currentAudio?.paused === false ? 'playing' : 
+                this.currentAudio?.currentTime === 0 ? 'stopped' : 'paused');
+      } else {
+        callback('stopped');
+      }
+    });
+  }
+
+  async play(callId: number, audioUrl: string): Promise<void> {
+    // Stop any currently playing audio
+    if (this.currentAudio && !this.currentAudio.paused) {
+      this.currentAudio.pause();
+    }
+
+    // If same call, resume or restart
+    if (this.currentCallId === callId && this.currentAudio) {
+      if (this.currentAudio.paused && this.currentAudio.currentTime > 0) {
+        await this.currentAudio.play();
+        this.notifyListeners();
+        return;
+      }
+    }
+
+    // Create new audio for different call
+    this.stop();
+    this.currentCallId = callId;
+    this.currentAudio = new Audio(audioUrl);
+    
+    this.currentAudio.onended = () => {
+      this.stop();
+    };
+
+    this.currentAudio.onerror = () => {
+      this.stop();
+    };
+
+    await this.currentAudio.play();
+    this.notifyListeners();
+  }
+
+  pause() {
+    if (this.currentAudio && !this.currentAudio.paused) {
+      this.currentAudio.pause();
+      this.notifyListeners();
+    }
+  }
+
+  stop() {
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+      this.currentAudio.currentTime = 0;
+      this.currentAudio = null;
+    }
+    this.currentCallId = null;
+    this.notifyListeners();
+  }
+
+  getCurrentCallId(): number | null {
+    return this.currentCallId;
+  }
+
+  isPlaying(callId: number): boolean {
+    return this.currentCallId === callId && this.currentAudio && !this.currentAudio.paused;
+  }
+
+  isPaused(callId: number): boolean {
+    return this.currentCallId === callId && this.currentAudio && this.currentAudio.paused && this.currentAudio.currentTime > 0;
+  }
+}
 
 export default function CallsHistoryPage() {
   // Function to handle CSV download
@@ -412,8 +507,22 @@ function DownloadRecordingButton({ callId }: { callId: number }) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [playState, setPlayState] = useState<'stopped' | 'playing' | 'paused'>('stopped');
   const [recordingUrl, setRecordingUrl] = useState<string | null>(null);
-  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
   const { toast } = useToast();
+  const audioManager = useRef(AudioManager.getInstance());
+
+  useEffect(() => {
+    const manager = audioManager.current;
+    
+    const handleStateChange = (state: 'stopped' | 'playing' | 'paused') => {
+      setPlayState(state);
+    };
+
+    manager.subscribe(callId, handleStateChange);
+
+    return () => {
+      manager.unsubscribe(callId);
+    };
+  }, [callId]);
 
   const fetchRecordingUrl = async () => {
     try {
@@ -473,64 +582,32 @@ function DownloadRecordingButton({ callId }: { callId: number }) {
   };
 
   const handlePlayPause = async () => {
+    const manager = audioManager.current;
+    
     try {
-      if (playState === 'stopped') {
-        // Start playing
+      if (playState === 'stopped' || playState === 'paused') {
+        // Start or resume playing
         const url = recordingUrl || await fetchRecordingUrl();
         
         if (url) {
-          const audio = new Audio(url);
-          setAudioElement(audio);
-          setPlayState('playing');
-          
-          audio.onended = () => {
-            setPlayState('stopped');
-            setAudioElement(null);
-          };
-          
-          audio.onerror = () => {
-            setPlayState('stopped');
-            setAudioElement(null);
-            toast({
-              title: "Playback Failed",
-              description: "Failed to play call recording",
-              variant: "destructive",
-            });
-          };
-          
-          audio.play();
+          await manager.play(callId, url);
         }
       } else if (playState === 'playing') {
         // Pause
-        if (audioElement) {
-          audioElement.pause();
-          setPlayState('paused');
-        }
-      } else if (playState === 'paused') {
-        // Resume
-        if (audioElement) {
-          audioElement.play();
-          setPlayState('playing');
-        }
+        manager.pause();
       }
     } catch (error) {
-      setPlayState('stopped');
-      setAudioElement(null);
+      console.error('Playback error:', error);
       toast({
         title: "Playback Failed",
-        description: "Failed to play call recording",
+        description: "Failed to play call recording. Please try again.",
         variant: "destructive",
       });
     }
   };
 
   const handleStop = () => {
-    if (audioElement) {
-      audioElement.pause();
-      audioElement.currentTime = 0;
-      setAudioElement(null);
-    }
-    setPlayState('stopped');
+    audioManager.current.stop();
   };
 
   const getPlayIcon = () => {

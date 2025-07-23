@@ -18,6 +18,7 @@ Mind AI is a comprehensive AI-powered call center management and analytics solut
   - Call recording interface upgraded with play/pause/stop and download controls for complete audio management
   - Improved phone number formatting in campaign execution with smart E.164 conversion
   - Call history sorted by latest date and time for better user experience
+  - Fixed audio playback conflicts with global AudioManager preventing "play() interrupted by pause()" errors
   - Streamlined user interface for better workflow efficiency
 - **🔧 Twilio Credentials Updated (July 16, 2025)**: Updated Twilio credentials to new account SID: ACbc669435d8f51750070af6cc26226313 and auth token for improved telephony services
 - **🎵 Call Recording Download Feature COMPLETED (July 15, 2025)**: Fully implemented call recording download system with complete Vapi integration
