@@ -8,7 +8,7 @@ import {
   insertCampaignSchema, insertTwilioAccountSchema 
 } from "@shared/schema";
 import { z } from "zod";
-import { testApiConnection, synthesizeSpeech, getAvailableVoices, createVapiAssistant, deleteVapiAssistant, VapiAssistantParams, registerPhoneNumberWithVapi, deleteVapiPhoneNumber } from "./utils/vapi";
+import { testApiConnection, synthesizeSpeech, getAvailableVoices, createVapiAssistant, deleteVapiAssistant, VapiAssistantParams, registerPhoneNumberWithVapi, deleteVapiPhoneNumber, assignPhoneNumberToAssistant } from "./utils/vapi";
 import { assignPhoneToAgent } from './utils/vapiIntegration';
 import twilio from 'twilio';
 // Our custom auth middleware will be imported dynamically
@@ -1288,10 +1288,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!result.success) {
           return res.status(500).json({ message: result.message });
         }
+
+        // If the assignment was successful and both Vapi IDs exist, assign the phone number to the assistant in Vapi.ai
+        if (result.phoneNumber && result.phoneNumber.vapiPhoneNumberId && agent.vapiAssistantId) {
+          console.log(`Assigning phone number ${result.phoneNumber.vapiPhoneNumberId} to assistant ${agent.vapiAssistantId} for inbound calls`);
+          
+          const vapiAssignResult = await assignPhoneNumberToAssistant(
+            result.phoneNumber.vapiPhoneNumberId,
+            agent.vapiAssistantId
+          );
+          
+          if (vapiAssignResult.success) {
+            console.log(`Successfully configured inbound calls for phone number ${result.phoneNumber.number}`);
+          } else {
+            console.error(`Failed to configure inbound calls: ${vapiAssignResult.message}`);
+            // Don't fail the entire operation - the local assignment still worked
+          }
+        } else if (agent.vapiAssistantId && !result.phoneNumber?.vapiPhoneNumberId) {
+          console.warn(`Phone number ${result.phoneNumber?.number} is not registered with Vapi.ai - inbound calls may not work`);
+        } else if (!agent.vapiAssistantId) {
+          console.warn(`Agent ${agent.name} doesn't have a Vapi assistant ID - inbound calls will not work`);
+        }
         
         return res.json(result.phoneNumber);
       } else {
-        // Just remove the agent assignment
+        // Remove the agent assignment - first check if we need to unassign from Vapi.ai
+        if (phoneNumber.vapiPhoneNumberId && phoneNumber.agentId) {
+          console.log(`Unassigning phone number ${phoneNumber.vapiPhoneNumberId} from Vapi.ai assistant`);
+          
+          // Try to unassign the phone number from its assistant in Vapi.ai
+          try {
+            const vapiUnassignResult = await assignPhoneNumberToAssistant(
+              phoneNumber.vapiPhoneNumberId,
+              "" // Empty string to unassign
+            );
+            
+            if (vapiUnassignResult.success) {
+              console.log(`Successfully unassigned phone number from Vapi.ai assistant`);
+            } else {
+              console.error(`Failed to unassign from Vapi.ai: ${vapiUnassignResult.message}`);
+            }
+          } catch (error) {
+            console.error('Error unassigning phone number from Vapi.ai:', error);
+          }
+        }
+        
+        // Remove the local assignment
         const updatedPhoneNumber = await storage.updatePhoneNumber(phoneNumberId, { agentId: null });
         res.json(updatedPhoneNumber);
       }

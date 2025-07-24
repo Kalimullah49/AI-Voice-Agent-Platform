@@ -6,22 +6,28 @@ import {
   DialogDescription, 
   DialogHeader, 
   DialogTitle,
-  DialogFooter
+  DialogFooter,
+  DialogTrigger
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+import { Loader2, Download } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 
 interface ImportPhoneNumbersDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  twilioAccounts: any[];
+  // No props needed - this is a self-contained dialog with trigger
 }
 
-export function ImportPhoneNumbersDialog({ open, onOpenChange, twilioAccounts }: ImportPhoneNumbersDialogProps) {
+export function ImportPhoneNumbersDialog(_props: ImportPhoneNumbersDialogProps = {}) {
+  const [open, setOpen] = useState(false);
   const [selectedAccountId, setSelectedAccountId] = useState<string>("");
   const queryClient = useQueryClient();
+  
+  // Fetch Twilio accounts
+  const { data: twilioAccounts } = useQuery({
+    queryKey: ["/api/twilio-accounts"],
+  });
   
   const importMutation = useMutation({
     mutationFn: async (accountId: number) => {
@@ -46,7 +52,7 @@ export function ImportPhoneNumbersDialog({ open, onOpenChange, twilioAccounts }:
         title: "Phone numbers imported",
         description: `Successfully imported ${data.imported.length} phone numbers${data.skipped.length > 0 ? ` (${data.skipped.length} already exist)` : ''}`,
       });
-      onOpenChange(false);
+      setOpen(false);
       setSelectedAccountId("");
     },
     onError: (error: Error) => {
@@ -72,7 +78,13 @@ export function ImportPhoneNumbersDialog({ open, onOpenChange, twilioAccounts }:
   };
   
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="text-blue-600 border-blue-600 hover:bg-blue-50">
+          <Download className="h-4 w-4 mr-2" />
+          Import Existing Numbers
+        </Button>
+      </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Import Existing Twilio Numbers</DialogTitle>
@@ -83,7 +95,7 @@ export function ImportPhoneNumbersDialog({ open, onOpenChange, twilioAccounts }:
         </DialogHeader>
         
         <div className="grid gap-4 py-4">
-          {twilioAccounts && Array.isArray(twilioAccounts) && twilioAccounts.length > 0 ? (
+          {Array.isArray(twilioAccounts) && twilioAccounts.length > 0 ? (
             <div className="grid gap-2">
               <label htmlFor="twilio-account" className="text-sm font-medium">
                 Select Twilio Account
@@ -96,7 +108,7 @@ export function ImportPhoneNumbersDialog({ open, onOpenChange, twilioAccounts }:
                   <SelectValue placeholder="Select a Twilio account" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Array.isArray(twilioAccounts) && twilioAccounts.filter(account => account && account.id).map((account) => (
+                  {Array.isArray(twilioAccounts) && twilioAccounts.filter((account: any) => account && account.id).map((account: any) => (
                     <SelectItem key={account.id} value={account.id.toString()}>
                       {account.accountName || "Unnamed Account"} {account.isDefault ? "(Default)" : ""}
                     </SelectItem>
@@ -114,7 +126,7 @@ export function ImportPhoneNumbersDialog({ open, onOpenChange, twilioAccounts }:
         <DialogFooter>
           <Button 
             variant="outline" 
-            onClick={() => onOpenChange(false)} 
+            onClick={() => setOpen(false)} 
             disabled={importMutation.isPending}
           >
             Cancel

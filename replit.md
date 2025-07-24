@@ -12,6 +12,13 @@ Mind AI is a comprehensive AI-powered call center management and analytics solut
 - **Frontend**: React with TypeScript, Tailwind CSS, and shadcn/ui
 
 ## Recent Changes
+- **🔧 CRITICAL INBOUND CALLING FIX (July 24, 2025)**: Fixed major issue preventing inbound agents from answering calls
+  - Added `assignPhoneNumberToAssistant` function to properly link phone numbers with Vapi.ai assistants for inbound calls
+  - Enhanced phone number assignment route to automatically configure Vapi.ai phone-to-assistant association
+  - Inbound calls now work correctly - phone numbers assigned to agents will be answered by the AI assistant
+  - Added comprehensive logging and error handling for Vapi.ai phone number assignment operations
+  - Fixed TypeScript errors in phone numbers page with proper array type checking
+  - Updated ImportPhoneNumbersDialog component to be self-contained with proper props interface
 - **✅ UI/UX Enhancements (July 23, 2025)**: Comprehensive improvements based on user feedback screenshot
   - Auto +1 prefix addition for US phone numbers across all input fields (agents, campaigns, contacts)
   - Enhanced voice selection with 8 humanoid voice options (added Sarah, Michael, Domi, Dave)

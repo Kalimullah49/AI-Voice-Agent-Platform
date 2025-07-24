@@ -341,7 +341,7 @@ export default function PhoneNumbersPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="unassigned">No agent assigned</SelectItem>
-                        {agents && agents.filter(agent => agent && agent.id).map((agent: any) => (
+                        {Array.isArray(agents) && agents.filter((agent: any) => agent && agent.id).map((agent: any) => (
                           <SelectItem key={agent.id} value={agent.id.toString()}>
                             {agent.name || 'Unnamed Agent'}
                           </SelectItem>
@@ -418,14 +418,7 @@ export default function PhoneNumbersPage() {
           </Dialog>
           
           {/* Import Phone Numbers button */}
-          <ImportPhoneNumbersDialog 
-            trigger={
-              <Button variant="outline" className="text-blue-600 border-blue-600 hover:bg-blue-50">
-                <Download className="h-4 w-4 mr-2" />
-                Import Existing Numbers
-              </Button>
-            }
-          />
+          <ImportPhoneNumbersDialog />
         </div>
       </div>
       
@@ -435,9 +428,9 @@ export default function PhoneNumbersPage() {
           <div className="grid gap-4">
             <TableSkeleton />
           </div>
-        ) : phoneNumbers && phoneNumbers.length > 0 ? (
+        ) : Array.isArray(phoneNumbers) && phoneNumbers.length > 0 ? (
           <div className="grid gap-4">
-            {phoneNumbers.map((phoneNumber: any) => (
+            {Array.isArray(phoneNumbers) && phoneNumbers.map((phoneNumber: any) => (
               <Card key={phoneNumber.id} className="p-4">
                 <div className="flex justify-between items-start">
                   <div className="space-y-2">
@@ -468,7 +461,7 @@ export default function PhoneNumbersPage() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="unassigned">No agent assigned</SelectItem>
-                          {agents && agents.filter(agent => agent && agent.id).map((agent: any) => (
+                          {Array.isArray(agents) && agents.filter((agent: any) => agent && agent.id).map((agent: any) => (
                             <SelectItem key={agent.id} value={agent.id.toString()}>
                               {agent.name || 'Unnamed Agent'}
                             </SelectItem>

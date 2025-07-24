@@ -479,6 +479,62 @@ export async function deleteVapiPhoneNumber(phoneNumberId: string): Promise<{ su
 }
 
 /**
+ * Update a phone number in Vapi.ai to assign it to an assistant for inbound calls
+ * @param vapiPhoneNumberId The Vapi phone number ID
+ * @param assistantId The Vapi assistant ID to handle inbound calls
+ * @returns Success status and message
+ */
+export async function assignPhoneNumberToAssistant(
+  vapiPhoneNumberId: string,
+  assistantId: string
+): Promise<{ success: boolean; message?: string; }> {
+  try {
+    if (!VAPI_PRIVATE_KEY) {
+      return {
+        success: false,
+        message: "Vapi.ai private key is not defined. Please set VAPI_PRIVATE_KEY in your environment variables."
+      };
+    }
+
+    console.log(`Assigning phone number ${vapiPhoneNumberId} to assistant ${assistantId} for inbound calls`);
+
+    const response = await fetch(`${VAPI_API_BASE_URL}/phone-number/${vapiPhoneNumberId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${VAPI_PRIVATE_KEY}`
+      },
+      body: JSON.stringify({
+        assistantId: assistantId
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json() as any;
+      console.error(`Vapi.ai API error assigning phone to assistant: ${response.status} - `, errorData);
+      return {
+        success: false,
+        message: `Error assigning phone number to assistant: ${errorData.message || errorData.error || 'Unknown error'}`
+      };
+    }
+
+    const responseData = await response.json();
+    console.log(`Successfully assigned phone number to assistant:`, responseData);
+
+    return {
+      success: true,
+      message: "Phone number successfully assigned to assistant for inbound calls"
+    };
+  } catch (error) {
+    console.error('Error assigning phone number to assistant:', error);
+    return {
+      success: false,
+      message: `Error assigning phone number to assistant: ${error instanceof Error ? error.message : 'Unknown error'}`
+    };
+  }
+}
+
+/**
  * Register a phone number with Vapi.ai
  * @param phoneNumber The phone number to register (in E.164 format)
  * @param twilioAccountSid The Twilio account SID
