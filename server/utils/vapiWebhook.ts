@@ -25,7 +25,8 @@ async function processCallData(
   status: string, 
   endReason: string | null,
   direction: string,
-  recordingUrl: string | null = null
+  recordingUrl: string | null = null,
+  actualStartTime: Date | null = null
 ) {
   console.log(`Processing call data for assistantId: ${assistantId}, callId: ${callId}`);
   console.log(`Call details - Duration: ${duration}s, Cost: $${cost}, Status: ${status}, End Reason: ${endReason}`);
@@ -45,40 +46,84 @@ async function processCallData(
   
   console.log(`Looking for matching call with fromNumber=${fromNumber}, toNumber=${toNumber}, agentId=${agent.id}, callId=${callId}`);
   
-  // First try to match by Vapi call ID if available
+  // First try to match by Vapi call ID if available - this is the most reliable
   let existingCall = null;
   if (callId) {
-    existingCall = calls.find(call => call.vapiCallId === callId);
+    // Check if there are multiple calls with the same Vapi call ID (duplicates)
+    const duplicateCalls = calls.filter(call => call.vapiCallId === callId);
+    
+    if (duplicateCalls.length > 1) {
+      console.warn(`⚠️ Found ${duplicateCalls.length} duplicate calls with Vapi ID: ${callId}`);
+      
+      // Use the call with the most complete data (highest duration, cost, recording)
+      existingCall = duplicateCalls.sort((a, b) => {
+        // Prioritize by recording URL presence
+        if (a.recordingUrl && !b.recordingUrl) return -1;
+        if (!a.recordingUrl && b.recordingUrl) return 1;
+        
+        // Then by duration
+        if (a.duration !== b.duration) return (b.duration || 0) - (a.duration || 0);
+        
+        // Then by cost
+        if (a.cost !== b.cost) return (b.cost || 0) - (a.cost || 0);
+        
+        // Finally by start time (most recent)
+        return new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime();
+      })[0];
+      
+      // Delete the other duplicate calls to prevent data inconsistency
+      const duplicatesToDelete = duplicateCalls.filter(call => call.id !== existingCall.id);
+      console.log(`🗑️ Removing ${duplicatesToDelete.length} duplicate calls`);
+      
+      for (const duplicate of duplicatesToDelete) {
+        try {
+          await storage.deleteCall(duplicate.id);
+          console.log(`✅ Deleted duplicate call ID: ${duplicate.id}`);
+        } catch (error) {
+          console.error(`❌ Failed to delete duplicate call ID: ${duplicate.id}`, error);
+        }
+      }
+    } else if (duplicateCalls.length === 1) {
+      existingCall = duplicateCalls[0];
+    }
+    
     if (existingCall) {
       console.log(`Found existing call by Vapi call ID: ${callId}, call record ID: ${existingCall.id}`);
     }
   }
   
-  // If no match by Vapi call ID, try to match by exact number combination and agent
-  if (!existingCall) {
-    existingCall = calls.find(call => 
+  // If no match by Vapi call ID, try more sophisticated matching
+  if (!existingCall && fromNumber && toNumber) {
+    // Try to match by exact number combination and agent within the last hour
+    const oneHourAgo = Date.now() - 60 * 60 * 1000;
+    const potentialMatches = calls.filter(call => 
       call.agentId === agent.id && 
+      new Date(call.startedAt).getTime() > oneHourAgo &&
       ((call.fromNumber === fromNumber && call.toNumber === toNumber) || 
        (call.fromNumber === toNumber && call.toNumber === fromNumber))
     );
     
-    if (existingCall) {
+    if (potentialMatches.length > 0) {
+      // Use the most recent match
+      existingCall = potentialMatches.sort((a, b) => 
+        new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()
+      )[0];
       console.log(`Found existing call by phone number match: call record ID: ${existingCall.id}`);
     }
   }
   
-  // If we still can't find by numbers, try to look up by agent and most recent calls that don't have vapi_call_id
-  if (!existingCall && agent) {
-    console.log(`No exact match found, trying to match by agent ID and recent calls: ${agent.id}`);
+  // If we still can't find by numbers and have unknown numbers, try to match by agent and timing
+  if (!existingCall && (fromNumber === 'unknown' || !fromNumber) && agent) {
+    console.log(`Trying to match call with unknown numbers by agent and timing`);
     
-    // Get calls for this agent within the last 10 minutes that don't have vapi_call_id set
+    // Get calls for this agent within the last 5 minutes that don't have vapi_call_id set
     const recentCalls = calls
       .filter(call => call.agentId === agent.id)
       .filter(call => !call.vapiCallId) // Only consider calls without vapi_call_id
       .filter(call => {
         const callTime = new Date(call.startedAt).getTime();
-        const tenMinutesAgo = Date.now() - 10 * 60 * 1000; // 10 minutes
-        return callTime > tenMinutesAgo;
+        const fiveMinutesAgo = Date.now() - 5 * 60 * 1000; // 5 minutes
+        return callTime > fiveMinutesAgo;
       })
       .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
     
@@ -135,6 +180,19 @@ async function processCallData(
       updateData.recordingUrl = recordingUrl;
     }
     
+    // Update start time if we have actual start time from Vapi and current call doesn't have proper phone numbers
+    if (actualStartTime && (!existingCall.fromNumber || existingCall.fromNumber === 'unknown')) {
+      updateData.startedAt = actualStartTime;
+      
+      // Also update phone numbers if they're missing or unknown
+      if (fromNumber && fromNumber !== 'unknown') {
+        updateData.fromNumber = fromNumber;
+      }
+      if (toNumber && toNumber !== 'unknown') {
+        updateData.toNumber = toNumber;
+      }
+    }
+    
     // Only update if we have data to update
     if (Object.keys(updateData).length > 0) {
       const updatedCall = await storage.updateCall(existingCall.id, updateData);
@@ -164,8 +222,8 @@ async function processCallData(
     } else {
       console.log(`No valid update data found for call ${existingCall.id}`);
     }
-  } else {
-    // Create a new call record
+  } else if (callId) {
+    // Only create a new call record if we have a valid Vapi call ID
     console.log(`Creating new call record for call ${callId}, status: ${status}, isCallFinished: ${isCallFinished}`);
     
     // Create the call record with agent info and call details
@@ -174,7 +232,7 @@ async function processCallData(
       toNumber: toNumber || 'unknown',
       agentId: agent.id,
       direction,
-      startedAt: new Date(),
+      startedAt: actualStartTime || new Date(),
       outcome: status || 'unknown',
       vapiCallId: callId || null,
       recordingUrl: recordingUrl || null
@@ -200,6 +258,8 @@ async function processCallData(
     console.log(`Creating new call with data: ${JSON.stringify(newCallData)}`);
     const newCall = await storage.createCall(newCallData);
     console.log(`New call record created with ID: ${newCall.id}, status: ${status}, cost: $${cost}, duration: ${duration}s`);
+  } else {
+    console.log(`Skipping call creation - no valid Vapi call ID provided and no existing call found`);
   }
 }
 
@@ -255,22 +315,40 @@ async function processEndOfCallReport(data: any) {
         recordingUrl = message.artifact.recordingUrl;
       }
       
-      // Extract phone numbers
+      // Extract phone numbers with proper logic for inbound vs outbound
       let fromNumber = '';
       let toNumber = '';
       
+      // For inbound calls: phoneNumber is the assistant's number, customer is the caller
+      // For outbound calls: phoneNumber is the assistant's number, customer is the recipient
       if (message.phoneNumber && message.phoneNumber.number) {
-        fromNumber = message.phoneNumber.number;
+        if (callData.type === 'inboundPhoneCall') {
+          toNumber = message.phoneNumber.number; // Assistant's number (receiving the call)
+        } else {
+          fromNumber = message.phoneNumber.number; // Assistant's number (making the call)
+        }
       }
       
       if (message.customer && message.customer.number) {
-        toNumber = message.customer.number;
+        if (callData.type === 'inboundPhoneCall') {
+          fromNumber = message.customer.number; // Customer calling in
+        } else {
+          toNumber = message.customer.number; // Customer being called
+        }
+      }
+      
+      // Extract actual call start time from Vapi data
+      let callStartTime = new Date();
+      if (callData.startedAt) {
+        callStartTime = new Date(callData.startedAt);
+      } else if (callData.createdAt) {
+        callStartTime = new Date(callData.createdAt);
       }
       
       // Process the extracted data
       console.log(`Call details from new format - Duration: ${duration}s, Cost: $${cost}, Status: ${status}, End Reason: ${endReason}`);
-      console.log(`Phone numbers - From: ${fromNumber}, To: ${toNumber}`);
-      console.log(`Recording URL: ${recordingUrl}`);
+      console.log(`Phone numbers - From: ${fromNumber}, To: ${toNumber}, Type: ${callData.type}`);
+      console.log(`Recording URL: ${recordingUrl}, Start Time: ${callStartTime.toISOString()}`);
       
       // Find the agent and update/create the call record
       await processCallData(
@@ -283,7 +361,8 @@ async function processEndOfCallReport(data: any) {
         status, 
         endReason, 
         callData.type === 'outboundPhoneCall' ? 'outbound' : 'inbound',
-        recordingUrl
+        recordingUrl,
+        callStartTime
       );
       
       return;
@@ -424,16 +503,32 @@ async function processStatusUpdate(data: any) {
       const status = message.status || callData.status || 'unknown';
       const assistantId = message.assistant?.id || callData.assistantId || '';
       
-      // Extract phone numbers
+      // Extract phone numbers with proper logic for inbound vs outbound
       let fromNumber = '';
       let toNumber = '';
       
       if (message.phoneNumber && message.phoneNumber.number) {
-        fromNumber = message.phoneNumber.number;
+        if (callData.type === 'inboundPhoneCall') {
+          toNumber = message.phoneNumber.number; // Assistant's number (receiving the call)
+        } else {
+          fromNumber = message.phoneNumber.number; // Assistant's number (making the call)
+        }
       }
       
       if (message.customer && message.customer.number) {
-        toNumber = message.customer.number;
+        if (callData.type === 'inboundPhoneCall') {
+          fromNumber = message.customer.number; // Customer calling in
+        } else {
+          toNumber = message.customer.number; // Customer being called
+        }
+      }
+      
+      // Extract actual call start time
+      let callStartTime = new Date();
+      if (callData.startedAt) {
+        callStartTime = new Date(callData.startedAt);
+      } else if (callData.createdAt) {
+        callStartTime = new Date(callData.createdAt);
       }
       
       // Process the extracted data
@@ -468,8 +563,9 @@ async function processStatusUpdate(data: any) {
           cost,
           'ended', // Always mark as ended for termination events
           message.endedReason || status, // Use the specific end reason
-          message.type === 'outboundPhoneCall' ? 'outbound' : 'inbound',
-          null // recording URL - not available in status update
+          callData.type === 'outboundPhoneCall' ? 'outbound' : 'inbound',
+          null, // recording URL - not available in status update
+          callStartTime
         );
       } else {
         // Just update the status for non-ended statuses
@@ -482,8 +578,9 @@ async function processStatusUpdate(data: any) {
           0,
           status,
           null,
-          message.type === 'outboundPhoneCall' ? 'outbound' : 'inbound',
-          null // recording URL - not available in status update
+          callData.type === 'outboundPhoneCall' ? 'outbound' : 'inbound',
+          null, // recording URL - not available in status update
+          callStartTime
         );
       }
       
