@@ -39,6 +39,8 @@ export interface IStorage {
   createCall(call: InsertCall): Promise<Call>;
   getAllCalls(): Promise<Call[]>;
   getCallsByAgentId(agentId: number): Promise<Call[]>;
+  deleteCall(id: number): Promise<boolean>;
+  deleteCall(id: number): Promise<boolean>;
   
   // Action operations
   getAction(id: number): Promise<Action | undefined>;
@@ -231,16 +233,18 @@ export class MemStorage implements IStorage {
   
   async createCall(insertCall: InsertCall): Promise<Call> {
     const id = this.callId++;
-    const startedAt = new Date();
     const call: Call = { 
       ...insertCall, 
       id, 
-      startedAt,
+      startedAt: insertCall.startedAt || new Date(),
       agentId: insertCall.agentId ?? null,
       duration: insertCall.duration ?? 0,
       endedReason: insertCall.endedReason ?? null,
       outcome: insertCall.outcome ?? null,
-      cost: insertCall.cost ?? null
+      cost: insertCall.cost ?? null,
+      vapiCallId: insertCall.vapiCallId ?? null,
+      recordingUrl: insertCall.recordingUrl ?? null,
+      direction: insertCall.direction ?? 'outbound'
     };
     this.calls.set(id, call);
     return call;
@@ -252,6 +256,10 @@ export class MemStorage implements IStorage {
   
   async getCallsByAgentId(agentId: number): Promise<Call[]> {
     return Array.from(this.calls.values()).filter(call => call.agentId === agentId);
+  }
+
+  async deleteCall(id: number): Promise<boolean> {
+    return this.calls.delete(id);
   }
   
   // Action operations

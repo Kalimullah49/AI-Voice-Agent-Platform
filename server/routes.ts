@@ -428,6 +428,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Endpoint to sync calls from Vapi.ai
+  app.post("/api/calls/sync-vapi", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found in session" });
+      }
+
+      const VAPI_PRIVATE_KEY = '2291104d-93d4-4292-9d18-6f3af2e420e0';
+      
+      // Fetch calls from Vapi
+      const vapiResponse = await fetch('https://api.vapi.ai/call', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${VAPI_PRIVATE_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!vapiResponse.ok) {
+        return res.status(500).json({ 
+          success: false, 
+          message: "Failed to fetch calls from Vapi" 
+        });
+      }
+      
+      const vapiCalls = await vapiResponse.json();
+      
+      // Get user's agents
+      const userAgents = await storage.getAllAgentsByUserId(userId);
+      const assistantToAgent = new Map();
+      
+      for (const agent of userAgents) {
+        if (agent.vapiAssistantId) {
+          assistantToAgent.set(agent.vapiAssistantId, agent);
+        }
+      }
+      
+      // Get existing calls
+      const existingCalls = await storage.getAllCalls();
+      const existingVapiIds = new Set(existingCalls.map(call => call.vapiCallId).filter(Boolean));
+      
+      let syncedCount = 0;
+      let skippedCount = 0;
+      
+      for (const vapiCall of vapiCalls) {
+        // Skip if already exists
+        if (existingVapiIds.has(vapiCall.id)) {
+          skippedCount++;
+          continue;
+        }
+        
+        // Find matching agent
+        const agent = assistantToAgent.get(vapiCall.assistantId);
+        if (!agent) {
+          skippedCount++;
+          continue;
+        }
+        
+        // Create call record
+        const callData = {
+          fromNumber: vapiCall.customer?.number || 'unknown',
+          toNumber: vapiCall.phoneNumber?.number || 'unknown',
+          agentId: agent.id,
+          direction: vapiCall.type === 'inboundPhoneCall' ? 'inbound' : 'outbound',
+          duration: vapiCall.durationSeconds || 0,
+          endedReason: vapiCall.endedReason || null,
+          outcome: vapiCall.status || 'unknown',
+          cost: vapiCall.cost || 0,
+          recordingUrl: null,
+          vapiCallId: vapiCall.id,
+          startedAt: vapiCall.startedAt ? new Date(vapiCall.startedAt) : new Date()
+        };
+        
+        await storage.createCall(callData);
+        syncedCount++;
+      }
+      
+      return res.json({
+        success: true,
+        message: `Synced ${syncedCount} new calls, skipped ${skippedCount} existing/unmatched calls`,
+        synced: syncedCount,
+        skipped: skippedCount,
+        totalVapiCalls: vapiCalls.length
+      });
+      
+    } catch (error) {
+      console.error("Error syncing Vapi calls:", error);
+      return res.status(500).json({ 
+        success: false,
+        message: "Failed to sync calls from Vapi" 
+      });
+    }
+  });
+
   // Endpoint to clear call records for a fresh start with webhook data
   app.post("/api/calls/clear", isAuthenticated, async (req: Request, res: Response) => {
     try {
