@@ -12,6 +12,13 @@ Mind AI is a comprehensive AI-powered call center management and analytics solut
 - **Frontend**: React with TypeScript, Tailwind CSS, and shadcn/ui
 
 ## Recent Changes
+- **✅ CALL DURATION SYNC COMPLETE (July 25, 2025)**: Resolved all call duration display issues with comprehensive Vapi synchronization
+  - Fixed webhook synchronization preventing calls from appearing in user history  
+  - Successfully synced 3 missing calls from Vapi.ai, bringing total user calls to 4
+  - Updated database with accurate duration values (22s, 14s, 33s, 15s) from individual Vapi call details
+  - Enhanced sync endpoint `/api/calls/sync-vapi` for automatic call retrieval and data consistency
+  - Call history now displays proper timing instead of 00:00 for all historical calls
+  - Webhook processing working correctly for new live calls with real-time duration updates
 - **🔧 CRITICAL INBOUND CALLING FIX (July 24, 2025)**: Fixed major issue preventing inbound agents from answering calls
   - Added `assignPhoneNumberToAssistant` function to properly link phone numbers with Vapi.ai assistants for inbound calls
   - Enhanced phone number assignment route to automatically configure Vapi.ai phone-to-assistant association
@@ -89,7 +96,8 @@ Mind AI is a comprehensive AI-powered call center management and analytics solut
 - ✅ Email verification system with Postmark integration
 - ✅ Twilio account management with multiple SID support
 
-## Current Issues Being Resolved
+## Current Issues Being Resolved  
+- ✅ **Call Duration Display Fixed (July 25, 2025)**: All calls now show accurate duration data with proper Vapi synchronization
 - 🔧 **Campaign Call Issues Fixed (July 8, 2025)**: Improved campaign execution with better error handling, phone number validation, and Twilio connection error detection
 - 🔧 **Call Termination Logic Enhanced (July 8, 2025)**: Added proper handling for failed calls, timeout management, and webhook processing for campaign calls
 - 🔧 **Campaign Debugging System (July 8, 2025)**: Added `/api/campaigns/:id/debug` endpoint for troubleshooting call delivery issues
