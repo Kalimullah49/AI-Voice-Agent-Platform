@@ -487,20 +487,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           continue;
         }
         
-        // Create call record
+        // Create call record with comprehensive data extraction
         const callData = {
           fromNumber: vapiCall.customer?.number || 'unknown',
           toNumber: vapiCall.phoneNumber?.number || 'unknown',
           agentId: agent.id,
           direction: vapiCall.type === 'inboundPhoneCall' ? 'inbound' : 'outbound',
-          duration: vapiCall.durationSeconds || 0,
+          duration: vapiCall.durationSeconds || vapiCall.duration || 0,
           endedReason: vapiCall.endedReason || null,
           outcome: vapiCall.status || 'unknown',
           cost: vapiCall.cost || 0,
-          recordingUrl: null,
+          recordingUrl: vapiCall.recordingUrl || null,
           vapiCallId: vapiCall.id,
           startedAt: vapiCall.startedAt ? new Date(vapiCall.startedAt) : new Date()
         };
+        
+        console.log(`Creating call for ${vapiCall.id}: duration=${callData.duration}, cost=${callData.cost}, status=${callData.outcome}`);
         
         await storage.createCall(callData);
         syncedCount++;
