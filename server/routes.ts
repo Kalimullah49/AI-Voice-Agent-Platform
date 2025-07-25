@@ -487,12 +487,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           continue;
         }
         
-        // Create call record with comprehensive data extraction
+        // Create call record with correct phone number mapping for inbound calls
+        const isInbound = vapiCall.type === 'inboundPhoneCall';
+        const customerNumber = vapiCall.customer?.number || 'unknown';
+        const businessNumber = vapiCall.phoneNumber?.number || '+12183797501'; // Default to our business number
+        
         const callData = {
-          fromNumber: vapiCall.customer?.number || 'unknown',
-          toNumber: vapiCall.phoneNumber?.number || 'unknown',
+          fromNumber: isInbound ? customerNumber : businessNumber,  // For inbound: customer calls us
+          toNumber: isInbound ? businessNumber : customerNumber,    // For inbound: call goes to our number
           agentId: agent.id,
-          direction: vapiCall.type === 'inboundPhoneCall' ? 'inbound' : 'outbound',
+          direction: isInbound ? 'inbound' : 'outbound',
           duration: vapiCall.durationSeconds || vapiCall.duration || 0,
           endedReason: vapiCall.endedReason || null,
           outcome: vapiCall.status || 'unknown',

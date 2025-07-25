@@ -185,11 +185,26 @@ async function processCallData(
       updateData.startedAt = actualStartTime;
       
       // Also update phone numbers if they're missing or unknown
-      if (fromNumber && fromNumber !== 'unknown') {
-        updateData.fromNumber = fromNumber;
-      }
-      if (toNumber && toNumber !== 'unknown') {
-        updateData.toNumber = toNumber;
+      // For inbound calls, ensure correct phone number mapping
+      if (direction === 'inbound') {
+        // For inbound: customer calls us, so FROM=customer, TO=our business number
+        if (fromNumber && fromNumber !== 'unknown') {
+          updateData.fromNumber = fromNumber;
+        }
+        if (toNumber && toNumber !== 'unknown') {
+          updateData.toNumber = toNumber;
+        } else if (!existingCall.toNumber || existingCall.toNumber === 'unknown') {
+          // Default to our business number for inbound calls
+          updateData.toNumber = '+12183797501';
+        }
+      } else {
+        // For outbound: we call customer, so FROM=our business number, TO=customer
+        if (fromNumber && fromNumber !== 'unknown') {
+          updateData.fromNumber = fromNumber;
+        }
+        if (toNumber && toNumber !== 'unknown') {
+          updateData.toNumber = toNumber;
+        }
       }
     }
     
@@ -226,10 +241,13 @@ async function processCallData(
     // Only create a new call record if we have a valid Vapi call ID
     console.log(`Creating new call record for call ${callId}, status: ${status}, isCallFinished: ${isCallFinished}`);
     
-    // Create the call record with agent info and call details
+    // Create the call record with agent info and call details - correct phone number mapping
+    const correctFromNumber = direction === 'inbound' ? fromNumber : (fromNumber || '+12183797501');
+    const correctToNumber = direction === 'inbound' ? (toNumber || '+12183797501') : fromNumber;
+    
     const newCallData = {
-      fromNumber: fromNumber || 'unknown',
-      toNumber: toNumber || 'unknown',
+      fromNumber: correctFromNumber || 'unknown',
+      toNumber: correctToNumber || 'unknown',
       agentId: agent.id,
       direction,
       startedAt: actualStartTime || new Date(),
