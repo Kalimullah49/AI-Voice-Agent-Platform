@@ -196,6 +196,7 @@ export class MemStorage implements IStorage {
       vapiAssistantId: insertAgent.vapiAssistantId ?? null,
       edgeCases: insertAgent.edgeCases ?? null,
       script: insertAgent.script ?? null,
+      faqs: insertAgent.faqs ?? null, // Added FAQs field
       summarizerPrompt: insertAgent.summarizerPrompt ?? null,
       responseIntelligenceLevel: insertAgent.responseIntelligenceLevel ?? null,
       active: insertAgent.active ?? null,

@@ -112,6 +112,7 @@ export const agents = pgTable("agents", {
   agentRules: text("agent_rules"),
   edgeCases: text("edge_cases"),
   script: text("script"),
+  faqs: text("faqs"), // Added FAQs field
   summarizerPrompt: text("summarizer_prompt"),
   responseIntelligenceLevel: text("response_intelligence_level"),
   active: boolean("active").default(false),
@@ -129,6 +130,7 @@ export const insertAgentSchema = createInsertSchema(agents).pick({
   agentRules: true,
   edgeCases: true,
   script: true,
+  faqs: true, // Added FAQs to the schema
   summarizerPrompt: true,
   responseIntelligenceLevel: true,
   active: true,
