@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
@@ -1610,21 +1611,13 @@ export default function AgentDetailPage() {
                   
                   <div className="py-4">
                     <Label htmlFor="phoneNumber">Phone Number to Call</Label>
-                    <Input 
-                      id="phoneNumber" 
-                      placeholder="+12345678900" 
+                    <PhoneInput 
                       value={callToNumber}
-                      onChange={(e) => {
-                        let value = e.target.value;
-                        // Auto-add +1 for US numbers if no country code present
-                        if (value && !value.startsWith('+') && value.length === 10) {
-                          value = '+1' + value;
-                        }
-                        setCallToNumber(value);
-                      }}
+                      onChange={setCallToNumber}
+                      placeholder="Enter phone number"
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                      US numbers will automatically get +1 prefix if not provided
+                      Select the country code and enter the phone number
                     </p>
                   </div>
                   

@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { TableSkeleton } from "@/components/ui/skeleton";
 import { PlusIcon, Trash2, UserPlus, UploadCloud } from "lucide-react";
 import {
@@ -422,18 +423,10 @@ export default function ContactsPage() {
                 <div className="py-2 space-y-4">
                   <div className="space-y-2">
                     <label htmlFor="phone-number" className="text-sm font-medium">Phone Number</label>
-                    <Input 
-                      id="phone-number" 
-                      placeholder="Enter phone number" 
+                    <PhoneInput 
                       value={phoneNumber}
-                      onChange={(e) => {
-                        let value = e.target.value;
-                        // Auto-add +1 for US numbers if no country code present
-                        if (value && !value.startsWith('+') && value.length === 10 && /^\d{10}$/.test(value)) {
-                          value = '+1' + value;
-                        }
-                        setPhoneNumber(value);
-                      }}
+                      onChange={setPhoneNumber}
+                      placeholder="Enter phone number"
                     />
                   </div>
 
