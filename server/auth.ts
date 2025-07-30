@@ -43,10 +43,19 @@ export function isAuthenticated(req: Request, res: Response, next: NextFunction)
   console.log("🔍 Auth check - cookie:", req.headers.cookie);
   console.log("🔍 Auth check - session object:", req.session);
   
+  // Check if session exists and has a valid userId
   if (req.session?.userId) {
+    // Touch the session to extend its lifetime
+    req.session.touch();
     next();
   } else {
     console.log("❌ Authentication failed - no valid session");
+    console.log("❌ Session details:", {
+      sessionExists: !!req.session,
+      sessionId: req.session?.id,
+      userId: req.session?.userId,
+      sessionCookie: req.headers.cookie
+    });
     res.status(401).json({ message: "Unauthorized" });
   }
 }
@@ -69,12 +78,13 @@ export function setupAuth(app: Express) {
     cookie: {
       secure: false, // Keep false for Replit environment
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days instead of 24 hours
       sameSite: 'lax', // Use lax for better compatibility
       domain: undefined,
       path: '/'
     },
-    name: 'sessionId' // Custom session name
+    name: 'sessionId', // Custom session name
+    rolling: true // Reset expiration on activity
   }));
 
   console.log("✅ Session middleware configured");

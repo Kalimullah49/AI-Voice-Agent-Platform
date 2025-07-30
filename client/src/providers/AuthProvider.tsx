@@ -57,10 +57,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error?.message?.includes('401') || error?.message?.includes('Unauthorized')) {
         return false;
       }
-      return failureCount < 2;
+      return failureCount < 1; // Reduce retry attempts
     },
     gcTime: 0,
-    staleTime: 1000 * 60 * 2, // 2 minutes
+    staleTime: 1000 * 60 * 5, // 5 minutes - longer cache time
+    refetchInterval: 1000 * 60 * 10, // Refresh session every 10 minutes if user is active
   });
 
   // Login mutation
