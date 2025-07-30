@@ -202,14 +202,14 @@ export default function CampaignsPage() {
                 Create new campaign
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
+            <DialogContent className="sm:max-w-[500px] max-h-[90vh] flex flex-col">
+              <DialogHeader className="flex-shrink-0">
                 <DialogTitle>Create new Campaign</DialogTitle>
                 <DialogDescription>
                   Enter the name of the new campaign and the associated agent and contact group.
                 </DialogDescription>
               </DialogHeader>
-              <div className="py-4 space-y-5">
+              <div className="flex-1 overflow-y-auto py-4 space-y-5">
                 <div className="space-y-2">
                   <label htmlFor="name" className="text-sm font-medium">Name</label>
                   <Input 
@@ -296,7 +296,14 @@ export default function CampaignsPage() {
                 </div>
               </div>
               
-              <DialogFooter>
+              <DialogFooter className="flex-shrink-0 border-t pt-4">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsCreateDialogOpen(false)}
+                  disabled={createCampaignMutation.isPending}
+                >
+                  Cancel
+                </Button>
                 <Button 
                   onClick={() => {
                     if (!campaignName || !selectedAgentId) return;

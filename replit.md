@@ -12,6 +12,16 @@ Mind AI is a comprehensive AI-powered call center management and analytics solut
 - **Frontend**: React with TypeScript, Tailwind CSS, and shadcn/ui
 
 ## Recent Changes
+- **✅ UI/UX Enhancement (July 30, 2025)**: Fixed campaign creation dialog scrolling issue with proper flex layout and max-height constraints
+  - Added scrollable content area for long forms with fixed header and footer
+  - Enhanced dialog responsiveness with proper overflow handling  
+  - Improved user experience for campaign creation workflow
+- **🔧 Authentication System Enhancement (July 30, 2025)**: Resolved persistent session timeout and authentication redirect issues
+  - Extended session duration from 24 hours to 7 days with rolling expiration
+  - Improved query client retry logic to handle authentication errors gracefully
+  - Enhanced authentication middleware with session touch for better session management
+  - Fixed call API authentication issues - outbound calls working correctly
+  - International phone number support remains fully functional
 - **✅ CALL DURATION SYNC COMPLETE (July 25, 2025)**: Resolved all call duration display issues with comprehensive Vapi synchronization
   - Fixed webhook synchronization preventing calls from appearing in user history  
   - Successfully synced 3 missing calls from Vapi.ai, bringing total user calls to 4
